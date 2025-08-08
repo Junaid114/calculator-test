@@ -1,0 +1,2749 @@
+<?php
+$params = ['name', 'slab_width', 'slab_heigth', 'pad_width', 'pad_heigth', 'edges'];
+foreach( $params as $param ) {
+	if ( !isset($_GET[$param]) || empty($_GET[$param]) ) {
+		echo '<h2 style="color:red">' . ucfirst($param) . ' is Missing</h2>';
+		exit;
+	}
+}
+
+
+?>
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<title>"<?=$_GET['name']?>" Slab & Cutting Area MM Calculator</title>
+		<style>
+			body {
+				margin: 0;
+				padding: 0;
+				font-family: Arial, sans-serif;
+				overflow: hidden;
+			}
+			
+			.heading {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 0 10px;
+			}
+
+			.heading h2 {
+				font-weight: 400;
+			}
+
+			#toolbar {
+				background-color: #d1d3d4;
+				padding: 10px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+
+			#toolbar img {
+				margin-right: 6px;
+				width: 23px;
+				height: 23px;
+				cursor: pointer;
+			}
+
+			#toolbar img#tutorial {
+				margin-right: 0;
+			}
+
+			#toolbar .btns .pos-relative {
+				position: relative;
+				display: inline-block;
+			}
+
+			#toolbar .btns ul.dropdown {
+				list-style: none;
+				padding-left: 0;
+				margin: 0;
+				z-index: 1;
+				position: absolute;
+				right: 0;
+				background: #fff;
+				border: 1px solid rgba(0, 0, 0, .15);
+				border-radius: .25rem;
+				box-shadow: 0px 0px 25px -11px rgba(0,0,0,0.75);
+				display: none;
+			}
+
+			#toolbar .btns ul.dropdown li {
+				padding: 10px;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+
+			#toolbar .btns ul.dropdown li:hover {
+				background-color: #e9ecef;
+			}
+
+			#toolbar .btns ul.dropdown li:first-child {
+				border-bottom: 1px solid #c2c2c2;
+			}
+
+			#canvas-container {
+				position: relative;
+				overflow: auto;
+			}
+
+			.ruler {
+				position: absolute;
+				background-color: #333333;
+			}
+
+			#ruler-x {
+				top: 0;
+				left: 0;
+				height: 30px;
+			}
+
+			#ruler-y {
+				top: 0;
+				left: 0;
+				width: 30px;
+			}
+
+			.ruler-text {
+				position: absolute;
+				font-size: 10px;
+				color: #d1d3d4;
+
+			}
+
+			#ruler-y .ruler-text {
+				rotate: 90deg;
+			}
+
+			#canvas {
+				margin-left: 30px;
+				margin-top: 30px;
+				background-color: #fff;
+			}
+
+			#shapeModal,
+			#emailModal,
+			#videoTutorialModal {
+				display: none;
+				position: fixed;
+				z-index: 1;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				padding-top: 20px;
+				background-color: rgba(0, 0, 0, 0.5);
+				justify-content: center;
+				align-items: start;
+			}
+
+			#shapeModal .modal-content,
+			#emailModal .modal-content,
+			#videoTutorialModal .modal-content {
+				background-color: white;
+				padding: 20px;
+				border-radius: 10px;
+				width: 400px;
+			}
+
+			#shapeModal .modal-content .modal-title,
+			#emailModal .modal-content .modal-title,
+			#videoTutorialModal .modal-content .modal-title {
+				margin-top: 0;
+			}
+			
+			#videoTutorialModal .modal-content iframe {
+				width: 100%;
+				height: 350px;
+			}
+
+			#shapeModal .modal-content .form-group,
+			#emailModal .modal-content .form-group {
+				margin-bottom: 15px;
+			}
+
+			#shapeModal .modal-content .form-group label,
+			#emailModal .modal-content .form-group label {
+				display: block;
+				padding-bottom: 8px;
+			}
+
+			#shapeModal .modal-content .form-group input,
+			#emailModal .modal-content .form-group input {
+				width: -webkit-fill-available;
+				font-size: 15px;
+				padding: 10px;
+			}
+
+			#shapeModal .form-group .edge-profile-section > div {
+				display: none;
+				padding: 30px;
+				position: relative;
+			}
+
+			#shapeModal .form-group .edge-profile-section > div img {
+				height: 100px;
+				display: block;
+				margin: 0 auto;
+			}
+
+			#shapeModal .form-group .edge-profile-section > div select.shapeEdgeProfile {
+				position: absolute;
+				width: calc(400px - 260px);
+			}
+
+			/* For Square & Rounded Square */
+			#shapeModal .form-group .edge-profile-section > div.square select#shapeEdgeProfile1,
+			#shapeModal .form-group .edge-profile-section > div.rounded-square select#shapeEdgeProfile1 {
+				top: 0;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.square select#shapeEdgeProfile2,
+			#shapeModal .form-group .edge-profile-section > div.rounded-square select#shapeEdgeProfile2 {
+				right: 0;
+				top: 50%;
+				transform: translateY(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.square select#shapeEdgeProfile3,
+			#shapeModal .form-group .edge-profile-section > div.rounded-square select#shapeEdgeProfile3 {
+				bottom: 0;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.square select#shapeEdgeProfile4,
+			#shapeModal .form-group .edge-profile-section > div.rounded-square select#shapeEdgeProfile4 {
+				left: 0;
+				bottom: 40%;
+				transform: translateY(-50%);
+			}        
+
+			/* For Circle & Ellipse */
+			#shapeModal .form-group .edge-profile-section > div.ellipse select#shapeEdgeProfile1,
+			#shapeModal .form-group .edge-profile-section > div.circle select#shapeEdgeProfile1 {
+				top: 0;
+				left: 50%;
+				transform: translateX(-50%);
+			} 
+
+			/* For Polygon */
+			#shapeModal .form-group .edge-profile-section > div.polygon select#shapeEdgeProfile1 {
+				top: 0;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.polygon select#shapeEdgeProfile2 {
+				right: 0;
+				top: 35%;
+				transform: translateY(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.polygon select#shapeEdgeProfile3 {
+				right: 0;
+				top: 65%;
+				transform: translateY(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.polygon select#shapeEdgeProfile4 {
+				bottom: 0;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.polygon select#shapeEdgeProfile5 {
+				left: 0;
+				bottom: 25%;
+				transform: translateY(-50%);
+			} 
+
+			#shapeModal .form-group .edge-profile-section > div.polygon select#shapeEdgeProfile6 {
+				left: 0;
+				bottom: 55%;
+				transform: translateY(-50%);
+			}
+
+			/* For Triangle */
+			#shapeModal .form-group .edge-profile-section > div.triangle select#shapeEdgeProfile1 {
+				right: 0;
+				top: 50%;
+				transform: translateY(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.triangle select#shapeEdgeProfile2 {
+				bottom: 0;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+
+			#shapeModal .form-group .edge-profile-section > div.triangle select#shapeEdgeProfile3 {
+				left: 0;
+				bottom: 40%;
+				transform: translateY(-50%);
+			}
+
+
+			#shapeModal .modal-content button,
+			#emailModal .modal-content button,
+			#videoTutorialModal .modal-content button {
+				display: inline-block;
+				color: #fff;
+				font-weight: 400;
+				line-height: 1.5;
+				text-align: center;
+				text-decoration: none;
+				vertical-align: middle;
+				cursor: pointer;
+				-webkit-user-select: none;
+				-moz-user-select: none;
+				user-select: none;
+				padding: .375rem .75rem;
+				font-size: 1rem;
+				border-radius: .25rem;
+				cursor: pointer;
+				float: right;
+				transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+			}
+
+			#shapeModal .modal-content button#saveShapeDetails,
+			#emailModal .modal-content button[type="submit"] {
+				background-color: #0d6efd;
+				border: 1px solid #0d6efd;
+			}
+
+			#shapeModal .modal-content button#cancel,
+			#emailModal .modal-content button#cancel,
+			#videoTutorialModal .modal-content button#cancel {
+				background-color: #6c757d;
+				border: 1px solid #6c757d;
+				margin-right: 10px;
+			}
+			
+			#videoTutorialModal .modal-content button#cancel {
+				margin-top: 10px;
+				margin-right: 0;
+			}
+
+			#shapeModal .modal-content button#saveShapeDetails:hover,
+			#emailModal .modal-content button[type="submit"]:hover {
+				color: #fff;
+				background-color: #0b5ed7;
+				border-color: #0a58ca;
+			}
+
+			#shapeModal .modal-content button#cancel:hover,
+			#emailModal .modal-content button#cancel:hover,
+			#videoTutorialModal .modal-content button#cancel:hover {
+				color: #fff;
+				background-color: #5c636a;
+				border-color: #565e64;
+			}
+
+			#shapeModal .modal-content button#saveShapeDetails:active,
+			#emailModal .modal-content button[type="submit"]:active {
+				color: #fff;
+				background-color: #0a58ca;
+				border-color: #0a53be;
+			}
+
+			#shapeModal .modal-content button#cancel:active,
+			#emailModal .modal-content button#cancel:active,
+			#videoTutorialModal .modal-content button#cancel:active {
+				color: #fff;
+				background-color: #565e64;
+				border-color: #51585e;
+			}
+
+			#shapeModal .modal-content button#saveShapeDetails:focus,
+			#emailModal .modal-content button[type="submit"]:focus {
+				color: #fff;
+				background-color: #0b5ed7;
+				border-color: #0a58ca;
+				box-shadow: 0 0 0 .25rem rgba(49,132,253,.5);
+			}
+
+			#shapeModal .modal-content button#cancel:focus,
+			#emailModal .modal-content button#cancel:focus,
+			#videoTutorialModal .modal-content button#cancel:focus {
+				color: #fff;
+				background-color: #5c636a;
+				border-color: #565e64;
+				box-shadow: 0 0 0 .25rem rgba(130,138,145,.5);
+			}
+			
+			
+			@media only screen and (max-width: 1100px) and (min-width: 800px) {
+				#toolbar img {
+					margin-right: 8px;
+					width: 25px;
+					height: 25px;
+				}
+			}
+			
+			@media only screen and (min-width: 1101px) {
+				#toolbar img {
+					margin-right: 15px;
+					width: 30px;
+					height: 30px;
+				}
+			}
+			
+		</style>
+	</head>
+	<body>
+		<div class="calculator-container">
+			<div class="heading">
+				<h2 class="calculator-title">"<?=$_GET['name']?>" Slab & Cutting Area MM Calculator</h2>
+				<h2>Total MM's = <span class="total_mms">0</span></h2>
+			</div>
+			<div id="toolbar">
+				<div class="shapes">
+					<img src="./../assets/images/square.png" alt="Square" data-shape="square">
+					<img src="./../assets/images/rounded-square.png" alt="Rounded Square" data-shape="rounded-square">
+					<img src="./../assets/images/circle.png" alt="Circle" data-shape="circle">
+					<img src="./../assets/images/ellipse.png" alt="Ellipse" data-shape="ellipse">
+					<img src="./../assets/images/polygon.png" alt="Polygon" data-shape="polygon">
+					<img src="./../assets/images/triangle.png" alt="Triangle" data-shape="triangle">
+				</div>
+				<div class="tools">
+					<img src="./../assets/images/info.png" alt="Info" id="info">
+					<img src="./../assets/images/rotate.png" alt="Rotate" id="rotate">
+					<img src="./../assets/images/zoom-in.png" alt="Zoom In" id="zoom-in">
+					<img src="./../assets/images/zoom-out.png" alt="Zoom Out" id="zoom-out">
+					<img src="./../assets/images/undo.png" alt="Undo" title="Undo" id="undo">
+					<img src="./../assets/images/redo.png" alt="Redo" title="Redo" id="redo">
+					<img src="./../assets/images/delete.png" alt="Delete" id="delete">
+				</div>
+				<div class="btns">
+					<img src="./../assets/images/share.png" alt="Share" id="share">
+					<div class="pos-relative">
+						<img src="./../assets/images/download.png" alt="Download" id="download">
+						<ul class="dropdown">
+							<li data-type="JPG">Download as JPG</li>
+							<li data-type="PDF">Download as PDF</li>
+						</ul>
+					</div>
+					<img src="./../assets/images/tutorial.png" alt="Tutorial" id="tutorial">
+				</div>
+			</div>
+
+			<div id="canvas-container">
+				<div class="ruler" id="ruler-x"></div>
+				<div class="ruler" id="ruler-y"></div>
+				<canvas id="canvas"></canvas>
+			</div>
+		</div>
+
+		<!-- Modal structure -->
+		<div id="shapeModal" class="modal">
+			<div class="modal-content">
+				<h2 class="modal-title">Shape Details</h2>
+
+				<div class="form-group">
+					<label for="shapeName">Shape Name</label>
+					<input type="text" id="shapeName" name="shapeName" placeholder="Enter Name">
+				</div>
+
+				<div class="form-group">
+					<label for="shapeWidth">Width/Length (mm)</label>
+					<input type="number" id="shapeWidth" min="0" name="shapeWidth">
+				</div>
+
+				<div class="form-group">
+					<label for="shapeHeight">Height/Depth (mm)</label>
+					<input type="number" id="shapeHeight" min="0" name="shapeHeight">
+				</div>
+
+				<div class="form-group">
+					<label for="shapeEdgeProfile">Edge Profiles</label>
+					<div class="edge-profile-section">
+						<div class="square" data-count="4">
+							<img src="./../assets/images/square.png" alt="Square" data-shape="square">
+						</div>
+						<div class="rounded-square" data-count="4">
+							<img src="./../assets/images/rounded-square.png" alt="Rounded Square" data-shape="rounded-square">
+						</div>
+						<div class="circle" data-count="1">
+							<img src="./../assets/images/circle.png" alt="Circle" data-shape="circle">
+						</div>
+						<div class="ellipse" data-count="1">
+							<img src="./../assets/images/ellipse.png" alt="Ellipse" data-shape="ellipse">
+						</div>
+						<div class="polygon" data-count="6">
+							<img src="./../assets/images/polygon.png" alt="Polygon" data-shape="polygon">
+						</div>
+						<div class="triangle" data-count="3">
+							<img src="./../assets/images/triangle.png" alt="Triangle" data-shape="triangle">
+						</div>
+					</div>
+				</div>
+
+				<button type="button" id="saveShapeDetails" data-state="save">Draw</button>
+				<button type="button" id="cancel">Cancel</button>
+			</div>
+		</div>
+		
+		<!-- Video Tutorial Modal -->
+		<div id="videoTutorialModal" class="modal">
+			<div class="modal-content">
+				<h2 class="modal-title">Tutorial Video</h2>
+
+				<iframe frameborder="0" allowfullscreen></iframe>
+
+				<button type="button" id="cancel">Close</button>
+			</div>
+		</div>
+		
+		<!-- Video Tutorial Modal -->
+		<div id="emailModal" class="modal">
+			<div class="modal-content">
+				<h2 class="modal-title">Send Email</h2>
+
+				<form id="email-form">
+					<div class="form-group">
+						<label for="email">Enter Email:</label>
+						<input type="email" id="email" name="email" required>
+					</div>
+					
+					<div class="error-message" style="color:red;margin: 10px 0;display:none;"></div>
+					
+					<button type="submit">Send</button>
+				</form>
+				
+				<button type="button" id="cancel">Close</button>
+			</div>
+		</div>
+
+		<script src="./../assets/js/jquery-3.6.0.min.js"></script>
+		<script src="./../assets/js/fabric.min.js"></script>
+		<script src="./../assets/js/jspdf.umd.min.js"></script>
+		<script>
+			jQuery(document).ready(function() {
+																
+				// Convert mm to pixels (adjust this factor based on your canvas scaling)
+				function convertMmToPx(value) {
+					return value / 8;
+				}
+				
+				function convertPxToMm(value) {
+					return value * 8;
+				}
+
+				// Initial canvas and ruler setup
+				let canvasWidth = convertMmToPx(<?=$_GET['pad_width']?>); // Example width, adjust as needed
+				let canvasHeight = convertMmToPx(<?=$_GET['pad_heigth']?>); // Example height, adjust as needed
+				const rulerInterval = 100; // 50mm intervals
+				let zoomLevel = 1.6; // Initial zoom level
+				let shapeNo = 0; // Shape Number on Canvas
+				
+				let lastMoveTime = Date.now();
+
+				// Defalt Shapes Sizes
+				const defaultShapeWidth = 1500;
+				const defaultShapeHeight = 700;
+				
+				let totalMM = 0;
+
+				const defaultGap = convertMmToPx(20); // 20mm gap in pixels
+
+				// Box properties
+				const boxWidth = convertMmToPx(<?=$_GET['slab_width']?>);
+				const boxHeight = convertMmToPx(<?=$_GET['slab_heigth']?>);
+
+				const infoBoxes = [];
+
+				// Keep track of the initial box
+				let initialBox = null;
+
+
+				var canvas = canvas = new fabric.Canvas('canvas', {
+					width: canvasWidth,
+					height: canvasHeight,
+					backgroundColor: 'white',
+// 					allowTouchScrolling: true,
+				});
+				
+				canvas.selection = false; // disable group selection
+				
+				fabric.Object.prototype.objectCaching = true;
+				
+
+				// Add EdgeProfiles for Shapes in Modal
+				var edgeProfiles = JSON.parse('<?=$_GET['edges']?>');
+				var options = '';				
+				Object.keys(edgeProfiles).forEach(function(key) {
+					var title = edgeProfiles[key].title;
+					var value = edgeProfiles[key].title.replace(/ /g, '-');
+					options += '<option data-size="' + convertMmToPx(edgeProfiles[key].value) + '" value="' + value + '">' + title + '</option>';
+				});
+
+				jQuery('#shapeModal .form-group .edge-profile-section > div').each(function(){
+					var length =  jQuery(this).data('count');
+					var shape =  jQuery(this).find('img').data('shape');
+					for ( var i=1; i <= length; i++ ) {
+						jQuery(this).append('<select class="shapeEdgeProfile" name="' + shape + 'EdgeProfile' + i + '" id="shapeEdgeProfile' + i + '"><option value="0">Choose an option</option>' + options + '</select>');
+					}
+				});
+				
+				<?php if ( isset($_GET['video']) && !empty($_GET['video']) ) { ?>
+				jQuery('#videoTutorialModal iframe').attr('src', decodeURIComponent('<?=$_GET['video']?>'));
+				<?php } else { ?>
+				jQuery('#videoTutorialModal iframe').after('<h3 style="color:red">No video has been found</h3>');
+				jQuery('#videoTutorialModal iframe').remove();
+				<?php } ?>
+				
+				
+				function getObjectMM(shapeName, obj) {
+					switch(shapeName) {
+						case 'square':
+						case 'rounded-square':
+							if ( obj.length == undefined ) {
+								totalMM += convertPxToMm(obj._objects[0].width * 2);
+								totalMM += convertPxToMm(obj._objects[0].height * 2);
+							} else {
+								totalMM += convertPxToMm(obj[0]._objects[0].width * 2);
+								totalMM += convertPxToMm(obj[0]._objects[0].height * 2);
+								for (const [key, value] of Object.entries(obj)) {
+									if ( key > 0 ) {
+										totalMM += convertPxToMm(value.width * 2);
+										totalMM += convertPxToMm(value.height * 2);
+									}
+								}
+							}
+							break;
+						case 'circle':
+							if ( obj.length < 4 ) {
+								totalMM += convertPxToMm(obj[2]._objects[0].height * 3);
+							} else {
+								totalMM += convertPxToMm(obj[0].height);
+							}
+							break;
+						case 'ellipse':
+							if ( obj.length < 4 ) {
+								totalMM += convertPxToMm(obj[2]._objects[0].width * 4);
+								totalMM += convertPxToMm(obj[2]._objects[0].height * 4);
+							} else {
+								totalMM += convertPxToMm(obj[0].width * 2);
+								totalMM += convertPxToMm(obj[0].height * 2);
+							}
+							break;
+						case 'polygon':
+							if ( obj.length == undefined ) {
+								totalMM += convertPxToMm(obj._objects[0].width * 2);
+								totalMM += convertPxToMm(obj._objects[0].height * 2);
+							} else {
+								totalMM += convertPxToMm(obj[0]._objects[0].width * 2);
+								totalMM += convertPxToMm(obj[0]._objects[0].height * 2);
+								for (const [key, value] of Object.entries(obj)) {
+									if ( key > 0 ) {
+										var edgeNo = value.customName.slice(-1);
+										if ( edgeNo == '1' || edgeNo == '4' ) {
+											totalMM += convertPxToMm(obj[0]._objects[0].width);
+											totalMM += convertPxToMm(value.height * 2);
+										} else {
+											totalMM += convertPxToMm(value.width * 2);
+											totalMM += convertPxToMm(value.height * 2);
+										}
+									}
+								}
+							}
+							break;
+						case 'triangle':
+							if ( obj.length == undefined ) {
+								totalMM += convertPxToMm(obj._objects[0].width);
+								totalMM += parseInt(obj._objects[2].text.replace('mm', '')) * 2;
+							} else {
+								totalMM += convertPxToMm(obj[0]._objects[0].width);
+								totalMM += parseInt(obj[0]._objects[2].text.replace('mm', '')) * 2;
+								for (const [key, value] of Object.entries(obj)) {
+									if ( key > 0 ) {
+										totalMM += convertPxToMm(value.width * 2);
+										totalMM += convertPxToMm(value.height * 2);
+									}
+								}
+							}
+							break;
+					}
+
+				}
+				
+				// Function to get total length of objects
+				function getTotalMM() {
+					totalMM = 0;
+					canvas.getObjects().forEach(obj => {
+						if ( obj.mainShape ) {
+							if ( obj._objects[0].type == 'group' ) {
+								getObjectMM(obj._objects[0]._objects[0].shapeName, obj._objects);
+							} else if ( obj._objects[0].type == 'circle' || obj._objects[0].type == 'ellipse' ) {
+								getObjectMM(obj._objects[0].type, obj._objects);
+							} else {
+								getObjectMM(obj._objects[0].shapeName, obj);
+							}
+						}
+					});
+					
+					jQuery('.total_mms').html(totalMM);
+				}
+				
+				
+				// Function to check if shape is a green box
+				function isGreenBox(object) {
+					if ( object.hasOwnProperty('stroke') && object.stroke == "#41ba7e" ) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+				
+				
+				// Helper function to check intersection between object bounds and box bounds
+				function checkIntersection(bounds1, bounds2) {
+					return !(bounds1.right < bounds2.left || 
+							 bounds1.left > bounds2.right || 
+							 bounds1.bottom < bounds2.top || 
+							 bounds1.top > bounds2.bottom);
+				}
+
+
+				// Function to check if a shape's new position would overlap with other shapes
+				function preventShapeOverlap(movingObject, newLeft, newTop) {
+					if (!movingObject) return { left: newLeft, top: newTop };
+
+					// Get moving object bounds with padding
+					const movingBounds = getObjectBoundsWithPadding(movingObject, newLeft, newTop);
+					let adjustedPosition = { left: newLeft, top: newTop };
+					let hasCollision = false;
+
+					// Check collision with other objects
+					canvas.getObjects().forEach(obj => {
+						if (obj === movingObject || isGreenBox(obj) || !obj.mainShape) return;
+
+						const staticBounds = getObjectBoundsWithPadding(obj);
+						if (checkIntersection(movingBounds, staticBounds)) {
+							hasCollision = true;
+							adjustedPosition = calculateNonOverlappingPosition(
+								movingObject, 
+								obj, 
+								adjustedPosition.left, 
+								adjustedPosition.top
+							);
+						}
+					});
+
+					// Check collision with green box
+					if ( initialBox != null ) {
+
+						const boxBounds = {
+							left: initialBox.left + defaultGap,
+							top: initialBox.top + defaultGap,
+						};
+
+						// Prevent shapes from going outside box boundaries (considering padding)
+						if (movingBounds.left < boxBounds.left ||
+							movingBounds.top < boxBounds.top) {
+
+							adjustedPosition.left = Math.min(
+								Math.max(adjustedPosition.left, boxBounds.left), (movingObject.width * movingObject.scaleX)
+							);
+
+							adjustedPosition.top = Math.min(
+								Math.max(adjustedPosition.top, boxBounds.top), (movingObject.height * movingObject.scaleY)
+							);
+						}
+
+					}
+
+
+					return adjustedPosition;
+				}
+
+				// Helper function to get object bounds with padding
+				function getObjectBoundsWithPadding(obj, customLeft, customTop) {
+					// Use nullish coalescing to handle 0 values correctly
+					const left = customLeft ?? obj.left;
+					const top = customTop ?? obj.top;
+
+					// Convert angle to radians, default to 0 if not present
+					const angleInRadians = ((obj.angle || 0) * Math.PI) / 180;
+
+					// Get dimensions with scale
+					const width = obj.width * obj.scaleX;
+					const height = obj.height * obj.scaleY;
+
+					// Calculate trigonometric values once
+					const cos = Math.cos(angleInRadians);
+					const sin = Math.sin(angleInRadians);
+
+					// Calculate rotatwidthed dimensions
+					const rotatedWidth = Math.abs(width * cos) + Math.abs(height * sin);
+					const rotatedHeight = Math.abs(width * sin) + Math.abs(height * cos);
+
+					// Calculate half dimensions for easier center-based calculations
+					const halfWidth = rotatedWidth / 2;
+					const halfHeight = rotatedHeight / 2;
+
+					// Return bounds with padding
+					return {
+						left: left - defaultGap,
+						top: top - defaultGap,
+						right: left + defaultGap,
+						bottom: top + defaultGap,
+						width:  width,
+						height: height
+					};
+				}
+
+				// Calculate non-overlapping position
+				function calculateNonOverlappingPosition(movingObj, staticObj, newLeft, newTop) {
+					const movingCenter = {
+						x: newLeft + (movingObj.width * movingObj.scaleX) / 2,
+						y: newTop + (movingObj.height * movingObj.scaleY) / 2
+					};
+
+					const staticCenter = {
+						x: staticObj.left + (staticObj.width * staticObj.scaleX) / 2,
+						y: staticObj.top + (staticObj.height * staticObj.scaleY) / 2
+					};
+
+					// Calculate direction vector
+					const dx = movingCenter.x - staticCenter.x;
+					const dy = movingCenter.y - staticCenter.y;
+
+					// Calculate minimum required distance
+					const minDistX = (movingObj.width * movingObj.scaleX + staticObj.width * staticObj.scaleX) / 2 + defaultGap;
+					const minDistY = (movingObj.height * movingObj.scaleY + staticObj.height * staticObj.scaleY) / 2 + defaultGap;
+
+					// Adjust position based on overlap
+					let adjustedLeft = newLeft;
+					let adjustedTop = newTop;
+
+					if (Math.abs(dx) < minDistX) {
+						adjustedLeft += dx < 0 ? -(minDistX - Math.abs(dx)) : (minDistX - Math.abs(dx));
+					}
+
+					if (Math.abs(dy) < minDistY) {
+						adjustedTop += dy < 0 ? -(minDistY - Math.abs(dy)) : (minDistY - Math.abs(dy));
+					}
+
+					return { left: adjustedLeft, top: adjustedTop };
+				}
+
+
+				// Function to add a green-bordered box at a specified position
+				function addBox(left, top) {
+					// Check if box already exists at these coordinates
+					const existingBox = infoBoxes.find(box => Math.abs(box.left - left) < 1 && Math.abs(box.top - top) < 1);
+
+					if (existingBox) return; // Don't add duplicate boxes
+
+					// Create new box
+					const newBox = new fabric.Rect({
+						left: left,
+						top: top,
+						width: boxWidth,
+						height: boxHeight,
+						fill: 'transparent',
+						stroke: '#41ba7e',
+						strokeWidth: 2,
+						selectable: false,
+						evented: false,
+						hoverCursor: 'default'
+					});
+
+					// Add to canvas and array
+					canvas.add(newBox);
+					canvas.sendToBack(newBox);
+					infoBoxes.push(newBox);
+
+					// If this is the first box, store it as initial box
+					if (infoBoxes.length === 1) {
+						initialBox = newBox;
+					}
+
+					// Update canvas size if needed
+					const canvasWidth = Math.max(canvas.width, left + boxWidth + 50);
+					const canvasHeight = Math.max(canvas.height, top + boxHeight + 50);
+					if (canvasWidth > canvas.width || canvasHeight > canvas.height) {
+						canvas.setDimensions({ width: canvasWidth, height: canvasHeight });
+						addRulers();
+					}
+				}
+
+				// Function to check if a box contains any objects
+				function isBoxEmpty(box) {
+					const boxBounds = {
+						left: box.left,
+						top: box.top,
+						right: box.left + boxWidth,
+						bottom: box.top + boxHeight
+					};
+
+					// Get all objects except infoBoxes
+					const objects = canvas.getObjects().filter(obj => !infoBoxes.includes(obj) && obj.mainShape );
+
+					// Check if any object intersects with this box
+					return !objects.some(obj => {
+						if (!obj.aCoords) return false;
+
+						// Ensure object coordinates are up to date
+						obj.setCoords();
+
+						// Get the object's bounds after rotation
+						const objCoords = [
+							obj.aCoords.tl, // Top-left
+							obj.aCoords.tr, // Top-right
+							obj.aCoords.bl, // Bottom-left
+							obj.aCoords.br  // Bottom-right
+						];
+
+						// Calculate the rotated object's bounding box
+						const objBounds = {
+							left: Math.min(objCoords[0].x, objCoords[1].x, objCoords[2].x, objCoords[3].x),
+							top: Math.min(objCoords[0].y, objCoords[1].y, objCoords[2].y, objCoords[3].y),
+							right: Math.max(objCoords[0].x, objCoords[1].x, objCoords[2].x, objCoords[3].x),
+							bottom: Math.max(objCoords[0].y, objCoords[1].y, objCoords[2].y, objCoords[3].y)
+						};
+
+						// Check if the object's bounding box intersects with the current box
+						return checkIntersection(objBounds, boxBounds);
+					});
+				}
+
+				// Function to remove empty boxes
+				function cleanupEmptyInfoBoxes() {
+					// Get all boxes except the initial one
+					const boxesToCheck = infoBoxes.filter(box => box !== initialBox);
+
+					boxesToCheck.forEach(box => {
+						if (isBoxEmpty(box)) {
+							canvas.remove(box);
+							const index = infoBoxes.indexOf(box);
+							if (index > -1) {
+								infoBoxes.splice(index, 1);
+							}
+						}
+					});
+
+				}
+
+
+				function checkAndAddBoxInDirection(objectBounds, boxBounds) {
+					let boxesAdded = false;
+					let iterations = 0;
+					const MAX_ITERATIONS = 100; // Safety limit to prevent infinite loops
+
+					// Keep checking until no new boxes are added or max iterations reached
+					do {
+						boxesAdded = false;
+						iterations++;
+
+						// Calculate how many boxes we need in each direction
+						const rightBoxesNeeded = Math.ceil((objectBounds.right - boxBounds.right) / boxWidth);
+						const leftBoxesNeeded = Math.ceil((boxBounds.left - objectBounds.left) / boxWidth);
+						const bottomBoxesNeeded = Math.ceil((objectBounds.bottom - boxBounds.bottom) / boxHeight);
+						const topBoxesNeeded = Math.ceil((boxBounds.top - objectBounds.top) / boxHeight);
+
+						// Add boxes to the right
+						for (let i = 0; i < rightBoxesNeeded; i++) {
+							const x = boxBounds.right + (i * boxWidth);
+							// Add boxes vertically along this column
+							for (let j = Math.floor((objectBounds.top - boxBounds.top) / boxHeight); 
+								 j <= Math.ceil((objectBounds.bottom - boxBounds.top) / boxHeight); 
+								 j++) {
+								addBox(x, boxBounds.top + (j * boxHeight));
+								boxesAdded = true;
+							}
+						}
+
+						// Add boxes to the left
+						for (let i = 0; i < leftBoxesNeeded; i++) {
+							const x = boxBounds.left - ((i + 1) * boxWidth);
+							// Add boxes vertically along this column
+							for (let j = Math.floor((objectBounds.top - boxBounds.top) / boxHeight); 
+								 j <= Math.ceil((objectBounds.bottom - boxBounds.top) / boxHeight); 
+								 j++) {
+								addBox(x, boxBounds.top + (j * boxHeight));
+								boxesAdded = true;
+							}
+						}
+
+						// Add boxes to the bottom
+						for (let i = 0; i < bottomBoxesNeeded; i++) {
+							const y = boxBounds.bottom + (i * boxHeight);
+							// Add boxes horizontally along this row
+							for (let j = Math.floor((objectBounds.left - boxBounds.left) / boxWidth); 
+								 j <= Math.ceil((objectBounds.right - boxBounds.left) / boxWidth); 
+								 j++) {
+								addBox(boxBounds.left + (j * boxWidth), y);
+								boxesAdded = true;
+							}
+						}
+
+						// Add boxes to the top
+						for (let i = 0; i < topBoxesNeeded; i++) {
+							const y = boxBounds.top - ((i + 1) * boxHeight);
+							// Add boxes horizontally along this row
+							for (let j = Math.floor((objectBounds.left - boxBounds.left) / boxWidth); 
+								 j <= Math.ceil((objectBounds.right - boxBounds.left) / boxWidth); 
+								 j++) {
+								addBox(boxBounds.left + (j * boxWidth), y);
+								boxesAdded = true;
+							}
+						}
+
+						// Update boundaries after adding boxes
+						if (boxesAdded) {
+							boxBounds.right += rightBoxesNeeded * boxWidth;
+							boxBounds.left -= leftBoxesNeeded * boxWidth;
+							boxBounds.bottom += bottomBoxesNeeded * boxHeight;
+							boxBounds.top -= topBoxesNeeded * boxHeight;
+						}
+
+					} while (boxesAdded && iterations < MAX_ITERATIONS);
+
+					return boxesAdded;
+				}
+
+
+				// Function to check if the shape exceeds any box boundaries
+				function checkShapeBounds(object) {
+					if (!object || !object.aCoords) return;
+
+					// Ensure the object's coordinates are updated
+					object.setCoords();
+
+					// Get all coordinates after rotation
+					const objectCoords = [
+						object.aCoords.tl, // Top-left
+						object.aCoords.tr, // Top-right
+						object.aCoords.bl, // Bottom-left
+						object.aCoords.br  // Bottom-right
+					];
+
+					// Calculate the rotated object's bounding box
+					const objectBounds = {
+						left: Math.min(objectCoords[0].x, objectCoords[1].x, objectCoords[2].x, objectCoords[3].x),
+						top: Math.min(objectCoords[0].y, objectCoords[1].y, objectCoords[2].y, objectCoords[3].y),
+						right: Math.max(objectCoords[0].x, objectCoords[1].x, objectCoords[2].x, objectCoords[3].x),
+						bottom: Math.max(objectCoords[0].y, objectCoords[1].y, objectCoords[2].y, objectCoords[3].y)
+					};
+
+					// Now check against the existing boxes for overlap
+					infoBoxes.forEach(box => {
+						const boxBounds = {
+							left: box.left,
+							top: box.top,
+							right: box.left + boxWidth,
+							bottom: box.top + boxHeight
+						};
+
+						// If object overlaps the box, add new boxes if necessary
+						if (checkIntersection(objectBounds, boxBounds)) {
+							checkAndAddBoxInDirection(objectBounds, boxBounds);
+						}
+					});
+
+					// Cleanup any empty boxes
+					cleanupEmptyInfoBoxes();
+				}
+
+
+				// Set up event listener to detect shape movement and check for overlap with the 20mm gap
+				canvas.on('object:modified', function(e) {
+					cleanupEmptyInfoBoxes();
+				});
+
+
+				// Add initial detection box to the canvas
+				addBox(0, 0); // Center the box
+
+				
+				// Function to draw the ruler
+				function addRulers() {
+					jQuery('#ruler-x, #ruler-y').empty(); // Clear previous rulers
+
+					// Calculate optimal step size based on zoom level
+					let step = rulerInterval;
+					while (step * zoomLevel < 40) step *= 2;
+					while (step * zoomLevel > 100) step /= 2;
+
+					const visibleWidth = canvas.width / zoomLevel;  // Calculate visible area width
+					const visibleHeight = canvas.height / zoomLevel; // Calculate visible area height
+
+					// Ruler on the X-axis
+					for (let i = 0; i <= visibleWidth; i += step) {
+						const pixelPosition = i * zoomLevel + 30; // Adding 30px for ruler container offset
+						jQuery('<div class="ruler-text"></div>')
+							.text(convertPxToMm(i))
+							.css({
+							left: pixelPosition + 'px',
+							top: '7px',
+						}).appendTo('#ruler-x');
+					}
+
+					// Ruler on the Y-axis
+					for (let i = 0; i <= visibleHeight; i += step) {
+						const pixelPosition = i * zoomLevel + 30; // Adding 30px for ruler container offset
+						jQuery('<div class="ruler-text"></div>')
+							.text(convertPxToMm(i))
+							.css({
+							top: pixelPosition + 'px',
+							right: '10px',
+						}).appendTo('#ruler-y');
+					}
+
+					// Adjust ruler container sizes based on zoom level and canvas size
+					jQuery('#ruler-x').width(visibleWidth * zoomLevel);
+					jQuery('#ruler-y').height(visibleHeight * zoomLevel);
+				}
+
+
+				// Zoom function with ruler update
+				function zoomCanvas(zoomIn) {
+					if (zoomIn) {
+						zoomLevel *= 1.1; // Zoom in
+					} else {
+						zoomLevel /= 1.1; // Zoom out
+					}
+
+					zoomLevel = Math.round(zoomLevel * 100) / 100; // Round to two decimal places for precision
+
+					canvas.setZoom(zoomLevel); // Apply zoom to canvas
+					addRulers(); // Re-render rulers to adjust for zoom
+				}
+
+				// Add initial rulers
+				
+				canvas.setZoom(zoomLevel);
+				
+				addRulers();
+
+				// Reset Form Fields
+				function resetShapeModal() {
+					jQuery('#shapeModal .form-group #shapeName').val('');
+					jQuery('#shapeModal .form-group #shapeWidth').parent().show();
+					jQuery('#shapeModal .form-group #shapeWidth').val(defaultShapeWidth);
+					jQuery('#shapeModal .form-group #shapeHeight').val(defaultShapeHeight);
+					jQuery('#shapeModal .form-group .edge-profile-section > div').hide()
+					jQuery('#shapeModal .form-group .edge-profile-section select').val('0');
+					jQuery('#saveShapeDetails').attr('data-state', 'save');
+				}
+				
+				
+				function calculateFontSize(width, height) {
+					// Define a base font size and scaling factor
+					const baseFontSize = 1; // Base font size in pixels
+					const scaleFactor = 0.2;  // Scale factor for adjusting the font size
+
+					// Calculate the suitable font size based on width and height
+					// This example assumes you want to use the smaller dimension to determine font size
+					const smallerDimension = Math.min(width, height);
+
+					// Calculate font size as a percentage of the smaller dimension
+					const fontSize = Math.floor(smallerDimension * scaleFactor);
+
+					// Set a minimum font size to avoid very small text
+					return Math.max(fontSize, baseFontSize);
+				}
+
+
+				// Function to create blank shapes at each corner
+				function createEdgeProfileShape(shapeObject) {
+					var shape;
+					switch(shapeObject.type) {
+						case 'circle':
+							shape = new fabric.Circle({
+								radius: shapeObject.height / 2,
+							});
+							break;
+						case 'ellipse':
+							shape = new fabric.Ellipse({
+								rx: shapeObject.width / 2,
+								ry: shapeObject.height / 2
+							});
+							break;
+						default:
+							shape = new fabric.Rect({
+								width: shapeObject.width,
+								height: shapeObject.height
+							});
+							break;
+					}
+					
+					shape.set({
+						left: shapeObject.x,
+						top: shapeObject.y,
+						fill: 'transparent',
+						stroke: 'black',
+						customName: shapeObject.name,
+						customValue: shapeObject.value,
+						customText: shapeObject.text,
+					});
+
+					if ( shapeObject.hasOwnProperty('angle') ) {
+						shape.angle = shapeObject.angle;
+					}
+
+					// Add the group to the canvas
+					canvas.add(shape);
+					shape.setCoords();
+					canvas.requestRenderAll();
+					
+					return shape;
+				}
+
+				
+				// Function to Shapes
+				function createShape(shapeObject) {
+					var shape;
+					switch(shapeObject.type) {
+						case 'square':
+							shape = new fabric.Rect({
+								width: shapeObject.width,
+								height: shapeObject.height,
+							});
+							break;
+						case 'rounded-square':
+							shape = new fabric.Rect({
+								width: shapeObject.width,
+								height: shapeObject.height,
+								rx: 10,
+								ry: 10
+							});
+							break;
+						case 'circle':
+							shape = new fabric.Circle({
+								radius: shapeObject.height / 2,
+							});
+							break;
+						case 'ellipse':
+							shape = new fabric.Ellipse({
+								rx: shapeObject.width / 2,
+								ry: shapeObject.height / 2
+							});
+							break;
+						case 'polygon':							
+							const points = [
+								{ x: shapeObject.width/4, y: 0 },           // Top left
+								{ x: shapeObject.width * 3/4, y: 0 },       // Top right
+								{ x: shapeObject.width, y: shapeObject.height/2 },      // Middle right
+								{ x: shapeObject.width * 3/4, y: shapeObject.height },  // Bottom right
+								{ x: shapeObject.width/4, y: shapeObject.height },      // Bottom left
+								{ x: 0, y: shapeObject.height/2 }           // Middle left
+							];
+							
+
+							shape = new fabric.Polygon(points);
+							break;
+						case 'triangle':
+							shape = new fabric.Triangle({
+								width: shapeObject.width,
+								height: shapeObject.height,
+							});
+							break;
+					}
+
+					// Update shape properties
+					shape.fill = 'transparent';
+					shape.stroke = 'black';
+					shape.originX = 'center';
+					shape.originY = 'center';
+// 					shape.strokeWidth = 2;
+					shape.shapeName = shapeObject.type;					
+
+					// Create a fabric.Text object for the name
+					var text = new fabric.Text(shapeObject.text, {
+						fontSize: calculateFontSize(shapeObject.width, shapeObject.height) / 2,
+						originX: 'center',
+						originY: 'center',
+						fill: 'black',
+					});
+	
+					
+					if ( shapeObject.type == 'triangle' ) {
+						text.set({
+							fontSize: text.fontSize / 2
+						});
+					}
+					
+					var groupArr = [shape, text];
+
+					const fontSize = calculateFontSize(shapeObject.width, shapeObject.height) / 3;
+
+					if ( shapeObject.type == 'square' || shapeObject.type == 'rounded-square' ) {
+						// Top corner
+						var topText = new fabric.Text(String(convertPxToMm(shapeObject.width)) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: - ( shape.height / 2 ) + defaultGap
+						});
+
+						var squareEdgeProfile1 = jQuery('select[name="' + shapeObject.type + 'EdgeProfile1"]').val();
+						if (squareEdgeProfile1 != '' && squareEdgeProfile1 != '0') {
+							var topEdgeProfileText = jQuery('select[name="' + shapeObject.type + 'EdgeProfile1"] option:selected').text();
+						} else {
+							var topEdgeProfileText = 'Unfinished';
+						}
+
+						var topEdgeProfile = new fabric.Text(topEdgeProfileText, {
+							fontSize: topText.fontSize,
+							originX: topText.originX,
+							fill: topText.fill,
+							top: topText.top + fontSize
+						});
+
+
+						// Right Corner
+						var rightText = new fabric.Text(String(convertPxToMm(shapeObject.height)) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: 90,
+							top: - fontSize - defaultGap,
+							left: ( shape.width / 2 ) - defaultGap,
+						});
+
+						var squareEdgeProfile2 = jQuery('select[name="' + shapeObject.type + 'EdgeProfile2"]').val();
+						if (squareEdgeProfile2 != '' && squareEdgeProfile2 != '0') {
+							var rightEdgeProfileText = jQuery('select[name="' + shapeObject.type + 'EdgeProfile2"] option:selected').text();
+						} else {
+							var rightEdgeProfileText = 'Unfinished';
+						}
+
+						var rightEdgeProfile = new fabric.Text(rightEdgeProfileText, {
+							fontSize: rightText.fontSize,
+							fill: rightText.fill,
+							angle: rightText.angle,
+							left: rightText.left - fontSize,
+							top: rightText.top
+						});
+
+
+						// Bottom Corner
+						var bottomText = new fabric.Text(String(convertPxToMm(shapeObject.width)) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: ( shape.height / 2 ) - fontSize - defaultGap
+						});
+
+						var squareEdgeProfile3 = jQuery('select[name="' + shapeObject.type + 'EdgeProfile3"]').val();
+						if (squareEdgeProfile3 != '' && squareEdgeProfile3 != '0') {
+							var bottomEdgeProfileText = jQuery('select[name="' + shapeObject.type + 'EdgeProfile3"] option:selected').text();
+						} else {
+							var bottomEdgeProfileText = 'Unfinished';
+						}
+
+						var bottomEdgeProfile = new fabric.Text(bottomEdgeProfileText, {
+							fontSize: bottomText.fontSize,
+							originX: bottomText.originX,
+							fill: bottomText.fill,
+							top: bottomText.top - fontSize
+						});
+
+
+						// Left Corner
+						var leftText = new fabric.Text(String(convertPxToMm(shapeObject.height)) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: -90,
+							top: fontSize + defaultGap,
+							left: - ( shape.width / 2 ) + defaultGap,
+						});
+
+						var squareEdgeProfile4 = jQuery('select[name="' + shapeObject.type + 'EdgeProfile4"]').val();
+						if (squareEdgeProfile4 != '' && squareEdgeProfile4 != '0') {
+							var leftEdgeProfileText = jQuery('select[name="' + shapeObject.type + 'EdgeProfile4"] option:selected').text();
+						} else {
+							var leftEdgeProfileText = 'Unfinished';
+						}
+
+						var leftEdgeProfile = new fabric.Text(leftEdgeProfileText, {
+							fontSize: leftText.fontSize,
+							fill: leftText.fill,
+							angle: leftText.angle,
+							left: leftText.left + fontSize,
+							top: leftText.top
+						});
+
+
+						groupArr.push(topText);
+						groupArr.push(topEdgeProfile);
+						groupArr.push(rightText);
+						groupArr.push(rightEdgeProfile);
+						groupArr.push(bottomText);
+						groupArr.push(bottomEdgeProfile);
+						groupArr.push(leftText);
+						groupArr.push(leftEdgeProfile);
+					} else if ( shapeObject.type == 'circle' ) {
+						var heightText = new fabric.Text(String(convertPxToMm(shapeObject.height)) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: fontSize + defaultGap
+						});
+
+						var circleEdgeProfile1 = jQuery('select[name="circleEdgeProfile1"]').val();
+						if (circleEdgeProfile1 != '' && circleEdgeProfile1 != '0') {
+							var circleEdgeProfileText = jQuery('select[name="circleEdgeProfile1"] option:selected').text();
+						} else {
+							var circleEdgeProfileText = 'Unfinished';
+						}
+
+						var circleEdgeProfileText = new fabric.Text(circleEdgeProfileText, {
+							fontSize: heightText.fontSize,
+							originX: heightText.originX,
+							fill: heightText.fill,
+							top: heightText.top + fontSize
+						});
+
+						groupArr.push(heightText);
+						groupArr.push(circleEdgeProfileText);
+					} else if ( shapeObject.type == 'polygon' ) {
+						let sideLengths = [];
+						let angles = [];
+
+						// For polygons
+						if (shape.type === 'polygon') {
+							let points = shape.points;
+							for (let i = 0; i < points.length; i++) {
+								// Get current point and next point
+								const currentPoint = points[i];
+								const nextPoint = points[(i + 1) % points.length];
+
+								// Calculate side length
+								const length = Math.sqrt(
+									Math.pow(nextPoint.x - currentPoint.x, 2) + 
+									Math.pow(nextPoint.y - currentPoint.y, 2)
+								);
+								sideLengths.push(Math.ceil(convertPxToMm(length)));
+
+								// Calculate angle
+								const deltaX = nextPoint.x - currentPoint.x;
+								const deltaY = nextPoint.y - currentPoint.y;
+								// Calculate absolute angle in degrees
+								let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+
+								// Normalize angle to be between 0 and 360
+								if (angle < 0) {
+									angle += 360;
+								}
+								angles.push(angle);
+							}
+						}
+
+
+						// Top of Object
+						var topText = new fabric.Text(String(sideLengths[0]) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: - ( shape.height / 2 ) + defaultGap
+						});
+
+						var polygonEdgeProfile1 = jQuery('select[name="polygonEdgeProfile1"]').val();
+						if (polygonEdgeProfile1 != '' && polygonEdgeProfile1 != '0') {
+							var topEdgeProfileText = jQuery('select[name="polygonEdgeProfile1"] option:selected').text();
+						} else {
+							var topEdgeProfileText = 'Unfinished';
+						}
+
+						var topEdgeProfile = new fabric.Text(topEdgeProfileText, {
+							fontSize: topText.fontSize,
+							originX: topText.originX,
+							fill: topText.fill,
+							top: topText.top + fontSize
+						});
+
+
+						// Top Right of Object
+						var topRightText = new fabric.Text(String(sideLengths[1]) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: 65,
+							top:  - ( shape.height / 3 ),
+							left: ( shape.width / 3 ) - defaultGap,
+							customAngle: angles[1] - 90
+						});
+
+						var polygonEdgeProfile2 = jQuery('select[name="polygonEdgeProfile2"]').val();
+						if (polygonEdgeProfile2 != '' && polygonEdgeProfile2 != '0') {
+							var topRightEdgeProfileText = jQuery('select[name="polygonEdgeProfile2"] option:selected').text();
+						} else {
+							var topRightEdgeProfileText = 'Unfinished';
+						}
+
+						var topRightEdgeProfile = new fabric.Text(topRightEdgeProfileText, {
+							fontSize: topRightText.fontSize,
+							fill: topRightText.fill,
+							angle: topRightText.angle,
+							left: topRightText.left - fontSize,
+							top: topRightText.top + defaultGap
+						});
+						
+
+						// Bottom Right of Object
+						var bottomRightText = new fabric.Text(String(sideLengths[2]) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: 115,
+							top:  ( shape.height / 4 ) - defaultGap - fontSize,
+							left: ( shape.width / 3 ) + defaultGap + fontSize,
+							customAngle: angles[2] - 90
+						});
+
+						var polygonEdgeProfile3 = jQuery('select[name="polygonEdgeProfile3"]').val();
+						if (polygonEdgeProfile3 != '' && polygonEdgeProfile3 != '0') {
+							var bottomRightEdgeProfileText = jQuery('select[name="polygonEdgeProfile3"] option:selected').text();
+						} else {
+							var bottomRightEdgeProfileText = 'Unfinished';
+						}
+
+						var bottomRightEdgeProfile = new fabric.Text(bottomRightEdgeProfileText, {
+							fontSize: bottomRightText.fontSize,
+							fill: bottomRightText.fill,
+							angle: bottomRightText.angle,
+							left: bottomRightText.left - fontSize,
+							top: bottomRightText.top - fontSize
+						});
+
+
+						// Bottom of Object
+						var bottomText = new fabric.Text(String(sideLengths[3]) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: ( shape.height / 2 ) - defaultGap - fontSize
+						});
+
+						var polygonEdgeProfile4 = jQuery('select[name="polygonEdgeProfile4"]').val();
+						if (polygonEdgeProfile4 != '' && polygonEdgeProfile4 != '0') {
+							var bottomEdgeProfileText = jQuery('select[name="polygonEdgeProfile4"] option:selected').text();
+						} else {
+							var bottomEdgeProfileText = 'Unfinished';
+						}
+
+						var bottomEdgeProfile = new fabric.Text(bottomEdgeProfileText, {
+							fontSize: bottomText.fontSize,
+							originX: bottomText.originX,
+							fill: bottomText.fill,
+							top: bottomText.top - fontSize
+						});
+
+
+						// Bottom Right of Object
+						var bottomLeftText = new fabric.Text(String(sideLengths[4]) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							top:  ( shape.height / 3 ) - defaultGap,
+							left: - ( shape.width / 3 ),
+							angle: -120,
+							customAngle: angles[1] - 90
+						});
+
+						var polygonEdgeProfile5 = jQuery('select[name="polygonEdgeProfile5"]').val();
+						if (polygonEdgeProfile5 != '' && polygonEdgeProfile5 != '0') {
+							var bottomLeftEdgeProfileText = jQuery('select[name="polygonEdgeProfile5"] option:selected').text();
+						} else {
+							var bottomLeftEdgeProfileText = 'Unfinished';
+						}
+
+						var bottomLeftEdgeProfile = new fabric.Text(bottomLeftEdgeProfileText, {
+							fontSize: bottomLeftText.fontSize,
+							fill: bottomLeftText.fill,
+							angle: bottomLeftText.angle,
+							left: bottomLeftText.left + fontSize,
+							top: bottomLeftText.top
+						});
+						
+						
+						// Top Left of Object
+						var topLeftText = new fabric.Text(String(sideLengths[5]) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: -65,
+							top:  - ( shape.height / 4 ) + fontSize + defaultGap,
+							left: - ( shape.width / 3 ) - defaultGap - fontSize,
+							customAngle: angles[2] - 90
+						});
+
+						var polygonEdgeProfile6 = jQuery('select[name="polygonEdgeProfile6"]').val();
+						if (polygonEdgeProfile6 != '' && polygonEdgeProfile6 != '0') {
+							var topLeftEdgeProfileText = jQuery('select[name="polygonEdgeProfile6"] option:selected').text();
+						} else {
+							var topLeftEdgeProfileText = 'Unfinished';
+						}
+
+						var topLeftEdgeProfile = new fabric.Text(topLeftEdgeProfileText, {
+							fontSize: topLeftText.fontSize,
+							fill: topLeftText.fill,
+							angle: topLeftText.angle,
+							left: topLeftText.left + fontSize,
+							top: topLeftText.top + fontSize
+						});
+
+
+						groupArr.push(topText);
+						groupArr.push(topEdgeProfile);
+						groupArr.push(topRightText);
+						groupArr.push(topRightEdgeProfile);
+						groupArr.push(bottomRightText);
+						groupArr.push(bottomRightEdgeProfile);
+						groupArr.push(bottomText);
+						groupArr.push(bottomEdgeProfile);
+						groupArr.push(bottomLeftText);
+						groupArr.push(bottomLeftEdgeProfile);
+						groupArr.push(topLeftText);
+						groupArr.push(topLeftEdgeProfile);
+					} else if ( shapeObject.type == 'triangle' ) {
+						let sideLength = Math.ceil(convertPxToMm(Math.sqrt(Math.pow(shape.width/2, 2) + Math.pow(shape.height, 2))));
+
+						// Get the side lengths of the triangle
+						let a = Math.ceil(convertPxToMm(shape.width / 2));
+						let b = Math.ceil(convertPxToMm(Math.sqrt(Math.pow(shape.width / 2, 2) + Math.pow(shape.height, 2))));
+						let c = Math.ceil(convertPxToMm(shape.height));
+
+						// Use the Law of Cosines to calculate the bend angle
+						let angle = Math.acos((Math.pow(b, 2) + Math.pow(c, 2) - Math.pow(a, 2)) / (2 * b * c)) * (180 / Math.PI);
+						
+						
+						// Right of Object
+						var rightText = new fabric.Text(String(sideLength) + "mm", {
+							fontSize: fontSize,
+							originX: 'left',
+							originY: 'top',
+							fill: 'black',
+							angle: 65,
+							left: shape.left + ( shape.width / 4 ),
+							top: shape.top + fontSize + ( defaultGap * 4 ),
+							customAngle: -angle
+						});
+
+						var triangleEdgeProfile1 = jQuery('select[name="triangleEdgeProfile1"]').val();
+						if (triangleEdgeProfile1 != '' && triangleEdgeProfile1 != '0') {
+							var topRightEdgeProfileText = jQuery('select[name="triangleEdgeProfile1"] option:selected').text();
+						} else {
+							var topRightEdgeProfileText = 'Unfinished';
+						}
+
+						var topRightEdgeProfile = new fabric.Text(topRightEdgeProfileText, {
+							fontSize: rightText.fontSize,
+							originX: rightText.originX,
+							originY: rightText.originY,
+							fill: rightText.fill,
+							angle: rightText.angle,
+							left: rightText.left - fontSize,
+							top: rightText.top
+						});
+
+
+						// Width of Object
+						var widthText = new fabric.Text(String(convertPxToMm(shapeObject.width)) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							originY: 'top',
+							fill: 'black',
+							top: shape.top + ( shape.height / 2 ) - fontSize - ( defaultGap * 2 )
+						});
+
+						var triangleEdgeProfile2 = jQuery('select[name="triangleEdgeProfile2"]').val();
+						if (triangleEdgeProfile2 != '' && triangleEdgeProfile2 != '0') {
+							var bottomEdgeProfileText = jQuery('select[name="triangleEdgeProfile2"] option:selected').text();
+						} else {
+							var bottomEdgeProfileText = 'Unfinished';
+						}
+
+						var bottomEdgeProfile = new fabric.Text(bottomEdgeProfileText, {
+							fontSize: widthText.fontSize,
+							originX: widthText.originX,
+							originY: widthText.originY,
+							fill: widthText.fill,
+							top: widthText.top - fontSize
+						});
+
+
+						// Left of Object
+						var leftText = new fabric.Text(String(sideLength) + "mm", {
+							fontSize: fontSize,
+							originX: 'left',
+							originY: 'top',
+							fill: 'black',
+							angle: -65,
+							left: shape.left - ( shape.width / 3 ),
+							top: shape.top + ( shape.height / 4 ),
+							customAngle: angle
+						});
+
+						var triangleEdgeProfile3 = jQuery('select[name="triangleEdgeProfile3"]').val();
+						if (triangleEdgeProfile3 != '' && triangleEdgeProfile3 != '0') {
+							var topLeftEdgeProfileValue = jQuery('select[name="triangleEdgeProfile3"] option:selected').text();
+						} else {
+							var topLeftEdgeProfileValue = 'Unfinished';
+						}
+
+						var topLeftEdgeProfile = new fabric.Text(topLeftEdgeProfileValue, {
+							fontSize: leftText.fontSize,
+							originX: leftText.originX,
+							originY: leftText.originY,
+							fill: leftText.fill,
+							angle: leftText.angle,
+							left: leftText.left + fontSize,
+							top: leftText.top + ( fontSize / 2)
+						});
+
+
+						groupArr.push(rightText);
+						groupArr.push(topRightEdgeProfile);
+						groupArr.push(widthText);
+						groupArr.push(bottomEdgeProfile);
+						groupArr.push(leftText);
+						groupArr.push(topLeftEdgeProfile);
+					} else if ( shapeObject.type == 'ellipse' ) {
+						// Height of Object
+						var heightText = new fabric.Text(String(convertPxToMm(shapeObject.height)) + "mm", {
+							fontSize: fontSize,
+							originX: 'right',
+							originY: 'top',
+							fill: 'black',
+							angle: 90,
+							left: shape.left + ( shape.width / 2 ) - fontSize - ( defaultGap * 2 ),
+							top: fontSize + ( defaultGap * 2 )
+						});
+
+						// Width of Object
+						var widthText = new fabric.Text(String(convertPxToMm(shapeObject.width)) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							originY: 'top',
+							fill: 'black',
+							top: shape.top + ( shape.height / 2 ) - fontSize - ( defaultGap * 2 )
+						});
+						
+						var ellipseEdgeProfile1 = jQuery('select[name="ellipseEdgeProfile1"]').val();
+						if (ellipseEdgeProfile1 != '' && ellipseEdgeProfile1 != '0') {
+							var ellipseEdgeProfileText = jQuery('select[name="ellipseEdgeProfile1"] option:selected').text();
+						} else {
+							var ellipseEdgeProfileText = 'Unfinished';
+						}
+
+						var ellipseEdgeProfile = new fabric.Text(ellipseEdgeProfileText, {
+							fontSize: widthText.fontSize,
+							originX: widthText.originX,
+							originY: widthText.originY,
+							fill: widthText.fill,
+							top: widthText.top - 10
+						});
+						
+						groupArr.push(widthText);
+						groupArr.push(heightText);
+						groupArr.push(ellipseEdgeProfile);
+					}
+
+
+
+					// Create a group consisting of the shape and the text
+					var groupObj = {
+						lockScalingX: true,
+						lockScalingY: true,
+					};
+
+					if ( shapeObject.hasOwnProperty('x') ) {
+						groupObj.left = shapeObject.x;
+					}
+
+					if ( shapeObject.hasOwnProperty('y') ) {
+						groupObj.top = shapeObject.y;
+					}
+
+
+					var group = new fabric.Group(groupArr, groupObj);
+
+					// Add the group to the canvas
+					canvas.add(group);
+					shape.setCoords();
+					canvas.requestRenderAll();
+
+					return group;
+				}
+
+
+				// Event listener for toolbar images
+				jQuery('body').on('click', '#toolbar .shapes img', function() {
+					var shapeType = jQuery(this).data('shape');
+					resetShapeModal();
+					if ( shapeType == 'circle' ) {
+						jQuery('#shapeModal .form-group #shapeWidth').parent().hide();
+					}
+
+					jQuery('#shapeModal .form-group .edge-profile-section > div.' + shapeType).show();
+					jQuery('#shapeModal').css('display', 'flex').attr('data-shape', shapeType);
+				});
+
+				// Hide Modal
+				jQuery('body').on('click', '.modal #cancel', function() {
+					resetShapeModal();
+					jQuery(this).parent().parent().hide();
+				});
+
+
+				// Save shape details when the 'Save' button is clicked
+				jQuery('body').on('click', '#shapeModal #saveShapeDetails', function() {
+
+					var state = jQuery(this).attr('data-state');
+					var editX = defaultGap;
+					var editY = defaultGap;
+
+					if ( state == 'edit' ) {
+						var activeObject = canvas.getActiveObject();
+						if ( activeObject ) {
+							editX = activeObject.left;
+							editY = activeObject.top;
+							if (activeObject.type === 'group') {
+								// Ungroup all the objects from the group
+								activeObject.forEachObject(function(object) {
+									canvas.remove(object);  // Remove each child object from the canvas
+								});
+							}
+							canvas.remove(activeObject);
+							canvas.renderAll(); // Re-render the canvas
+							jQuery(this).attr('data-state', 'save');
+						} else {
+							jQuery('#shapeModal').hide();
+						}
+
+					}
+
+					var shapeType = jQuery('#shapeModal').attr('data-shape');
+
+					var width = convertMmToPx(parseFloat(jQuery('#shapeModal #shapeWidth').val()));
+					var height = convertMmToPx(parseFloat(jQuery('#shapeModal #shapeHeight').val()));
+					var name = jQuery('#shapeModal #shapeName').val() || 'Enter Name';
+					var shapesList = [];
+
+					// Hide the modal
+					jQuery('#shapeModal').hide();
+					
+					// Default Shape
+					var group = createShape(
+						{
+							x: defaultGap,
+							y: defaultGap,
+							width: width,
+							height: height,
+							type: shapeType,
+							text: name
+						}
+					);
+
+					shapesList.push(group);
+					
+					var shape;
+					switch(shapeType) {
+						case 'square':
+						case 'rounded-square':
+							// Top corner
+							var squareEdgeProfile1 = jQuery('select[name="'+ shapeType +'EdgeProfile1"]').val();
+							var topEdgeProfileHeight = jQuery('select[name="'+ shapeType +'EdgeProfile1"] option:selected').data('size');
+							if (squareEdgeProfile1 != '' && squareEdgeProfile1 != '0' && topEdgeProfileHeight != '0') {
+								var topEdgeProfileText = jQuery('select[name="'+ shapeType +'EdgeProfile1"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left,
+										y: group.top - defaultGap - topEdgeProfileHeight,
+										width: width,
+										height: topEdgeProfileHeight,
+										name: shapeType +'EdgeProfile1',
+										text: topEdgeProfileText,
+										value: squareEdgeProfile1,
+									}
+								));
+							}
+							
+							// Right corner
+							var squareEdgeProfile2 = jQuery('select[name="'+ shapeType +'EdgeProfile2"]').val();
+							var rightEdgeProfileWidth = jQuery('select[name="'+ shapeType +'EdgeProfile2"] option:selected').data('size');
+							if (squareEdgeProfile2 != '' && squareEdgeProfile2 != '0' && rightEdgeProfileWidth != '0') {
+								var rightEdgeProfileText = jQuery('select[name="'+ shapeType +'EdgeProfile2"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left + width + defaultGap,
+										y: group.top,
+										width: rightEdgeProfileWidth,
+										height: height,
+										name: shapeType +'EdgeProfile2',
+										text: rightEdgeProfileText,
+										value: squareEdgeProfile2,
+									}
+								));
+							}
+							
+							
+							// Bottom corner
+							var squareEdgeProfile3 = jQuery('select[name="'+ shapeType +'EdgeProfile3"]').val();
+							var bottomEdgeProfileWidth = jQuery('select[name="'+ shapeType +'EdgeProfile3"] option:selected').data('size');
+							if (squareEdgeProfile3 != '' && squareEdgeProfile3 != '0' && bottomEdgeProfileWidth != '0') {
+								var bottomEdgeProfileText = jQuery('select[name="'+ shapeType +'EdgeProfile3"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left,
+										y: group.top + height + defaultGap,
+										width: width,
+										height: bottomEdgeProfileWidth,
+										name: shapeType +'EdgeProfile3',
+										text: bottomEdgeProfileText,
+										value: squareEdgeProfile3,
+									}
+								));
+							}
+
+							// Left corner
+							var squareEdgeProfile4 = jQuery('select[name="'+ shapeType +'EdgeProfile4"]').val();
+							var leftEdgeProfileHeight = jQuery('select[name="'+ shapeType +'EdgeProfile4"] option:selected').data('size');
+							if (squareEdgeProfile4 != '' && squareEdgeProfile4 != '0' && leftEdgeProfileHeight != '0') {
+								var leftEdgeProfileText = jQuery('select[name="'+ shapeType +'EdgeProfile4"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left - defaultGap - leftEdgeProfileHeight,
+										y: group.top,
+										width: leftEdgeProfileHeight,
+										height: height,
+										name: shapeType +'EdgeProfile4',
+										text: leftEdgeProfileText,
+										value: squareEdgeProfile4,
+									}
+								));
+							}
+							break;
+						case 'circle':
+							var circleEdgeProfile1 = jQuery('select[name="circleEdgeProfile1"]').val();
+							var allEdgeProfileHeight = jQuery('select[name="circleEdgeProfile1"] option:selected').data('size');
+							if (circleEdgeProfile1 != '' && circleEdgeProfile1 != '0' && allEdgeProfileHeight != '0') {
+								var circleEdgeProfileText = jQuery('select[name="circleEdgeProfile1"] option:selected').text();
+								shapesList.unshift(createEdgeProfileShape(
+									{
+										width: height + defaultGap,
+										height: height + defaultGap,
+										name: 'circleEdgeProfile1',
+										text: circleEdgeProfileText,
+										value: circleEdgeProfile1,
+										type: shapeType,
+									}
+								));
+
+								shapesList.unshift(createEdgeProfileShape(
+									{
+										width: height + allEdgeProfileHeight + defaultGap,
+										height: height + allEdgeProfileHeight + defaultGap,
+										name: 'circleEdgeProfile1',
+										text: circleEdgeProfileText,
+										value: circleEdgeProfile1,
+										type: shapeType,
+									}
+								));
+							}
+							break;
+						case 'ellipse':
+							var ellipseEdgeProfile1 = jQuery('select[name="ellipseEdgeProfile1"]').val();
+							var allEdgeProfileHeight = jQuery('select[name="ellipseEdgeProfile1"] option:selected').data('size');
+							if (ellipseEdgeProfile1 != '' && ellipseEdgeProfile1 != '0' && allEdgeProfileHeight != '0') {
+								var ellipseEdgeProfileText = jQuery('select[name="ellipseEdgeProfile1"] option:selected').text();
+								shapesList.unshift(createEdgeProfileShape(
+									{
+										width: width + defaultGap,
+										height: height + defaultGap,
+										name: 'ellipseEdgeProfile1',
+										text: ellipseEdgeProfileText,
+										value: ellipseEdgeProfile1,
+										type: shapeType,
+									}
+								));
+
+								shapesList.unshift(createEdgeProfileShape(
+									{
+										width: width + allEdgeProfileHeight + defaultGap,
+										height: height + allEdgeProfileHeight + defaultGap,
+										name: 'ellipseEdgeProfile1',
+										text: ellipseEdgeProfileText,
+										value: ellipseEdgeProfile1,
+										type: shapeType,
+									}
+								));
+							}
+							break;
+						case 'polygon':
+							// Top corner
+							var polygonEdgeProfile1 = jQuery('select[name="polygonEdgeProfile1"]').val();
+							var topEdgeProfileHeight = jQuery('select[name="polygonEdgeProfile1"] option:selected').data('size');
+							if ( polygonEdgeProfile1 != '' && polygonEdgeProfile1 != '0' && topEdgeProfileHeight != '0' ) {
+								var topEdgeProfileText = jQuery('select[name="polygonEdgeProfile1"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left + ( group.width / 4 ),
+										y: group.top - defaultGap - topEdgeProfileHeight,
+										width: ( group.width / 2 ),
+										height: topEdgeProfileHeight,
+										name: 'polygonEdgeProfile1',
+										text: topEdgeProfileText,
+										value: polygonEdgeProfile1,
+									}
+								));
+
+							}
+
+							// Top-right corner
+							var polygonEdgeProfile2 = jQuery('select[name="polygonEdgeProfile2"]').val();
+							var topRightEdgeProfileWidth = jQuery('select[name="polygonEdgeProfile2"] option:selected').data('size');
+							if ( polygonEdgeProfile2 != '' && polygonEdgeProfile2 != '0' && topRightEdgeProfileWidth != '0' ) {
+								var topRightEdgeProfileText = jQuery('select[name="polygonEdgeProfile2"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left + ( group.width - ( group.width / 4 ) ) + defaultGap,
+										y: group.top,
+										width: topRightEdgeProfileWidth,
+										height: convertMmToPx(parseInt(group._objects[4].text.replace('mm', ''))),
+										angle: group._objects[4].customAngle,
+										name: 'polygonEdgeProfile2',
+										text: topRightEdgeProfileText,
+										value: polygonEdgeProfile2,
+									}
+								));
+							}
+
+							// Bottom right corner
+							var polygonEdgeProfile3 = jQuery('select[name="polygonEdgeProfile3"]').val();
+							var bottomRightEdgeProfileWidth = jQuery('select[name="polygonEdgeProfile3"] option:selected').data('size');
+							if ( polygonEdgeProfile3 != '' && polygonEdgeProfile3 != '0' && bottomRightEdgeProfileWidth != '0' ) {
+								var bottomRightEdgeProfileText = jQuery('select[name="polygonEdgeProfile3"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left + group.width + defaultGap,
+										y: group.top + ( group.height / 2 ),
+										width: bottomRightEdgeProfileWidth,
+										height: convertMmToPx(parseInt(group._objects[6].text.replace('mm', ''))),
+										angle: group._objects[6].customAngle,
+										name: 'polygonEdgeProfile3',
+										text: bottomRightEdgeProfileText,
+										value: polygonEdgeProfile3,
+									}
+								));
+							}
+
+							// Bottom corner
+							var polygonEdgeProfile4 = jQuery('select[name="polygonEdgeProfile4"]').val();
+							var bottomEdgeProfileHeight = jQuery('select[name="polygonEdgeProfile4"] option:selected').data('size');
+							if ( polygonEdgeProfile4 != '' && polygonEdgeProfile4 != '0' && bottomEdgeProfileHeight != '0' ) {
+								var bottomEdgeProfileText = jQuery('select[name="polygonEdgeProfile4"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left + ( group.width / 4 ),
+										y: group.top + group.height + defaultGap,
+										width: ( group.width / 2 ),
+										height: bottomEdgeProfileHeight,
+										name: 'polygonEdgeProfile4',
+										text: bottomEdgeProfileText,
+										value: polygonEdgeProfile4,
+									}
+								));
+							}
+
+							// Bottom-left corner
+							var polygonEdgeProfile5 = jQuery('select[name="polygonEdgeProfile5"]').val();
+							var bottomLeftEdgeProfileHeight = jQuery('select[name="polygonEdgeProfile5"] option:selected').data('size');
+							if ( polygonEdgeProfile5 != '' && polygonEdgeProfile5 != '0' && bottomLeftEdgeProfileHeight != '0' ) {
+								var bottomLeftEdgeProfileText = jQuery('select[name="polygonEdgeProfile5"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left - defaultGap - bottomLeftEdgeProfileHeight,
+										y: group.top + ( group.height / 2 ) + ( bottomLeftEdgeProfileHeight / 2 ),
+										width: bottomLeftEdgeProfileHeight,
+										height: convertMmToPx(parseInt(group._objects[10].text.replace('mm', ''))),
+										angle: group._objects[10].customAngle,
+										name: 'polygonEdgeProfile5',
+										text: bottomLeftEdgeProfileText,
+										value: polygonEdgeProfile5,
+									}
+								));
+							}
+
+							// Top-left corner
+							var polygonEdgeProfile6 = jQuery('select[name="polygonEdgeProfile6"]').val();
+							var topLeftEdgeProfileHeight = jQuery('select[name="polygonEdgeProfile6"] option:selected').data('size');
+							if ( polygonEdgeProfile6 != '' && polygonEdgeProfile6 != '0' && topLeftEdgeProfileHeight != '0' ) {
+								var topLeftEdgeProfileText = jQuery('select[name="polygonEdgeProfile6"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left + ( group.width / 4 ) - defaultGap - topLeftEdgeProfileHeight,
+										y: group.top - ( topLeftEdgeProfileHeight / 2 ),
+										width: topLeftEdgeProfileHeight,
+										height: convertMmToPx(parseInt(group._objects[12].text.replace('mm', ''))),
+										angle: group._objects[12].customAngle,
+										name: 'polygonEdgeProfile6',
+										text: topLeftEdgeProfileText,
+										value: polygonEdgeProfile6,
+									}
+								));
+							}
+
+							break;
+						case 'triangle':
+							// Top-Right corner
+							var triangleEdgeProfile1 = jQuery('select[name="triangleEdgeProfile1"]').val();
+							var topRightEdgeProfileHeight = jQuery('select[name="triangleEdgeProfile1"] option:selected').data('size');
+							if ( triangleEdgeProfile1 != '' && triangleEdgeProfile1 != '0' && topRightEdgeProfileHeight != '0' ) {
+								var topRightEdgeProfileText = jQuery('select[name="triangleEdgeProfile1"] option:selected').text();
+
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left + ( group.width / 2 ) + defaultGap,
+										y: group.top,
+										width: topRightEdgeProfileHeight,
+										height: convertMmToPx(parseInt(group._objects[2].text.replace('mm', ''))),
+										name: 'triangleEdgeProfile1',
+										text: topRightEdgeProfileText,
+										value: triangleEdgeProfile1,
+										angle: group._objects[2].customAngle
+									}
+								));
+
+							}
+
+							// Bottom corner
+							var triangleEdgeProfile2 = jQuery('select[name="triangleEdgeProfile2"]').val();
+							var bottomEdgeProfileWidth = jQuery('select[name="triangleEdgeProfile2"] option:selected').data('size');
+							if ( triangleEdgeProfile2 != '' && triangleEdgeProfile2 != '0' && bottomEdgeProfileWidth != '0' ) {
+								var bottomEdgeProfileText = jQuery('select[name="triangleEdgeProfile2"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left,
+										y: group.top + height + defaultGap,
+										width: width,
+										height: bottomEdgeProfileWidth,
+										name: 'triangleEdgeProfile2',
+										text: bottomEdgeProfileText,
+										value: triangleEdgeProfile2,
+									}
+								));
+							}
+
+							// Top-left corner
+							var triangleEdgeProfile3 = jQuery('select[name="triangleEdgeProfile3"]').val();
+							var topLeftEdgeProfileHeight = jQuery('select[name="triangleEdgeProfile3"] option:selected').data('size');
+							if ( triangleEdgeProfile3 != '' && triangleEdgeProfile3 != '0' && topLeftEdgeProfileHeight != '0' ) {
+								var topLeftEdgeProfileValue = jQuery('select[name="triangleEdgeProfile3"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left + ( group.width / 2 ) - defaultGap - topLeftEdgeProfileHeight,
+										y: group.top - ( topLeftEdgeProfileHeight / 2 ),
+										width: topLeftEdgeProfileHeight,
+										height: convertMmToPx(parseInt(group._objects[6].text.replace('mm', ''))),
+										name: 'triangleEdgeProfile3',
+										text: topLeftEdgeProfileValue,
+										value: triangleEdgeProfile3,
+										angle: group._objects[6].customAngle,
+									}
+								));
+
+							}
+							break;
+					}
+
+					// Updating Shape Number
+					shapeNo++;
+					
+					canvas.getObjects().forEach(obj => {
+						if ( obj.mainShape ) {
+							let right = obj.left + obj.width;
+							if ( right > editX ) {
+								editX = right + defaultGap;
+							}
+							
+// 							let bottom = obj.top + obj.height;
+// 							if ( bottom > editY ) {
+// 								editY = bottom + defaultGap;
+// 							}
+						}
+					});
+					
+					if ( shapesList.length > 1 ) {
+						// Create a single group with the main shape, text, and the corner blank shapes
+						var finalGroup = new fabric.Group(shapesList, {
+							left: editX,
+							top: editY,
+							lockScalingX: true,
+							lockScalingY: true,
+							id: shapeNo,
+							hasControls: false,
+							mainShape: true
+						});
+
+						// Add the group to the canvas
+						canvas.add(finalGroup);
+						canvas.renderAll();
+
+						canvas.setActiveObject(finalGroup);
+						checkShapeBounds(finalGroup); // Check bounds immediately after adding the shape
+
+						// Ensure the group updates properly during dragging and scaling
+						finalGroup.on('moving', function(e) {
+							const now = Date.now();
+							if (now - lastMoveTime > 50) {  // Adjust the delay as needed
+								lastMoveTime = now;
+								canvas.requestRenderAll();
+							}
+						});
+
+
+						finalGroup.on('modified', function(e) {
+							const obj = e.target;
+
+							// Get proposed new position
+							let newLeft = obj.left;
+							let newTop = obj.top;
+
+							// Check and adjust for overlaps
+							const adjustedPosition = preventShapeOverlap(obj, newLeft, newTop);
+
+							// Apply adjusted position
+							obj.set({
+								left: adjustedPosition.left,
+								top: adjustedPosition.top
+							});
+
+							canvas.renderAll();
+
+							cleanupEmptyInfoBoxes();
+
+							// Check if we need new boxes
+							checkShapeBounds(obj);
+							
+							saveState();
+						});
+					} else {
+
+						group.set({
+							left: editX,
+							top: editY,
+							id: shapeNo,
+							hasControls: false,
+							mainShape: true
+						});
+
+						canvas.renderAll();
+
+						canvas.setActiveObject(group);
+						
+						// Check if we need new boxes
+						checkShapeBounds(group);
+
+						group.on('modified', function(e) {
+							const obj = e.target;
+
+							// Get proposed new position
+							let newLeft = obj.left;
+							let newTop = obj.top;
+
+							// Check and adjust for overlaps
+							const adjustedPosition = preventShapeOverlap(obj, newLeft, newTop);
+
+							// Apply adjusted position
+							obj.set({
+								left: adjustedPosition.left,
+								top: adjustedPosition.top
+							});
+
+							canvas.renderAll();
+
+							cleanupEmptyInfoBoxes();
+
+							// Check if we need new boxes
+							checkShapeBounds(obj);
+						});
+
+						// Ensure the group updates properly during dragging and scaling
+						group.on('moving', function(e) {
+							const now = Date.now();
+							if (now - lastMoveTime > 50) {  // Adjust the delay as needed
+								lastMoveTime = now;
+								canvas.requestRenderAll();
+							}
+						});
+
+					}
+					
+					getTotalMM();
+
+					saveState();
+				});
+
+
+				// Show alert if no object is selected
+				function checkIfShapeSelected() {
+					var activeObject = canvas.getActiveObject();
+					if ( ! activeObject ) {
+						alert('Please select any shape first');
+
+						return false;
+					} else {
+						return activeObject;
+					}
+				}
+
+
+				// Edit information of the selected object
+				jQuery('#toolbar .tools #info').click(function() {
+					var activeObject = checkIfShapeSelected();
+					if ( activeObject && activeObject.type === 'group' ) {
+						resetShapeModal();
+
+						var obj = activeObject.getObjects();
+						if ( ( obj[0].type == 'circle' || obj[0].type == 'ellipse' ) && obj[2].type == 'group' ) {
+							var shapeName = obj[2]._objects[0].shapeName;
+							jQuery('#shapeModal #shapeWidth').val(convertPxToMm(obj[2]._objects[0].width));
+							jQuery('#shapeModal #shapeHeight').val(convertPxToMm(obj[2]._objects[0].height));
+							jQuery('#shapeModal .edge-profile-section > div.' + shapeName).show();
+							jQuery('#shapeModal #shapeName').val(obj[2]._objects[1].text && obj[2]._objects[1].text != 'Enter Name' ? obj[2]._objects[1].text : '');
+							jQuery('#shapeModal .edge-profile-section > div.' + shapeName + ' select[name="' + obj[0].customName + '"]').val(obj[0].customValue).trigger('change');
+						} else if ( obj[0].type == 'ellipse' && obj[2].type != 'group' ) {
+							var shapeName = obj[0].shapeName;
+							jQuery('#shapeModal #shapeWidth').val(convertPxToMm(obj[0].width));
+							jQuery('#shapeModal #shapeHeight').val(convertPxToMm(obj[0].height));
+							jQuery('#shapeModal .edge-profile-section > div.' + shapeName).show();
+							jQuery('#shapeModal #shapeName').val(obj[1].text && obj[1].text != 'Enter Name' ? obj[1].text : '');
+							var text = obj[4].text;
+							if ( text  == 'Unfinished') {
+								jQuery('#shapeModal .edge-profile-section > div.' + shapeName + ' select[name="' + shapeName + 'EdgeProfile1"]').val('0').trigger('change'); 
+							} else {
+								jQuery('#shapeModal .edge-profile-section > div.' + shapeName + ' select[name="' + shapeName + 'EdgeProfile1"]').val(text.replace(/ /g, '-')).trigger('change');
+							}
+						} else {
+							if ( obj[0].type == 'group' ) {
+								var obj = obj[0]._objects;
+							}
+							
+							var shapeName = obj[0].shapeName;
+							jQuery('#shapeModal #shapeWidth').val(convertPxToMm(obj[0].width));
+							jQuery('#shapeModal #shapeHeight').val(convertPxToMm(obj[0].height));
+							jQuery('#shapeModal .edge-profile-section > div.' + shapeName).show();
+							jQuery('#shapeModal #shapeName').val(obj[1].text && obj[1].text != 'Enter Name' ? obj[1].text : '');
+
+							var length = jQuery('#shapeModal .edge-profile-section > div.' + shapeName + ' select').length;
+							for ( var i=1; i <= length; i++ ) {
+								var text = obj[ ( i * 2 ) + 1 ].text;
+								if ( text  == 'Unfinished') {
+									jQuery('#shapeModal .edge-profile-section > div.' + shapeName + ' select#shapeEdgeProfile' + i + '').val('0').trigger('change'); 
+								} else {
+									jQuery('#shapeModal .edge-profile-section > div.' + shapeName + ' select#shapeEdgeProfile' + i + '').val(text.replace(/ /g, '-')).trigger('change');
+								}
+							}
+						}
+						
+						if ( shapeName == 'circle' ) {
+							jQuery('#shapeModal .form-group #shapeWidth').parent().hide();
+						}
+
+						// Hide the modal
+						jQuery('#shapeModal #saveShapeDetails').attr('data-state', 'edit');
+						jQuery('#shapeModal').css('display', 'flex').attr('data-shape', shapeName);
+					}
+				});
+
+				
+				var rotatedObjectList = {};
+				
+				// Rotate the selected object
+				jQuery('#toolbar .tools #rotate').click(function() {
+					var activeObject = checkIfShapeSelected();
+					if ( activeObject ) {
+						var adjustedPosition = {};
+						if ( activeObject.angle == 0 ) {
+							delete rotatedObjectList[activeObject.id];
+							rotatedObjectList[activeObject.id] = {'left': activeObject.left, 'top': activeObject.top};
+						}
+						
+						activeObject.rotate((activeObject.angle + 90) % 360);
+						
+						if ( activeObject.angle == 0 ) {
+							adjustedPosition.left = rotatedObjectList[activeObject.id].left;
+							adjustedPosition.top = rotatedObjectList[activeObject.id].top;
+						} else if ( activeObject.angle == 90 ) {
+							adjustedPosition.left = rotatedObjectList[activeObject.id].left + activeObject.height;
+							adjustedPosition.top = rotatedObjectList[activeObject.id].top;
+						} else if ( activeObject.angle == 180 ) {
+							adjustedPosition.left = rotatedObjectList[activeObject.id].left + activeObject.width;
+							adjustedPosition.top = rotatedObjectList[activeObject.id].top + activeObject.height;
+						} else if ( activeObject.angle == 270 ) {
+							adjustedPosition.left = rotatedObjectList[activeObject.id].left;
+							adjustedPosition.top = rotatedObjectList[activeObject.id].top + activeObject.width;
+						}
+						
+						activeObject.set({
+							left: adjustedPosition.left,
+							top: adjustedPosition.top
+						});
+						
+						activeObject.setCoords();
+						canvas.renderAll();
+
+						checkShapeBounds(activeObject);
+						
+						// Save the initial state
+						saveState();
+					}
+				});
+
+				// Zoom in
+				jQuery('#toolbar .tools #zoom-in').click(function() {
+					zoomCanvas(true);
+					saveState();
+				});
+
+				// Zoom out
+				jQuery('#toolbar .tools #zoom-out').click(function() {
+					zoomCanvas(false);
+					saveState();
+				});
+
+				// Delete selected object
+				jQuery('#toolbar .tools #delete').click(function() {
+					var activeObject = checkIfShapeSelected();
+					if (activeObject && confirm('Are you sure you want to delete this shape?')) {
+						if (activeObject.type === 'group') {
+							// Ungroup all the objects from the group
+							activeObject.forEachObject(function(object) {
+								canvas.remove(object);  // Remove each child object from the canvas
+							});
+						}
+						canvas.remove(activeObject);
+						canvas.renderAll(); // Re-render the canvas
+						cleanupEmptyInfoBoxes();
+						getTotalMM();
+						saveState();
+					}
+				});
+
+				// Undo/Redo functionality
+				let undoStack = [];
+				let redoStack = [];
+				let isUndoRedo = false; // Flag to track undo/redo operations
+
+				// Define your custom properties here
+				const customProperties = ['id', 'customName', 'customValue', 'customText', 'shapeName', 'mainShape']; // Add all your custom properties to this array
+
+				// Save canvas state to undoStack on every change
+				function saveState() {
+					if (!isUndoRedo) { // Prevent saving state during undo/redo operations
+						redoStack = []; // Clear the redo stack when a new change is made
+						const json = canvas.toJSON(customProperties);
+						undoStack.push(json);
+					}
+				}
+
+				// Function to restore custom properties and apply specific rules
+				function restoreCustomProperties() {
+					canvas.getObjects().forEach(obj => {
+						if ( !isGreenBox(obj) && ( obj.left < defaultGap || obj.top < defaultGap ) ) {
+							canvas.remove(obj);
+						}
+						customProperties.forEach(prop => {
+							if (obj[prop] !== undefined) {
+								obj.set(prop, obj[prop]);
+							}
+						});
+
+						// Apply specific rules (like for green boxes)
+						if (isGreenBox(obj)) {
+							obj.selectable = false;
+						}
+					});
+				}
+
+				jQuery('#toolbar .tools #undo').click(function() {
+					if (undoStack.length > 1) {
+						isUndoRedo = true; // Set flag to avoid triggering saveState
+						redoStack.push(undoStack.pop()); // Move current state to redo stack
+						const lastState = undoStack[undoStack.length - 1];
+						canvas.loadFromJSON(lastState, function() {
+							restoreCustomProperties();
+							canvas.renderAll();
+						});
+						isUndoRedo = false; // Reset flag after undo
+					}
+				});
+
+				jQuery('#toolbar .tools #redo').click(function() {
+					if (redoStack.length > 0) {
+						isUndoRedo = true; // Set flag to avoid triggering saveState
+						const state = redoStack.pop();
+						undoStack.push(canvas.toJSON(customProperties)); // Push current state back to undo stack
+						canvas.loadFromJSON(state, function() {
+							restoreCustomProperties();
+							canvas.renderAll();
+						});
+						isUndoRedo = false; // Reset flag after redo
+					}
+				});
+
+				// Save the initial state
+				saveState();
+				
+				var isObjectMoving  = false;
+				canvas.on('object:moving', function (event) {
+					isObjectMoving = true;
+				});
+
+				canvas.on('mouse:up', function (event) {
+					if (isObjectMoving){
+						isObjectMoving = false;
+						cleanupEmptyInfoBoxes();
+						saveState();
+					} 
+				});
+
+
+				jQuery('#toolbar .btns #download').click(function() {
+					jQuery(this).next().slideToggle();
+				});
+				
+				
+				// Function to get canvas height and width for download
+				function getCanvasDataForDownload() {
+					let data = { width: 0, height: 0 };
+
+					canvas.getObjects().forEach(obj => {
+						if (isGreenBox(obj)) {
+							data.width = Math.max(data.width, obj.left + obj.width);
+							data.height = Math.max(data.height, obj.top + obj.height);
+						}
+					});
+					
+					data.width = data.width + 4;
+					data.height = data.height + 4;
+					
+					return data;
+				}
+
+				// Function to prepare canvas for download
+				function prepareCanvasForDownload(canvas) {
+					// Deactivate all objects and store current state
+					const activeObject = canvas.getActiveObject();
+					const activeGroup = canvas.getActiveGroup?.();
+// 					const activeGroup = canvas.getActiveGroup();
+
+					if (activeObject) {
+						canvas.discardActiveObject();
+					}
+					if (activeGroup) {
+						canvas.discardActiveGroup();
+					}
+
+					canvas.renderAll();
+
+					return { activeObject, activeGroup };
+				}
+
+				// Function to restore canvas state
+				function restoreCanvasState(canvas, state) {
+					if (state.activeObject) {
+						canvas.setActiveObject(state.activeObject);
+					}
+					if (state.activeGroup) {
+						canvas.setActiveGroup(state.activeGroup);
+					}
+					canvas.renderAll();
+				}
+					
+				// Convert dataURL to Blob
+				function dataURLToBlob(dataURL) {
+					const byteString = atob(dataURL.split(',')[1]);
+					const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
+					const buffer = new Uint8Array(byteString.length);
+
+					for (let i = 0; i < byteString.length; i++) {
+						buffer[i] = byteString.charCodeAt(i);
+					}
+
+					return new Blob([buffer], { type: mimeString });
+				}
+
+
+				jQuery('#toolbar .btns ul.dropdown li').click(function() {
+					const downloadType = jQuery(this).data('type');
+
+					// Deselect objects before download
+					const state = prepareCanvasForDownload(canvas);
+
+					const data = getCanvasDataForDownload();
+
+					// Store the current zoom level
+					const originalZoom = canvas.getZoom();
+
+					// Set zoom to 1 to get a 1:1 pixel ratio for the 100x100 area
+					canvas.setZoom(1);
+
+					// Convert the area to a data URL
+					const dataURL = canvas.toDataURL({
+						format: 'jpeg',
+						quality: 1.0,
+						multiplier: 2,
+						width: data.width,
+						height: data.height,
+						enableRetinaScaling: true,
+					});
+						
+					const blob = dataURLToBlob(dataURL);
+					const blobURL = URL.createObjectURL(blob);
+
+					if (downloadType === 'JPG') {
+						// Trigger download
+						const downloadLink = document.createElement('a');
+						downloadLink.href = blobURL;
+						downloadLink.download = 'canvas-image.jpeg';
+						downloadLink.style.display = 'none';
+						document.body.appendChild(downloadLink);
+						downloadLink.click();
+
+						// Clean up
+						setTimeout(() => {
+							URL.revokeObjectURL(blobURL);
+							downloadLink.remove();
+						}, 100);
+						
+					} else if (downloadType === 'PDF') {
+						const { jsPDF } = window.jspdf;
+
+						const pdf = new jsPDF({
+							orientation: (data.height > data.width ? 'p' : 'l'),
+							unit: 'px',
+							format: [data.width, data.height],
+							putOnlyUsedFonts: true,
+							floatPrecision: 16
+						});
+
+						pdf.addImage(blobURL, 'JPEG', 0, 0, data.width, data.height);
+
+						pdf.save('canvas-drawing.pdf');
+						
+						// Clean up
+						setTimeout(() => {
+							URL.revokeObjectURL(blobURL);
+						}, 100);
+					}
+
+					canvas.setZoom(originalZoom);
+
+					// Restore canvas state
+					restoreCanvasState(canvas, state);
+				});
+
+				jQuery('#toolbar .btns #share').click(function() {
+					jQuery('#emailModal').css('display', 'flex');
+				});
+
+
+				jQuery('form#email-form').on('submit', function(e) {
+					e.preventDefault();
+
+					const submitButton = jQuery(this).find('button[type="submit"]');
+					const submitButtonText = submitButton.text();
+					const errorContainer = jQuery(this).find('.error-message');
+					const email = jQuery(this).find('#email').val();
+
+					// Reset error messages
+					errorContainer.html('').hide();
+
+					// Add loading state
+					submitButton.text('Sending...').prop('disabled', true);
+					
+					const { jsPDF } = window.jspdf;
+
+					// Deselect objects before download
+					const state = prepareCanvasForDownload(canvas);
+
+					const data = getCanvasDataForDownload();
+
+					// Store the current zoom level
+					const originalZoom = canvas.getZoom();
+
+					// Set zoom to 1 to get a 1:1 pixel ratio for the 100x100 area
+					canvas.setZoom(1);
+
+					// Convert the area to a data URL
+					const dataURL = canvas.toDataURL({
+						format: 'jpeg',
+						quality: 1.0,
+						multiplier: 2,
+						width: data.width,
+						height: data.height,
+						enableRetinaScaling: true,
+					});				
+
+					// Create the PDF
+					const pdf = new jsPDF({
+						orientation: (data.height > data.width ? 'p' : 'l'),
+						unit: 'px',
+						format: [data.width, data.height],
+						putOnlyUsedFonts: true,
+						floatPrecision: 16
+					});
+
+					pdf.addImage(dataURL, 'JPEG', 0, 0, data.width, data.height);
+					
+					const pdfBlob = pdf.output('blob');
+
+
+					canvas.setZoom(originalZoom);
+
+					// Restore canvas state
+					restoreCanvasState(canvas, state);
+
+					// Create FormData
+					const formData = new FormData();
+					formData.append('action', 'send_html_email');
+					formData.append('email', email);
+					formData.append('pdf', pdfBlob, 'canvas.pdf'); // Name the file
+
+
+					jQuery.ajax({
+						type: 'POST',
+						url: '/wp-admin/admin-ajax.php', // WordPress AJAX endpoint
+						data: formData,
+						processData: false, // Required for FormData
+						contentType: false, // Required for FormData
+						success: function (response) {
+							if (response.success) {
+								submitButton.text('Sent');
+								
+								setTimeout( function(){
+									jQuery('#emailModal').fadeOut();
+									jQuery('#emailModal #email').val('');
+									jQuery('#emailModal button[type="submit"]').hmtl(submitButtonText);
+								}, 2000);
+								
+							} else {
+								errorContainer.html('Email faild to Sent!').show();
+								submitButton.text(submitButtonText).prop('disabled', false);
+							}
+							
+						},
+						error: function () {
+							errorContainer.html('Email faild to Sent!').show();
+							submitButton.text(submitButtonText).prop('disabled', false);
+						},
+					});
+				});
+
+				jQuery('#toolbar .btns #tutorial').click(function() {
+					jQuery('#videoTutorialModal').css('display', 'flex');
+				});
+
+			});
+		</script>
+	</body>
+</html>
