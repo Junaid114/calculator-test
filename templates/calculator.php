@@ -86,6 +86,88 @@ foreach( $params as $param ) {
 				border-bottom: 1px solid #c2c2c2;
 			}
 
+			/* Shapes dropdown styles - extends over canvas */
+			#toolbar .shapes .shapes-dropdown {
+				display: none;
+				left: -33px;
+				right: auto;
+				position: fixed;
+				top: 112px;
+				z-index: 9999;
+				max-height: 80vh;
+				overflow-y: auto;
+				/* background: white; */
+				border: 1px solid #ddd;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+				margin-top: 2px;
+			}
+
+			#toolbar .shapes .shapes-dropdown li {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 8px 12px;
+				background: white;
+				border-bottom: 1px solid #f0f0f0;
+				cursor: pointer;
+				font-size: 14px;
+			}
+
+			#toolbar .shapes .shapes-dropdown li:last-child {
+				border-bottom: none;
+			}
+
+			#toolbar .shapes .shapes-dropdown li:hover {
+				background-color: #f8f9fa;
+			}
+
+			#toolbar .shapes .shapes-dropdown li:last-child {
+				border-bottom: none;
+			}
+
+			#toolbar .shapes .shapes-dropdown li img {
+				width: 20px;
+				height: 20px;
+				margin: 0;
+				object-fit: contain;
+				display: block;
+			}
+
+			#toolbar .shapes .shapes-dropdown li span {
+				font-size: 14px;
+				color: #333;
+			}
+
+			#toolbar .shapes .shapes-dropdown li:hover {
+				background-color: #f8f9fa;
+			}
+
+			/* Shapes dropdown button styles */
+			#toolbar .shapes .shapes-dropdown-btn {
+				display: flex;
+				align-items: center;
+				gap: 5px;
+				cursor: pointer;
+				padding: 5px;
+				border-radius: 3px;
+				position: relative;
+			}
+
+			#toolbar .shapes .shapes-dropdown-btn:hover {
+				background-color: #e9ecef;
+			}
+
+			#toolbar .shapes .shapes-dropdown-btn .dropdown-arrow {
+				font-size: 10px;
+				color: #666;
+				margin-left: 2px;
+			}
+
+			/* Active state for dropdown button when dropdown is open */
+			#toolbar .shapes .shapes-dropdown-btn.active {
+				background-color: #e9ecef;
+			}
+
 			#canvas-container {
 				position: relative;
 				overflow: auto;
@@ -148,6 +230,8 @@ foreach( $params as $param ) {
 				padding: 20px;
 				border-radius: 10px;
 				width: 400px;
+                max-height: 90vh;
+                overflow-y: auto;
 			}
 
 			#shapeModal .modal-content .modal-title,
@@ -169,7 +253,7 @@ foreach( $params as $param ) {
 			#shapeModal .modal-content .form-group label,
 			#emailModal .modal-content .form-group label {
 				display: block;
-				padding-bottom: 8px;
+				padding-bottom: 0px;
 			}
 
 			#shapeModal .modal-content .form-group input,
@@ -190,6 +274,40 @@ foreach( $params as $param ) {
 				display: block;
 				margin: 0 auto;
 			}
+
+            /* Enlarge U shape image and modal width when U is active */
+            #shapeModal[data-shape="U"] .modal-content {
+                width: 520px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            /* L shape: match U behavior */
+            #shapeModal[data-shape="L"] .modal-content {
+                width: 520px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            #shapeModal .form-group .edge-profile-section > div.L img {
+                height: 400px;
+            }
+            #shapeModal[data-shape="L"] .form-group .edge-profile-section > div.L {
+                padding: 0 10px;
+                margin-top: -40px;
+                margin-bottom: -10px;
+            }
+            #shapeModal .form-group .edge-profile-section > div.U img {
+                height: 400px;
+            }
+            #shapeModal[data-shape="U"] .form-group .edge-profile-section > div.U {
+                padding: 0 10px;
+                margin-top: -40px;
+                margin-bottom: -10px;
+            }
+            #shapeModal[data-shape="U"] .modal-content .form-group { 
+                margin-bottom: 10px; 
+            }
+            /* (Reverted) keep default select width for U as before */
 
 			#shapeModal .form-group .edge-profile-section > div select.shapeEdgeProfile {
 				position: absolute;
@@ -286,6 +404,92 @@ foreach( $params as $param ) {
 			#shapeModal .form-group .edge-profile-section > div.triangle select#shapeEdgeProfile3 {
 				left: 0;
 				bottom: 40%;
+				transform: translateY(-50%);
+			}
+
+			/* L Shape Edge Profiles */
+			#shapeModal .form-group .edge-profile-section > div.L select#shapeEdgeProfile1 {
+				top: 60px;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.L select#shapeEdgeProfile2 {
+				right: -25px;
+				top: 37%;
+				transform: translateY(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.L select#shapeEdgeProfile3 {
+				right: 110px;
+				top: 54%;
+				transform: translateY(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.L select#shapeEdgeProfile4 {
+				bottom: 122px;
+				left: 57%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.L select#shapeEdgeProfile5 {
+				bottom: 76px;
+				left: 33%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.L select#shapeEdgeProfile6 {
+				left: -24px;
+				bottom: 55%;
+				transform: translateY(-50%);
+			}
+
+			/* U Shape Edge Profiles */
+			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile1 {
+				top: 80px;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile2 {
+				top: 35%;
+				left: 90%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile3 {
+				bottom: 80px;
+				left: 70%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile4 {
+				bottom: 80px;
+				left: 30%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile5 {
+				top: 35%;
+				left: 11%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile6 {
+				top: 140px;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+
+			/* Shape-3 Edge Profiles */
+			#shapeModal .form-group .edge-profile-section > div.shape-3 select#shapeEdgeProfile1 {
+				top: 0;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.shape-3 select#shapeEdgeProfile2 {
+				right: 0;
+				top: 50%;
+				transform: translateY(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.shape-3 select#shapeEdgeProfile3 {
+				bottom: 0;
+				left: 50%;
+				transform: translateX(-50%);
+			}
+			#shapeModal .form-group .edge-profile-section > div.shape-3 select#shapeEdgeProfile4 {
+				left: 0;
+				top: 50%;
 				transform: translateY(-50%);
 			}
 
@@ -405,12 +609,41 @@ foreach( $params as $param ) {
 			</div>
 			<div id="toolbar">
 				<div class="shapes">
-					<img src="./../assets/images/square.png" alt="Square" data-shape="square">
-					<img src="./../assets/images/rounded-square.png" alt="Rounded Square" data-shape="rounded-square">
-					<img src="./../assets/images/circle.png" alt="Circle" data-shape="circle">
-					<img src="./../assets/images/ellipse.png" alt="Ellipse" data-shape="ellipse">
-					<img src="./../assets/images/polygon.png" alt="Polygon" data-shape="polygon">
-					<img src="./../assets/images/triangle.png" alt="Triangle" data-shape="triangle">
+					<div class="pos-relative">
+						<div class="shapes-dropdown-btn">
+							<img src="./../assets/images/square.png" alt="Shapes">
+							<span class="dropdown-arrow">▼</span>
+						</div>
+						<ul class="dropdown shapes-dropdown">
+							<li data-shape="square">
+								<img src="./../assets/images/square.png" alt="Square">
+							</li>
+							<li data-shape="rounded-square">
+								<img src="./../assets/images/rounded-square.png" alt="Rounded Square">
+							</li>
+							<li data-shape="circle">
+								<img src="./../assets/images/circle.png" alt="Circle">
+							</li>
+							<li data-shape="ellipse">
+								<img src="./../assets/images/ellipse.png" alt="Ellipse">
+							</li>
+							<li data-shape="polygon">
+								<img src="./../assets/images/polygon.png" alt="Polygon">
+							</li>
+							<li data-shape="triangle">
+								<img src="./../assets/images/triangle.png" alt="Triangle">
+							</li>
+							<li data-shape="L">
+								<img src="./../assets/images/L.png" alt="L" style="width: 29px !important; height: 29px !important;">
+							</li>
+							<li data-shape="U">
+								<img src="./../assets/images/U.png" alt="U" style="width: 30px !important; height: 30px !important;">
+							</li>
+							<li data-shape="shape-3">
+								<img src="./../assets/images/shape-3.png" alt="Shape 3" style="width: 30px !important; height: 30px !important;">
+							</li>
+						</ul>
+					</div>
 				</div>
 				<div class="tools">
 					<img src="./../assets/images/info.png" alt="Info" id="info">
@@ -481,6 +714,15 @@ foreach( $params as $param ) {
 						</div>
 						<div class="triangle" data-count="3">
 							<img src="./../assets/images/triangle.png" alt="Triangle" data-shape="triangle">
+						</div>
+						<div class="L" data-count="6">
+							<img src="./../assets/images/L.png" alt="L" data-shape="L">
+						</div>
+						<div class="U" data-count="6">
+							<img src="./../assets/images/U.png" alt="U" data-shape="U">
+						</div>
+						<div class="shape-3" data-count="4">
+							<img src="./../assets/images/shape-3.png" alt="Shape 3" data-shape="shape-3">
 						</div>
 					</div>
 				</div>
@@ -670,6 +912,39 @@ foreach( $params as $param ) {
 								}
 							}
 							break;
+							case 'U':
+							if ( obj.length == undefined ) {
+								totalMM += convertPxToMm(obj._objects[0].width * 2);
+								totalMM += convertPxToMm(obj._objects[0].height * 2);
+							} else {
+								totalMM += convertPxToMm(obj[0]._objects[0].width * 2);
+								totalMM += convertPxToMm(obj[0]._objects[0].height * 2);
+								for (const [key, value] of Object.entries(obj)) {
+									if ( key > 0 ) {
+										totalMM += convertPxToMm(value.width * 2);
+										totalMM += convertPxToMm(value.height * 2);
+									}
+								}
+							}
+							break;
+						case 'shape-3':
+							// Top edge
+							var shape_3EdgeProfile1 = jQuery('select[name="shape-3EdgeProfile1"]').val();
+							var topEdgeProfileHeight = jQuery('select[name="shape-3EdgeProfile1"] option:selected').data('size');
+							if (shape_3EdgeProfile1 != '' && shape_3EdgeProfile1 != '0' && topEdgeProfileHeight != '0') {
+								var topEdgeProfileText = jQuery('select[name="shape-3EdgeProfile1"] option:selected').text();
+								shapesList.push(createEdgeProfileShape(
+									{
+										x: group.left,
+										y: group.top - defaultGap - topEdgeProfileHeight,
+										width: width,
+										height: topEdgeProfileHeight,
+										name: 'shape-3EdgeProfile1',
+										text: topEdgeProfileText,
+										value: shape_3EdgeProfile1,
+									}
+								));
+							}
 					}
 
 				}
@@ -1248,14 +1523,89 @@ foreach( $params as $param ) {
 								height: shapeObject.height,
 							});
 							break;
+						case 'L': {
+							// L shape drawn as a closed polyline (outline only)
+							const thickness = Math.min(shapeObject.width, shapeObject.height) / 3;
+							const pts = [
+								{ x: 0, y: 0 },
+								{ x: shapeObject.width, y: 0 },
+								{ x: shapeObject.width, y: thickness },
+								{ x: thickness, y: thickness },
+								{ x: thickness, y: shapeObject.height },
+								{ x: 0, y: shapeObject.height },
+								{ x: 0, y: 0 }
+							];
+							shape = new fabric.Polyline(pts, { closed: true });
+							break;
+						}
+                        case 'U': {
+                            // // Pixel-perfect U recess: thinner side walls and deeper inner legs
+                            // const bar = Math.max(4, Math.round(Math.min(shapeObject.width, shapeObject.height) * 0.10)); // thinner outer wall
+                            // const gapRatio = 0.26;   // notch width relative to total width
+                            // const depthRatio = 0.70; // increase inner leg height (deeper notch)
+
+                            // const gapWidth = Math.round(shapeObject.width * gapRatio);
+                            // const notchDepth = Math.round(shapeObject.height * depthRatio);
+                            // const gapLeft = Math.round((shapeObject.width - gapWidth) / 2);
+                            // const gapRight = gapLeft + gapWidth;
+
+                            // // Outer frame: top, left, right, bottom-left segment, bottom-right segment
+                            // const topBar = new fabric.Rect({ left: 0, top: 0, width: shapeObject.width, height: bar, fill: 'black', strokeWidth: 0 });
+                            // const leftOuter = new fabric.Rect({ left: 0, top: 0, width: bar, height: shapeObject.height, fill: 'black', strokeWidth: 0 });
+                            // const rightOuter = new fabric.Rect({ left: shapeObject.width - bar, top: 0, width: bar, height: shapeObject.height, fill: 'black', strokeWidth: 0 });
+                            // const bottomLeft = new fabric.Rect({ left: 0, top: shapeObject.height - bar, width: gapLeft, height: bar, fill: 'black', strokeWidth: 0 });
+                            // const bottomRight = new fabric.Rect({ left: gapRight, top: shapeObject.height - bar, width: shapeObject.width - gapRight, height: bar, fill: 'black', strokeWidth: 0 });
+
+                            // // Inner notch walls (slightly thinner than outer walls for definition)
+                            // const innerBar = Math.max(3, Math.round(bar * 0.9));
+                            // const notchLeft = new fabric.Rect({ left: gapLeft, top: shapeObject.height - notchDepth, width: innerBar, height: notchDepth, fill: 'black', strokeWidth: 0 });
+                            // const notchRight = new fabric.Rect({ left: gapRight - innerBar, top: shapeObject.height - notchDepth, width: innerBar, height: notchDepth, fill: 'black', strokeWidth: 0 });
+                            // const notchTop = new fabric.Rect({ left: gapLeft, top: shapeObject.height - notchDepth, width: gapWidth, height: innerBar, fill: 'black', strokeWidth: 0 });
+
+                            // shape = new fabric.Group([topBar, leftOuter, rightOuter, bottomLeft, bottomRight, notchLeft, notchRight, notchTop]);
+                            // break;
+							const uPoints = [
+								{ x: 0, y: 0 },                    // Top left
+								{ x: shapeObject.width, y: 0 },     // Top right
+								{ x: shapeObject.width, y: shapeObject.height }, // Bottom right
+								{ x: shapeObject.width * 0.8, y: shapeObject.height }, // Inner right
+								{ x: shapeObject.width * 0.8, y: shapeObject.height * 0.3 }, // Inner top right
+								{ x: shapeObject.width * 0.2, y: shapeObject.height * 0.3 }, // Inner top left
+								{ x: shapeObject.width * 0.2, y: shapeObject.height }, // Inner left
+								{ x: 0, y: shapeObject.height }  // Bottom left
+							];
+							shape = new fabric.Polygon(uPoints, {
+								strokeLineJoin: 'miter',
+								strokeLineCap: 'butt'
+							});
+							break;
+                        }
+                        case 'shape-3': {
+                            // Trapezoid (smaller top edge, wider base)
+                            const topRatio = 0.6; // top width relative to base
+                            const topWidth = shapeObject.width * topRatio;
+                            const leftOffset = (shapeObject.width - topWidth) / 2;
+                            const pts = [
+                                { x: leftOffset, y: 0 },                        // top-left
+                                { x: leftOffset + topWidth, y: 0 },              // top-right
+                                { x: shapeObject.width, y: shapeObject.height }, // bottom-right
+                                { x: 0, y: shapeObject.height }                  // bottom-left
+                            ];
+                            shape = new fabric.Polygon(pts);
+                            break;
+                        }
 					}
 
-					// Update shape properties
-					shape.fill = 'transparent';
-					shape.stroke = 'black';
-					shape.originX = 'center';
-					shape.originY = 'center';
-// 					shape.strokeWidth = 2;
+                    // Update shape properties
+                    shape.fill = 'transparent';
+                    shape.stroke = 'black';
+                    shape.strokeWidth = 6; // match icon thickness
+                    shape.strokeLineJoin = 'miter';
+                    shape.strokeLineCap = 'butt';
+                    shape.strokeUniform = true;
+                    shape.strokeMiterLimit = 10;
+                    shape.originX = 'center';
+                    shape.originY = 'center';
 					shape.shapeName = shapeObject.type;					
 
 					// Create a fabric.Text object for the name
@@ -1744,8 +2094,309 @@ foreach( $params as $param ) {
 						groupArr.push(widthText);
 						groupArr.push(heightText);
 						groupArr.push(ellipseEdgeProfile);
-					}
+					}else if ( shapeObject.type == 'U' ) {
+						// Top edge
+						var topText = new fabric.Text(String(convertPxToMm(shapeObject.width)) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: - ( shape.height / 2 ) + defaultGap
+						});
 
+						var invertedUEdgeProfile1 = jQuery('select[name="UEdgeProfile1"]').val();
+						if (invertedUEdgeProfile1 != '' && invertedUEdgeProfile1 != '0') {
+							var topEdgeProfileText = jQuery('select[name="UEdgeProfile1"] option:selected').text();
+						} else {
+							var topEdgeProfileText = 'Unfinished';
+						}
+
+						var topEdgeProfile = new fabric.Text(topEdgeProfileText, {
+							fontSize: topText.fontSize,
+							originX: topText.originX,
+							fill: topText.fill,
+							top: topText.top + fontSize
+						});
+
+						// Right edge
+						var rightText = new fabric.Text(String(Math.round(convertPxToMm(shapeObject.height * 0.5))) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: 90,
+							top: - fontSize - defaultGap,
+							left: ( shape.width / 2 ) - defaultGap,
+						});
+
+						var invertedUEdgeProfile2 = jQuery('select[name="UEdgeProfile2"]').val();
+						if (invertedUEdgeProfile2 != '' && invertedUEdgeProfile2 != '0') {
+							var rightEdgeProfileText = jQuery('select[name="UEdgeProfile2"] option:selected').text();
+						} else {
+							var rightEdgeProfileText = 'Unfinished';
+						}
+
+						var rightEdgeProfile = new fabric.Text(rightEdgeProfileText, {
+							fontSize: rightText.fontSize,
+							fill: rightText.fill,
+							angle: rightText.angle,
+							left: rightText.left - fontSize,
+							top: rightText.top
+						});
+
+						// Left edge
+						var leftText = new fabric.Text(String(Math.round(convertPxToMm(shapeObject.height * 0.5))) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: -90,
+							top: fontSize + defaultGap,
+							left: - ( shape.width / 2 ) + defaultGap,
+						});
+
+						var invertedUEdgeProfile3 = jQuery('select[name="UEdgeProfile3"]').val();
+						if (invertedUEdgeProfile3 != '' && invertedUEdgeProfile3 != '0') {
+							var leftEdgeProfileText = jQuery('select[name="UEdgeProfile3"] option:selected').text();
+						} else {
+							var leftEdgeProfileText = 'Unfinished';
+						}
+
+						var leftEdgeProfile = new fabric.Text(leftEdgeProfileText, {
+							fontSize: leftText.fontSize,
+							fill: leftText.fill,
+							angle: leftText.angle,
+							left: leftText.left + fontSize,
+							top: leftText.top
+						});
+
+						// Bottom left edge
+						var bottomLeftText = new fabric.Text(String(Math.round(convertPxToMm(shapeObject.width * 0.2))) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: ( shape.height / 2 ) - fontSize - defaultGap
+						});
+
+						var invertedUEdgeProfile4 = jQuery('select[name="UEdgeProfile4"]').val();
+						if (invertedUEdgeProfile4 != '' && invertedUEdgeProfile4 != '0') {
+							var bottomLeftEdgeProfileText = jQuery('select[name="UEdgeProfile4"] option:selected').text();
+						} else {
+							var bottomLeftEdgeProfileText = 'Unfinished';
+						}
+
+						var bottomLeftEdgeProfile = new fabric.Text(bottomLeftEdgeProfileText, {
+							fontSize: bottomLeftText.fontSize,
+							originX: bottomLeftText.originX,
+							fill: bottomLeftText.fill,
+							top: bottomLeftText.top - fontSize
+						});
+
+						// Bottom right edge
+						var bottomRightText = new fabric.Text(String(Math.round(convertPxToMm(shapeObject.width * 0.2))) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: ( shape.height / 2 ) - fontSize - defaultGap
+						});
+
+						var invertedUEdgeProfile5 = jQuery('select[name="UEdgeProfile5"]').val();
+						if (invertedUEdgeProfile5 != '' && invertedUEdgeProfile5 != '0') {
+							var bottomRightEdgeProfileText = jQuery('select[name="UEdgeProfile5"] option:selected').text();
+						} else {
+							var bottomRightEdgeProfileText = 'Unfinished';
+						}
+
+						var bottomRightEdgeProfile = new fabric.Text(bottomRightEdgeProfileText, {
+							fontSize: bottomRightText.fontSize,
+							originX: bottomRightText.originX,
+							fill: bottomRightText.fill,
+							top: bottomRightText.top - fontSize
+						});
+
+						// Inside top edge
+						var insideTopText = new fabric.Text(String(Math.round(convertPxToMm(shapeObject.height * 0.2))) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: ( shape.height / 2 ) - fontSize - defaultGap
+						});
+
+						var invertedUEdgeProfile6 = jQuery('select[name="UEdgeProfile6"]').val();
+						if (invertedUEdgeProfile6 != '' && invertedUEdgeProfile6 != '0') {
+							var insideTopEdgeProfileText = jQuery('select[name="UEdgeProfile6"] option:selected').text();
+						} else {
+							var insideTopEdgeProfileText = 'Unfinished';
+						}
+
+						var insideTopEdgeProfile = new fabric.Text(insideTopEdgeProfileText, {
+							fontSize: insideTopText.fontSize,
+							originX: insideTopText.originX,
+							fill: insideTopText.fill,
+							top: insideTopText.top - fontSize
+						});
+
+						groupArr.push(topText);
+						groupArr.push(topEdgeProfile);
+						groupArr.push(rightText);
+						groupArr.push(rightEdgeProfile);
+						groupArr.push(leftText);
+						groupArr.push(leftEdgeProfile);
+						groupArr.push(bottomLeftText);
+						groupArr.push(bottomLeftEdgeProfile);
+						groupArr.push(bottomRightText);
+						groupArr.push(bottomRightEdgeProfile);
+						groupArr.push(insideTopText);
+						groupArr.push(insideTopEdgeProfile);
+											} else if ( shapeObject.type == 'shape-3' ) {
+						// Top edge
+						var topText = new fabric.Text(String(convertPxToMm(shapeObject.width)) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: - ( shape.height / 2 ) + defaultGap
+						});
+
+						var shape_3EdgeProfile1 = jQuery('select[name="shape-3EdgeProfile1"]').val();
+						if (shape_3EdgeProfile1 != '' && shape_3EdgeProfile1 != '0') {
+							var topEdgeProfileText = jQuery('select[name="shape-3EdgeProfile1"] option:selected').text();
+						} else {
+							var topEdgeProfileText = 'Unfinished';
+						}
+
+						var topEdgeProfile = new fabric.Text(topEdgeProfileText, {
+							fontSize: topText.fontSize,
+							originX: topText.originX,
+							fill: topText.fill,
+							top: topText.top + fontSize
+						});
+
+						// Right edge
+						var rightText = new fabric.Text(String(convertPxToMm(shapeObject.height)) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: 90,
+							top: - fontSize - defaultGap,
+							left: ( shape.width / 2 ) - defaultGap,
+						});
+
+						var shape_3EdgeProfile2 = jQuery('select[name="shape-3EdgeProfile2"]').val();
+						if (shape_3EdgeProfile2 != '' && shape_3EdgeProfile2 != '0') {
+							var rightEdgeProfileText = jQuery('select[name="shape-3EdgeProfile2"] option:selected').text();
+						} else {
+							var rightEdgeProfileText = 'Unfinished';
+						}
+
+						var rightEdgeProfile = new fabric.Text(rightEdgeProfileText, {
+							fontSize: rightText.fontSize,
+							fill: rightText.fill,
+							angle: rightText.angle,
+							left: rightText.left - fontSize,
+							top: rightText.top
+						});
+
+						// Bottom edge
+						var bottomText = new fabric.Text(String(convertPxToMm(shapeObject.width)) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: ( shape.height / 2 ) - fontSize - defaultGap
+						});
+
+						var shape_3EdgeProfile3 = jQuery('select[name="shape-3EdgeProfile3"]').val();
+						if (shape_3EdgeProfile3 != '' && shape_3EdgeProfile3 != '0') {
+							var bottomEdgeProfileText = jQuery('select[name="shape-3EdgeProfile3"] option:selected').text();
+						} else {
+							var bottomEdgeProfileText = 'Unfinished';
+						}
+
+						var bottomEdgeProfile = new fabric.Text(bottomEdgeProfileText, {
+							fontSize: bottomText.fontSize,
+							originX: bottomText.originX,
+							fill: bottomText.fill,
+							top: bottomText.top - fontSize
+						});
+
+						// Right bottom edge
+						var rightBottomText = new fabric.Text(String(Math.round(convertPxToMm(shapeObject.height * 0.2))) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: 90,
+							top: ( shape.height / 2 ) + fontSize + defaultGap,
+							left: ( shape.width / 2 ) + defaultGap,
+						});
+
+						var shape_3EdgeProfile4 = jQuery('select[name="shape-3EdgeProfile4"]').val();
+						if (shape_3EdgeProfile4 != '' && shape_3EdgeProfile4 != '0') {
+							var rightBottomEdgeProfileText = jQuery('select[name="shape-3EdgeProfile4"] option:selected').text();
+						} else {
+							var rightBottomEdgeProfileText = 'Unfinished';
+						}
+
+						var rightBottomEdgeProfile = new fabric.Text(rightBottomEdgeProfileText, {
+							fontSize: rightBottomText.fontSize,
+							fill: rightBottomText.fill,
+							angle: rightBottomText.angle,
+							left: rightBottomText.left + fontSize,
+							top: rightBottomText.top
+						});
+
+						groupArr.push(topText);
+						groupArr.push(topEdgeProfile);
+						groupArr.push(rightText);
+						groupArr.push(rightEdgeProfile);
+						groupArr.push(bottomText);
+						groupArr.push(bottomEdgeProfile);
+						groupArr.push(rightBottomText);
+						groupArr.push(rightBottomEdgeProfile);
+					} else if ( shapeObject.type == 'L' ) {
+						// Top edge
+						var topText = new fabric.Text(String(Math.round(convertPxToMm(shapeObject.width * 0.3))) + "mm", {
+							fontSize: fontSize,
+							originX: 'center',
+							fill: 'black',
+							top: - ( shape.height / 2 ) + defaultGap
+						});
+
+						var lEdgeProfile1 = jQuery('select[name="LEdgeProfile1"]').val();
+						if (lEdgeProfile1 != '' && lEdgeProfile1 != '0') {
+							var topEdgeProfileText = jQuery('select[name="LEdgeProfile1"] option:selected').text();
+						} else {
+							var topEdgeProfileText = 'Unfinished';
+						}
+
+						var topEdgeProfile = new fabric.Text(topEdgeProfileText, {
+							fontSize: topText.fontSize,
+							originX: topText.originX,
+							fill: topText.fill,
+							top: topText.top + fontSize
+						});
+
+						// Right edge
+						var rightText = new fabric.Text(String(Math.round(convertPxToMm(shapeObject.height * 0.3))) + "mm", {
+							fontSize: fontSize,
+							fill: 'black',
+							angle: 90,
+							top: - fontSize - defaultGap,
+							left: ( shape.width / 2 ) - defaultGap,
+						});
+
+						var lEdgeProfile2 = jQuery('select[name="LEdgeProfile2"]').val();
+						if (lEdgeProfile2 != '' && lEdgeProfile2 != '0') {
+							var rightEdgeProfileText = jQuery('select[name="LEdgeProfile2"] option:selected').text();
+						} else {
+							var rightEdgeProfileText = 'Unfinished';
+						}
+
+						var rightEdgeProfile = new fabric.Text(rightEdgeProfileText, {
+							fontSize: rightText.fontSize,
+							fill: rightText.fill,
+							angle: rightText.angle,
+							left: rightText.left - fontSize,
+							top: rightText.top
+						});
+
+						groupArr.push(topText);
+						groupArr.push(topEdgeProfile);
+						groupArr.push(rightText);
+						groupArr.push(rightEdgeProfile);
+					}
+                       
 
 
 					// Create a group consisting of the shape and the text
@@ -1774,8 +2425,32 @@ foreach( $params as $param ) {
 				}
 
 
-				// Event listener for toolbar images
-				jQuery('body').on('click', '#toolbar .shapes img', function() {
+				// Event listener for shapes dropdown button
+				console.log('Setting up shapes dropdown button');
+				var shapesButton = jQuery('#toolbar .shapes .shapes-dropdown-btn');
+				console.log('Shapes button found:', shapesButton.length);
+				
+				shapesButton.click(function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					console.log('Shapes dropdown clicked');
+					var dropdown = jQuery(this).next('.shapes-dropdown');
+					console.log('Dropdown element:', dropdown.length);
+					console.log('Dropdown display before:', dropdown.css('display'));
+					console.log('Dropdown position:', dropdown.position());
+					console.log('Dropdown offset:', dropdown.offset());
+					
+					// Toggle dropdown
+					dropdown.slideToggle();
+					
+					// Toggle active class on button
+					jQuery(this).toggleClass('active');
+					
+					console.log('Dropdown display after:', dropdown.css('display'));
+				});
+
+				// Event listener for shapes dropdown items
+				jQuery('body').on('click', '#toolbar .shapes .shapes-dropdown li', function() {
 					var shapeType = jQuery(this).data('shape');
 					resetShapeModal();
 					if ( shapeType == 'circle' ) {
@@ -1784,6 +2459,17 @@ foreach( $params as $param ) {
 
 					jQuery('#shapeModal .form-group .edge-profile-section > div.' + shapeType).show();
 					jQuery('#shapeModal').css('display', 'flex').attr('data-shape', shapeType);
+					
+					// Hide the dropdown after selection
+					jQuery('#toolbar .shapes .shapes-dropdown').slideUp();
+				});
+
+				// Close shapes dropdown when clicking outside
+				jQuery('body').on('click', function(e) {
+					if (!jQuery(e.target).closest('#toolbar .shapes').length) {
+						jQuery('#toolbar .shapes .shapes-dropdown').slideUp();
+						jQuery('#toolbar .shapes .shapes-dropdown-btn').removeClass('active');
+					}
 				});
 
 				// Hide Modal
@@ -1920,6 +2606,204 @@ foreach( $params as $param ) {
 									}
 								));
 							}
+							break;
+						case 'U':
+							// Edge Profiles for inverted U (Π)
+							(function(){
+								var bar = Math.max(4, Math.round(Math.min(width, height) * 0.10));
+								var gapRatio = 0.26; // opening width
+								var depthRatio = 0.70; // opening depth
+
+								var gapWidth = Math.round(width * gapRatio);
+								var notchDepth = Math.round(height * depthRatio);
+								var gapLeft = Math.round((width - gapWidth) / 2);
+								var gapRight = gapLeft + gapWidth;
+
+								// 1: Top edge (full)
+								var u1 = jQuery('select[name="UEdgeProfile1"]').val();
+								var u1Size = jQuery('select[name="UEdgeProfile1"] option:selected').data('size');
+								if (u1 && u1 !== '0' && u1Size && u1Size !== '0') {
+									var u1Text = jQuery('select[name="UEdgeProfile1"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({
+										x: group.left,
+										y: group.top - defaultGap - u1Size,
+										width: width,
+										height: u1Size,
+										name: 'UEdgeProfile1',
+										text: u1Text,
+										value: u1
+									}));
+								}
+
+								// 2: Right outer edge (full)
+								var u2 = jQuery('select[name="UEdgeProfile2"]').val();
+								var u2Size = jQuery('select[name="UEdgeProfile2"] option:selected').data('size');
+								if (u2 && u2 !== '0' && u2Size && u2Size !== '0') {
+									var u2Text = jQuery('select[name="UEdgeProfile2"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({
+										x: group.left + width + defaultGap,
+										y: group.top,
+										width: u2Size,
+										height: height,
+										name: 'UEdgeProfile2',
+										text: u2Text,
+										value: u2
+									}));
+								}
+
+								// 3: Bottom-right segment
+								var u3 = jQuery('select[name="UEdgeProfile3"]').val();
+								var u3Size = jQuery('select[name="UEdgeProfile3"] option:selected').data('size');
+								if (u3 && u3 !== '0' && u3Size && u3Size !== '0') {
+									var u3Text = jQuery('select[name="UEdgeProfile3"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({
+										x: group.left + gapRight,
+										y: group.top + height + defaultGap,
+										width: width - gapRight,
+										height: u3Size,
+										name: 'UEdgeProfile3',
+										text: u3Text,
+										value: u3
+									}));
+								}
+
+								// 4: Bottom-left segment
+								var u4 = jQuery('select[name="UEdgeProfile4"]').val();
+								var u4Size = jQuery('select[name="UEdgeProfile4"] option:selected').data('size');
+								if (u4 && u4 !== '0' && u4Size && u4Size !== '0') {
+									var u4Text = jQuery('select[name="UEdgeProfile4"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({
+										x: group.left,
+										y: group.top + height + defaultGap,
+										width: gapLeft,
+										height: u4Size,
+										name: 'UEdgeProfile4',
+										text: u4Text,
+										value: u4
+									}));
+								}
+
+								// 5: Left outer edge (full)
+								var u5 = jQuery('select[name="UEdgeProfile5"]').val();
+								var u5Size = jQuery('select[name="UEdgeProfile5"] option:selected').data('size');
+								if (u5 && u5 !== '0' && u5Size && u5Size !== '0') {
+									var u5Text = jQuery('select[name="UEdgeProfile5"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({
+										x: group.left - defaultGap - u5Size,
+										y: group.top,
+										width: u5Size,
+										height: height,
+										name: 'UEdgeProfile5',
+										text: u5Text,
+										value: u5
+									}));
+								}
+
+								// 6: Inside top (over the notch)
+								var u6 = jQuery('select[name="UEdgeProfile6"]').val();
+								var u6Size = jQuery('select[name="UEdgeProfile6"] option:selected').data('size');
+								if (u6 && u6 !== '0' && u6Size && u6Size !== '0') {
+									var u6Text = jQuery('select[name="UEdgeProfile6"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({
+										x: group.left + gapLeft,
+										y: group.top + (height - notchDepth) - defaultGap - u6Size,
+										width: gapWidth,
+										height: u6Size,
+										name: 'UEdgeProfile6',
+										text: u6Text,
+										value: u6
+									}));
+								}
+							})();
+							break;
+						case 'L':
+							(function(){
+								// Basic dimensions and split helpers
+								var halfH = Math.round(height / 2);
+								var leftSegW = Math.round(width * 0.35);
+								var rightSegW = width - leftSegW;
+
+								// 1: Top edge (full)
+								var l1 = jQuery('select[name="LEdgeProfile1"]').val();
+								var l1Size = jQuery('select[name="LEdgeProfile1"] option:selected').data('size');
+								if (l1 && l1 !== '0' && l1Size && l1Size !== '0') {
+									var l1Text = jQuery('select[name="LEdgeProfile1"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left, y: group.top - defaultGap - l1Size, width: width, height: l1Size, name: 'LEdgeProfile1', text: l1Text, value: l1 }));
+								}
+
+								// 2: Right edge (upper half)
+								var l2 = jQuery('select[name="LEdgeProfile2"]').val();
+								var l2Size = jQuery('select[name="LEdgeProfile2"] option:selected').data('size');
+								if (l2 && l2 !== '0' && l2Size && l2Size !== '0') {
+									var l2Text = jQuery('select[name="LEdgeProfile2"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left + width + defaultGap, y: group.top, width: l2Size, height: halfH, name: 'LEdgeProfile2', text: l2Text, value: l2 }));
+								}
+
+								// 3: Right edge (lower half)
+								var l3 = jQuery('select[name="LEdgeProfile3"]').val();
+								var l3Size = jQuery('select[name="LEdgeProfile3"] option:selected').data('size');
+								if (l3 && l3 !== '0' && l3Size && l3Size !== '0') {
+									var l3Text = jQuery('select[name="LEdgeProfile3"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left + width + defaultGap, y: group.top + halfH, width: l3Size, height: height - halfH, name: 'LEdgeProfile3', text: l3Text, value: l3 }));
+								}
+
+								// 4: Bottom (right segment)
+								var l4 = jQuery('select[name="LEdgeProfile4"]').val();
+								var l4Size = jQuery('select[name="LEdgeProfile4"] option:selected').data('size');
+								if (l4 && l4 !== '0' && l4Size && l4Size !== '0') {
+									var l4Text = jQuery('select[name="LEdgeProfile4"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left + leftSegW, y: group.top + height + defaultGap, width: rightSegW, height: l4Size, name: 'LEdgeProfile4', text: l4Text, value: l4 }));
+								}
+
+								// 5: Bottom (left segment)
+								var l5 = jQuery('select[name="LEdgeProfile5"]').val();
+								var l5Size = jQuery('select[name="LEdgeProfile5"] option:selected').data('size');
+								if (l5 && l5 !== '0' && l5Size && l5Size !== '0') {
+									var l5Text = jQuery('select[name="LEdgeProfile5"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left, y: group.top + height + defaultGap, width: leftSegW, height: l5Size, name: 'LEdgeProfile5', text: l5Text, value: l5 }));
+								}
+
+								// 6: Left edge (full)
+								var l6 = jQuery('select[name="LEdgeProfile6"]').val();
+								var l6Size = jQuery('select[name="LEdgeProfile6"] option:selected').data('size');
+								if (l6 && l6 !== '0' && l6Size && l6Size !== '0') {
+									var l6Text = jQuery('select[name="LEdgeProfile6"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left - defaultGap - l6Size, y: group.top, width: l6Size, height: height, name: 'LEdgeProfile6', text: l6Text, value: l6 }));
+								}
+							})();
+							break;
+
+						case 'shape-3':
+							(function(){
+								// Treat shape-3 (trapezoid) with 4 sides
+								var s1 = jQuery('select[name="shape-3EdgeProfile1"]').val();
+								var s1Size = jQuery('select[name="shape-3EdgeProfile1"] option:selected').data('size');
+								if (s1 && s1 !== '0' && s1Size && s1Size !== '0') {
+									var s1Text = jQuery('select[name="shape-3EdgeProfile1"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left, y: group.top - defaultGap - s1Size, width: width, height: s1Size, name: 'shape-3EdgeProfile1', text: s1Text, value: s1 }));
+								}
+
+								var s2 = jQuery('select[name="shape-3EdgeProfile2"]').val();
+								var s2Size = jQuery('select[name="shape-3EdgeProfile2"] option:selected').data('size');
+								if (s2 && s2 !== '0' && s2Size && s2Size !== '0') {
+									var s2Text = jQuery('select[name="shape-3EdgeProfile2"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left + width + defaultGap, y: group.top, width: s2Size, height: height, name: 'shape-3EdgeProfile2', text: s2Text, value: s2 }));
+								}
+
+								var s3 = jQuery('select[name="shape-3EdgeProfile3"]').val();
+								var s3Size = jQuery('select[name="shape-3EdgeProfile3"] option:selected').data('size');
+								if (s3 && s3 !== '0' && s3Size && s3Size !== '0') {
+									var s3Text = jQuery('select[name="shape-3EdgeProfile3"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left, y: group.top + height + defaultGap, width: width, height: s3Size, name: 'shape-3EdgeProfile3', text: s3Text, value: s3 }));
+								}
+
+								var s4 = jQuery('select[name="shape-3EdgeProfile4"]').val();
+								var s4Size = jQuery('select[name="shape-3EdgeProfile4"] option:selected').data('size');
+								if (s4 && s4 !== '0' && s4Size && s4Size !== '0') {
+									var s4Text = jQuery('select[name="shape-3EdgeProfile4"] option:selected').text();
+									shapesList.push(createEdgeProfileShape({ x: group.left - defaultGap - s4Size, y: group.top, width: s4Size, height: height, name: 'shape-3EdgeProfile4', text: s4Text, value: s4 }));
+								}
+							})();
 							break;
 						case 'circle':
 							var circleEdgeProfile1 = jQuery('select[name="circleEdgeProfile1"]').val();
