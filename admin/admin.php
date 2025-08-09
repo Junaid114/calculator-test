@@ -44,6 +44,7 @@ if (!function_exists('slab_calculator_register_settings')) {
         register_setting('slab_calculator_settings_group', 'slab_calculator_drawing_pad_height');
         register_setting('slab_calculator_settings_group', 'slab_calculator_drawing_pad_width');
 		register_setting('slab_calculator_settings_group', 'slab_calculator_min_screen_size');
+		register_setting('slab_calculator_settings_group', 'slab_calculator_email_template');
 		
 
         add_settings_section(
@@ -105,6 +106,14 @@ if (!function_exists('slab_calculator_register_settings')) {
             'slab_calculator_min_screen_size',
             'Minimum Screen Size for Calculator (px)',
             'slab_calculator_min_screen_size_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+
+        add_settings_field(
+            'slab_calculator_email_template',
+            'Email Template',
+            'slab_calculator_email_template_callback',
             'slab_calculator_settings',
             'slab_calculator_settings_section'
         );
@@ -261,6 +270,78 @@ if (!function_exists('slab_calculator_min_screen_size_callback')) {
     function slab_calculator_min_screen_size_callback() {
         $min_screen_size = get_option('slab_calculator_min_screen_size', '');
         echo '<input type="number" name="slab_calculator_min_screen_size" value="' . esc_attr($min_screen_size) . '" placeholder="Enter size in pixels" />';
+    }
+}
+
+if (!function_exists('slab_calculator_email_template_callback')) {
+    function slab_calculator_email_template_callback() {
+        // Default email template with dynamic fields
+        $default_template = '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Drawings & Calculations</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <p>Hi {{customer_name}},</p>
+    
+    <p>Thank you for choosing us! We\'re thrilled to be part of your project. To receive a detailed quote or invoice, please email us at <a href="mailto:welcome@bambystone.com.au" style="color: #007bff;">welcome@bambystone.com.au</a>, including this email with the attached drawings.</p>
+    
+    <h3 style="margin-top: 20px; color: #333;">Project Details</h3>
+    <ul style="list-style-type: disc; margin-left: 20px;">
+        <li><strong>Slab Name:</strong> {{slab_name}}</li>
+        <li><strong>Total Cutting Area:</strong> {{total_cutting_mm}} mm²</li>
+        <li><strong>Drawing Link:</strong> <a href="{{drawing_link}}" style="color: #007bff;">View Drawing</a></li>
+    </ul>
+
+    <h3 style="margin-top: 20px; color: #333;">Payment and Next Steps</h3>
+    <ul style="list-style-type: disc; margin-left: 20px;">
+        <li><strong>Holds:</strong> Unfortunately, due to high demand and frequent changes, we are unable to place holds on stock.</li>
+        <li><strong>Payment:</strong> Full payment is required before we can proceed.</li>
+        <li><strong>Prices:</strong> All our prices are available online and are subject to change.</li>
+        <li><strong>Drawings:</strong> Your drawings, based on the entered sizes, are available in the attached PDF.</li>
+    </ul>
+
+    <p>We look forward to hearing your feedback!</p>
+
+    <p>Warm regards,</p>
+    <p>
+        <strong>Adele Anderson</strong> | Customer Relations Representative<br>
+        Phone: <a href="tel:1300536120" style="color: #007bff;">1300 536 120</a><br>
+        Email: <a href="mailto:welcome@bambystone.com.au" style="color: #007bff;">welcome@bambystone.com.au</a><br>
+        Website: <a href="https://www.bambystone.com.au" style="color: #007bff;">www.bambystone.com.au</a><br>
+        Address: Unit 6, 8 Technology Drive, Arundel QLD, Australia 4214
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;">
+    <p style="font-size: 0.85em; color: #555;">DISCLAIMER: This email is intended for the recipient only. If received in error, please notify us and delete it immediately. Bamby Stone does not guarantee the integrity or error-free nature of this communication.</p>
+</body>
+</html>';
+
+        $email_template = get_option('slab_calculator_email_template', $default_template);
+        
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<p><strong>Available Dynamic Fields:</strong></p>';
+        echo '<ul style="margin-left: 20px; columns: 2;">';
+        echo '<li><code>{{customer_name}}</code> - Customer name (from user account)</li>';
+        echo '<li><code>{{slab_name}}</code> - Slab name (from drawing)</li>';
+        echo '<li><code>{{total_cutting_mm}}</code> - Total cutting area in mm²</li>';
+        echo '<li><code>{{drawing_link}}</code> - Link to the drawing (if applicable)</li>';
+        echo '</ul>';
+        echo '<p style="margin-top: 10px;"><em>Note: PDF attachment is automatically included with emails.</em></p>';
+        echo '</div>';
+        
+        wp_editor($email_template, 'slab_calculator_email_template', array(
+            'textarea_name' => 'slab_calculator_email_template',
+            'textarea_rows' => 20,
+            'media_buttons' => true,
+            'teeny' => false,
+            'tinymce' => array(
+                'toolbar1' => 'formatselect,bold,italic,underline,strikethrough,bullist,numlist,blockquote,hr,alignleft,aligncenter,alignright,link,unlink,forecolor,backcolor,removeformat,code,fullscreen',
+                'toolbar2' => ''
+            )
+        ));
     }
 }
 

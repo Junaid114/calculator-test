@@ -179,16 +179,35 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 			wp_send_json_error(['message' => 'Failed to save PDF.']);
 		}
 		
+		// Get additional data from POST
+		$slab_name = sanitize_text_field($_POST['slab_name'] ?? 'Custom Slab');
+		$total_cutting_mm = sanitize_text_field($_POST['total_cutting_mm'] ?? '0');
+		$drawing_link = esc_url($_POST['drawing_link'] ?? '');
 
-		// Path to the email template
-		$template_path = SSC_PLUGIN_DIR . 'templates/email-template.html';
-
-		if (!file_exists($template_path)) {
-			wp_send_json_error(['message' => 'Email template not found.']);
+		// Get the email template from admin settings
+		$html_content = get_option('slab_calculator_email_template', '');
+		
+		// If no custom template exists, fall back to the old template file
+		if (empty($html_content)) {
+			$template_path = SSC_PLUGIN_DIR . 'templates/email-template.html';
+			if (file_exists($template_path)) {
+				$html_content = file_get_contents($template_path);
+			} else {
+				wp_send_json_error(['message' => 'Email template not found.']);
+			}
 		}
 
-		// Load the email content
-		$html_content = file_get_contents($template_path);
+		// Replace dynamic fields in the template
+		$customer_name = $user->display_name ?: $user->user_login;
+		
+		$replacements = array(
+			'{{customer_name}}' => $customer_name,
+			'{{slab_name}}' => $slab_name,
+			'{{total_cutting_mm}}' => number_format($total_cutting_mm),
+			'{{drawing_link}}' => $drawing_link
+		);
+		
+		$html_content = str_replace(array_keys($replacements), array_values($replacements), $html_content);
 
 		// Email headers
 		$headers = array('Content-Type: text/html; charset=UTF-8', 'From: Bamby Stone <welcome@bambystone.com.au>');
