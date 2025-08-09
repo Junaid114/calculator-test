@@ -24,14 +24,91 @@ foreach( $params as $param ) {
 			}
 			
 			.heading {
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				padding: 0 10px;
+				background: #f8f9fa;
+				border: 1px solid #dee2e6;
+				padding: 8px 15px;
 			}
 
-			.heading h2 {
+			.header-row {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 20px;
+			}
+
+			.title-section {
+				flex: 0 0 auto;
+			}
+
+			.calculator-title {
 				font-weight: 400;
+				font-size: 14px;
+				color: #333;
+			}
+			
+			.stats-table {
+				display: flex;
+				gap: 0;
+				align-items: stretch;
+				border: 1px solid #ccc;
+				border-radius: 3px;
+				background: white;
+			}
+			
+			.stat-column {
+				display: flex;
+				flex-direction: column;
+				min-width: 120px;
+				text-align: center;
+				border-right: 1px solid #ccc;
+			}
+			
+			.stat-column:last-child {
+				border-right: none;
+			}
+			
+			.stat-label {
+				font-size: 11px;
+				color: #666;
+				padding: 4px 8px;
+				background: #f8f9fa;
+				border-bottom: 1px solid #ccc;
+				font-weight: 500;
+			}
+			
+			.stat-value {
+				font-size: 12px;
+				color: #333;
+				padding: 4px 8px;
+				font-weight: 600;
+				line-height: 1.2;
+			}
+			
+			/* Responsive design */
+			@media (max-width: 1200px) {
+				.stat-column {
+					min-width: 100px;
+				}
+				.stat-label {
+					font-size: 10px;
+					padding: 3px 6px;
+				}
+				.stat-value {
+					font-size: 11px;
+					padding: 3px 6px;
+				}
+			}
+			
+			@media (max-width: 768px) {
+				.header-row {
+					flex-direction: column;
+					align-items: flex-start;
+					gap: 10px;
+				}
+				.stats-table {
+					overflow-x: auto;
+					width: 100%;
+				}
 			}
 
 			#toolbar {
@@ -170,7 +247,68 @@ foreach( $params as $param ) {
 
 			#canvas-container {
 				position: relative;
-				overflow: auto;
+				overflow: hidden; /* Hide default scrollbars */
+			}
+			
+			/* Custom horizontal scrollbar */
+			.horizontal-scrollbar {
+				position: fixed;
+				bottom: 10px; /* Bottom of the page/viewport */
+				left: 50px; /* Account for ruler and some margin */
+				height: 15px;
+				background: #f1f1f1;
+				border-radius: 7px;
+				z-index: 1000;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+			}
+			
+			.horizontal-scrollbar-thumb {
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				height: 11px;
+				background: #888;
+				border-radius: 5px;
+				cursor: pointer;
+				transition: background 0.2s;
+			}
+			
+			.horizontal-scrollbar-thumb:hover {
+				background: #555;
+			}
+			
+			.horizontal-scrollbar-thumb:active {
+				background: #333;
+			}
+			
+			/* Custom vertical scrollbar */
+			.vertical-scrollbar {
+				position: absolute;
+				top: 30px; /* Account for ruler */
+				right: 0;
+				width: 15px;
+				background: #f1f1f1;
+				border-radius: 7px;
+				z-index: 100;
+			}
+			
+			.vertical-scrollbar-thumb {
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				width: 11px;
+				background: #888;
+				border-radius: 5px;
+				cursor: pointer;
+				transition: background 0.2s;
+			}
+			
+			.vertical-scrollbar-thumb:hover {
+				background: #555;
+			}
+			
+			.vertical-scrollbar-thumb:active {
+				background: #333;
 			}
 
 			.ruler {
@@ -441,7 +579,7 @@ foreach( $params as $param ) {
 
 			/* U Shape Edge Profiles */
 			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile1 {
-				top: 80px;
+				top: 0;
 				left: 50%;
 				transform: translateX(-50%);
 			}
@@ -466,7 +604,7 @@ foreach( $params as $param ) {
 				transform: translateX(-50%);
 			}
 			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile6 {
-				top: 140px;
+				top: 35%;
 				left: 50%;
 				transform: translateX(-50%);
 			}
@@ -599,13 +737,137 @@ foreach( $params as $param ) {
 				}
 			}
 			
+			/* Native Browser Fullscreen styles */
+			.fullscreen-mode {
+				width: 100vw !important;
+				height: 100vh !important;
+				background: white !important;
+				margin: 0 !important;
+				padding: 0 !important;
+			}
+			
+			.fullscreen-mode .heading {
+				height: 60px !important;
+				display: flex !important;
+				background: white !important;
+				position: relative !important;
+				margin: 0 !important;
+				padding: 0 10px !important;
+				border-bottom: 1px solid #ddd !important;
+			}
+			
+			.fullscreen-mode #toolbar {
+				height: 60px !important;
+				position: relative !important;
+				background-color: #d1d3d4 !important;
+				margin: 0 !important;
+				border-bottom: 1px solid #aaa !important;
+			}
+			
+			.fullscreen-mode #canvas-container {
+				height: calc(100vh - 120px) !important;
+				width: 100vw !important;
+				overflow: hidden !important;
+				position: relative !important;
+				background: white !important;
+				margin: 0 !important;
+				padding: 0 !important;
+			}
+			
+			/* Fullscreen canvas sizing */
+			.fullscreen-mode #canvas {
+				max-width: calc(100vw - 30px) !important;
+				max-height: calc(100vh - 150px) !important;
+			}
+			
+			/* Fullscreen scrollbar styles */
+			.fullscreen-mode .horizontal-scrollbar {
+				left: 50px !important;
+				bottom: 5px !important;
+				width: calc(100vw - 100px) !important;
+			}
+			
+			.fullscreen-mode .vertical-scrollbar {
+				top: 30px !important;
+				height: calc(100vh - 135px) !important;
+			}
+			
+			/* When browser is in fullscreen mode */
+			:-webkit-full-screen .fullscreen-mode {
+				width: 100vw !important;
+				height: 100vh !important;
+			}
+			
+			:-moz-full-screen .fullscreen-mode {
+				width: 100vw !important;
+				height: 100vh !important;
+			}
+			
+			:fullscreen .fullscreen-mode {
+				width: 100vw !important;
+				height: 100vh !important;
+			}
+			
+			/* Modal styles in fullscreen */
+			.fullscreen-mode .modal {
+				z-index: 1000001 !important;
+				position: fixed !important;
+			}
+			
+			/* Prevent fullscreen exit when modals open */
+			.modal {
+				pointer-events: auto !important;
+			}
+			
+			/* Fullscreen icon states */
+			#fullscreen.exit-fullscreen {
+				opacity: 0.7;
+				transform: rotate(180deg);
+				transition: all 0.3s ease;
+			}
+			
+			#fullscreen:hover {
+				opacity: 1;
+				transform: scale(1.1);
+				transition: all 0.3s ease;
+			}
+			
 		</style>
 	</head>
 	<body>
 		<div class="calculator-container">
 			<div class="heading">
-				<h2 class="calculator-title">"<?=$_GET['name']?>" Slab & Cutting Area MM Calculator</h2>
-				<h2>Total MM's = <span class="total_mms">0</span></h2>
+				<div class="header-row">
+					<div class="title-section">
+						<span class="calculator-title">"<?=$_GET['name']?>" Slab & Cutting Area MM Calculator</span>
+					</div>
+					<div class="stats-table">
+						<div class="stat-column">
+							<div class="stat-label">Total Slabs:</div>
+							<div class="stat-value">1 Slabs</div>
+						</div>
+						<div class="stat-column">
+							<div class="stat-label">Slab Cost:</div>
+							<div class="stat-value">$1000</div>
+						</div>
+						<div class="stat-column">
+							<div class="stat-label">Only Cut Area:</div>
+							<div class="stat-value"><span class="only_cut_mm">0</span> mm (in metres)</div>
+						</div>
+						<div class="stat-column">
+							<div class="stat-label">Installation Cost:</div>
+							<div class="stat-value">$0</div>
+						</div>
+						<div class="stat-column">
+							<div class="stat-label">Mitred Cut Area:</div>
+							<div class="stat-value"><span class="mitred_edge_mm">0</span> mm (in metres)</div>
+						</div>
+						<div class="stat-column">
+							<div class="stat-label">Total Project Cost:</div>
+							<div class="stat-value">$1000</div>
+						</div>
+					</div>
+				</div>
 			</div>
 			<div id="toolbar">
 				<div class="shapes">
@@ -653,14 +915,14 @@ foreach( $params as $param ) {
 					<img src="./../assets/images/undo.png" alt="Undo" title="Undo" id="undo">
 					<img src="./../assets/images/redo.png" alt="Redo" title="Redo" id="redo">
 					<img src="./../assets/images/delete.png" alt="Delete" id="delete">
+					<img src="./../assets/images/fullscreen.png" alt="Fullscreen" title="Toggle Fullscreen" id="fullscreen">
 				</div>
 				<div class="btns">
-					<img src="./../assets/images/share.png" alt="Share" id="share">
 					<div class="pos-relative">
 						<img src="./../assets/images/download.png" alt="Download" id="download">
 						<ul class="dropdown">
-							<li data-type="JPG">Download as JPG</li>
 							<li data-type="PDF">Download as PDF</li>
+							<li data-type="EMAIL">Send Email</li>
 						</ul>
 					</div>
 					<img src="./../assets/images/tutorial.png" alt="Tutorial" id="tutorial">
@@ -671,6 +933,14 @@ foreach( $params as $param ) {
 				<div class="ruler" id="ruler-x"></div>
 				<div class="ruler" id="ruler-y"></div>
 				<canvas id="canvas"></canvas>
+				
+				<!-- Custom scrollbars -->
+				<div class="horizontal-scrollbar" id="horizontal-scrollbar">
+					<div class="horizontal-scrollbar-thumb" id="horizontal-scrollbar-thumb"></div>
+				</div>
+				<div class="vertical-scrollbar" id="vertical-scrollbar">
+					<div class="vertical-scrollbar-thumb" id="vertical-scrollbar-thumb"></div>
+				</div>
 			</div>
 		</div>
 
@@ -778,9 +1048,9 @@ foreach( $params as $param ) {
 					return value * 8;
 				}
 
-				// Initial canvas and ruler setup
-				let canvasWidth = convertMmToPx(<?=$_GET['pad_width']?>); // Example width, adjust as needed
-				let canvasHeight = convertMmToPx(<?=$_GET['pad_heigth']?>); // Example height, adjust as needed
+				// Initial canvas and ruler setup - dynamic sizing
+				let canvasWidth = window.innerWidth - 30; // Start with full viewport width
+				let canvasHeight = convertMmToPx(<?=$_GET['pad_heigth']?>); // Keep original height
 				const rulerInterval = 100; // 50mm intervals
 				let zoomLevel = 1.6; // Initial zoom level
 				let shapeNo = 0; // Shape Number on Canvas
@@ -792,6 +1062,8 @@ foreach( $params as $param ) {
 				const defaultShapeHeight = 700;
 				
 				let totalMM = 0;
+				let onlyCutAreaMM = 0;
+				let mitredEdgeAreaMM = 0;
 
 				const defaultGap = convertMmToPx(20); // 20mm gap in pixels
 
@@ -815,6 +1087,440 @@ foreach( $params as $param ) {
 				canvas.selection = false; // disable group selection
 				
 				fabric.Object.prototype.objectCaching = true;
+				
+				// Dynamic canvas expansion function
+				function expandCanvasIfNeeded() {
+					let maxRight = 0;
+					let maxBottom = 0;
+					
+					// Find the furthest bounds of all objects
+					canvas.getObjects().forEach(obj => {
+						if (!obj.isWatermark && !isGreenBox(obj)) {
+							const bounds = obj.getBoundingRect();
+							maxRight = Math.max(maxRight, bounds.left + bounds.width + 100); // 100px padding
+							maxBottom = Math.max(maxBottom, bounds.top + bounds.height + 100); // 100px padding
+						}
+					});
+					
+					// Expand canvas if needed
+					let needsUpdate = false;
+					if (maxRight > canvas.getWidth()) {
+						canvas.setWidth(maxRight);
+						needsUpdate = true;
+					}
+					if (maxBottom > canvas.getHeight()) {
+						canvas.setHeight(maxBottom);
+						needsUpdate = true;
+					}
+					
+					// Update rulers and scrollbars if canvas size changed
+					if (needsUpdate) {
+						addRulers();
+						updateScrollbars();
+						canvas.renderAll();
+					}
+				}
+				
+				// Watermark functionality
+				let watermarkPattern = null;
+				
+				function loadWatermarkForBox(greenBox) {
+					fabric.Image.fromURL('./../assets/images/watermark.png', function(img) {
+						// Center watermark in the specified green box
+						const centerX = greenBox.left + (greenBox.width / 2);
+						const centerY = greenBox.top + (greenBox.height / 2);
+						
+						// Scale down the watermark size (15% of original)
+						const scale = 0.15;
+						
+						// Set watermark properties - single image, reduced size
+						img.set({
+							left: centerX,
+							top: centerY,
+							opacity: 0.3, // Increased opacity to make it more visible
+							selectable: false,
+							evented: false,
+							excludeFromExport: false,
+							isWatermark: true,
+							originX: 'center',
+							originY: 'center',
+							scaleX: scale,
+							scaleY: scale
+						});
+						
+						// Add watermark to canvas
+						canvas.add(img);
+						// Position watermark above green box but below shapes
+						canvas.sendToBack(img);
+						// Move green box behind watermark
+						canvas.sendToBack(greenBox);
+						canvas.renderAll();
+						
+						console.log('Watermark loaded for box at:', centerX, centerY);
+					}, function(err) {
+						console.error('Failed to load watermark:', err);
+					});
+				}
+				
+				function loadWatermark() {
+					// Clear existing watermarks first
+					clearWatermarks();
+					
+					// Only add watermark to the first green box (initial box)
+					if (initialBox) {
+						loadWatermarkForBox(initialBox);
+					}
+				}
+				
+
+				
+				function clearWatermarks() {
+					// Remove existing watermarks
+					const objects = canvas.getObjects();
+					for (let i = objects.length - 1; i >= 0; i--) {
+						if (objects[i].isWatermark) {
+							canvas.remove(objects[i]);
+						}
+					}
+				}
+				
+				function updateWatermarks() {
+					// Only reload watermark if initial box exists
+					if (initialBox) {
+						loadWatermark();
+						ensureWatermarksAtBack();
+					}
+				}
+				
+				function ensureWatermarksAtBack() {
+					// Proper layering: Green Boxes (bottom) -> Watermarks (middle) -> Shapes (top)
+					const objects = canvas.getObjects();
+					const watermarks = objects.filter(obj => obj.isWatermark);
+					const greenBoxes = objects.filter(obj => isGreenBox(obj));
+					const shapes = objects.filter(obj => !obj.isWatermark && !isGreenBox(obj));
+					
+					// First send all green boxes to the very back
+					greenBoxes.forEach(box => {
+						canvas.sendToBack(box);
+					});
+					
+					// Then place watermarks above green boxes
+					watermarks.forEach(watermark => {
+						canvas.sendToBack(watermark);
+						// Move above all green boxes
+						greenBoxes.forEach(box => {
+							canvas.sendToBack(box);
+						});
+					});
+				}
+				
+				// Debug function to check canvas objects
+				function debugCanvasObjects() {
+					console.log('Canvas objects:');
+					canvas.getObjects().forEach((obj, index) => {
+						console.log(`${index}: Type: ${obj.type}, isWatermark: ${obj.isWatermark}, opacity: ${obj.opacity}, visible: ${obj.visible}`);
+					});
+				}
+				
+				// Watermark will be loaded when first green box is created
+				// Debug canvas objects after a delay
+				setTimeout(() => {
+					debugCanvasObjects();
+				}, 2000);
+				
+				// Custom scrollbar functionality
+				let canvasContainer = document.getElementById('canvas-container');
+				let canvasElement = document.getElementById('canvas');
+				let horizontalScrollbar = document.getElementById('horizontal-scrollbar');
+				let horizontalThumb = document.getElementById('horizontal-scrollbar-thumb');
+				let verticalScrollbar = document.getElementById('vertical-scrollbar');
+				let verticalThumb = document.getElementById('vertical-scrollbar-thumb');
+				
+				let scrollLeft = 0;
+				let scrollTop = 0;
+				let isDraggingHorizontal = false;
+				let isDraggingVertical = false;
+				
+				function updateScrollbars() {
+					const containerWidth = canvasContainer.clientWidth - 30; // Account for ruler
+					const containerHeight = canvasContainer.clientHeight - 30; // Account for ruler
+					
+					// Calculate actual content bounds including all objects
+					let contentBounds = { left: 0, top: 0, width: canvas.getWidth(), height: canvas.getHeight() };
+					const objects = canvas.getObjects();
+					
+					if (objects.length > 0) {
+						objects.forEach(obj => {
+							const objBounds = obj.getBoundingRect();
+							contentBounds.width = Math.max(contentBounds.width, objBounds.left + objBounds.width + 50);
+							contentBounds.height = Math.max(contentBounds.height, objBounds.top + objBounds.height + 50);
+						});
+					}
+					
+					const canvasActualWidth = contentBounds.width;
+					const canvasActualHeight = contentBounds.height;
+					
+					// Check if we're in fullscreen mode
+					const isFullscreenActive = document.querySelector('.fullscreen-mode') !== null;
+					
+					// Horizontal scrollbar
+					if (canvasActualWidth > containerWidth) {
+						// Calculate available width for fixed positioned scrollbar
+						const viewportWidth = window.innerWidth;
+						let scrollbarWidth;
+						
+						if (isFullscreenActive) {
+							scrollbarWidth = viewportWidth - 100; // Fullscreen: use most of viewport
+						} else {
+							scrollbarWidth = Math.min(containerWidth - 15, viewportWidth - 100); // Normal: limited width
+						}
+						
+						horizontalScrollbar.style.width = scrollbarWidth + 'px';
+						horizontalScrollbar.style.display = 'block';
+						
+						const scrollbarActualWidth = parseFloat(horizontalScrollbar.style.width);
+						const thumbWidth = Math.max(30, (containerWidth / canvasActualWidth) * scrollbarActualWidth);
+						horizontalThumb.style.width = thumbWidth + 'px';
+						
+						const maxScrollLeft = canvasActualWidth - containerWidth;
+						const thumbLeft = (scrollLeft / maxScrollLeft) * (scrollbarActualWidth - thumbWidth);
+						horizontalThumb.style.left = Math.max(2, Math.min(thumbLeft, scrollbarActualWidth - thumbWidth - 2)) + 'px';
+					} else {
+						horizontalScrollbar.style.display = 'none';
+						scrollLeft = 0;
+					}
+					
+					// Vertical scrollbar
+					if (canvasActualHeight > containerHeight) {
+						verticalScrollbar.style.height = (containerHeight - 15) + 'px'; // Account for horizontal scrollbar
+						verticalScrollbar.style.display = 'block';
+						
+						const thumbHeight = Math.max(30, (containerHeight / canvasActualHeight) * containerHeight);
+						verticalThumb.style.height = thumbHeight + 'px';
+						
+						const maxScrollTop = canvasActualHeight - containerHeight;
+						const thumbTop = (scrollTop / maxScrollTop) * (containerHeight - thumbHeight);
+						verticalThumb.style.top = Math.max(2, Math.min(thumbTop, containerHeight - thumbHeight - 2)) + 'px';
+					} else {
+						verticalScrollbar.style.display = 'none';
+						scrollTop = 0;
+					}
+					
+					// Update canvas position - ensure we can scroll to see all content
+					const canvas_elem = document.getElementById('canvas');
+					if (canvas_elem) {
+						canvas_elem.style.marginLeft = (30 - scrollLeft) + 'px';
+						canvas_elem.style.marginTop = (30 - scrollTop) + 'px';
+					}
+				}
+				
+				// Horizontal scrollbar drag functionality
+				horizontalThumb.addEventListener('mousedown', function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					
+					isDraggingHorizontal = true;
+					const startX = e.clientX;
+					const thumbRect = horizontalThumb.getBoundingClientRect();
+					const scrollbarRect = horizontalScrollbar.getBoundingClientRect();
+					const startLeft = thumbRect.left - scrollbarRect.left;
+					
+					function onMouseMove(e) {
+						if (!isDraggingHorizontal) return;
+						e.preventDefault();
+						
+						const deltaX = e.clientX - startX;
+						const scrollbarWidth = horizontalScrollbar.offsetWidth;
+						const thumbWidth = horizontalThumb.offsetWidth;
+						const maxThumbLeft = scrollbarWidth - thumbWidth - 4;
+						
+						let newThumbLeft = startLeft + deltaX;
+						newThumbLeft = Math.max(2, Math.min(newThumbLeft, maxThumbLeft));
+						
+						horizontalThumb.style.left = newThumbLeft + 'px';
+						
+						// Calculate scroll position
+						const scrollRatio = (newThumbLeft - 2) / (maxThumbLeft - 2);
+						
+						// Get actual content width
+						const containerWidth = canvasContainer.clientWidth - 30;
+						let contentWidth = canvas.getWidth();
+						
+						// Calculate content bounds
+						const objects = canvas.getObjects();
+						if (objects.length > 0) {
+							objects.forEach(obj => {
+								const objBounds = obj.getBoundingRect();
+								contentWidth = Math.max(contentWidth, objBounds.left + objBounds.width + 50);
+							});
+						}
+						
+						const maxScrollLeft = Math.max(0, contentWidth - containerWidth);
+						scrollLeft = scrollRatio * maxScrollLeft;
+						
+						// Update canvas position
+						const canvas_elem = document.getElementById('canvas');
+						if (canvas_elem) {
+							canvas_elem.style.marginLeft = (30 - scrollLeft) + 'px';
+						}
+					}
+					
+					function onMouseUp(e) {
+						e.preventDefault();
+						isDraggingHorizontal = false;
+						document.removeEventListener('mousemove', onMouseMove);
+						document.removeEventListener('mouseup', onMouseUp);
+					}
+					
+					document.addEventListener('mousemove', onMouseMove);
+					document.addEventListener('mouseup', onMouseUp);
+				});
+				
+				// Vertical scrollbar drag functionality
+				verticalThumb.addEventListener('mousedown', function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					
+					isDraggingVertical = true;
+					const startY = e.clientY;
+					const thumbRect = verticalThumb.getBoundingClientRect();
+					const scrollbarRect = verticalScrollbar.getBoundingClientRect();
+					const startTop = thumbRect.top - scrollbarRect.top;
+					
+					function onMouseMove(e) {
+						if (!isDraggingVertical) return;
+						e.preventDefault();
+						
+						const deltaY = e.clientY - startY;
+						const scrollbarHeight = verticalScrollbar.offsetHeight;
+						const thumbHeight = verticalThumb.offsetHeight;
+						const maxThumbTop = scrollbarHeight - thumbHeight - 4;
+						
+						let newThumbTop = startTop + deltaY;
+						newThumbTop = Math.max(2, Math.min(newThumbTop, maxThumbTop));
+						
+						verticalThumb.style.top = newThumbTop + 'px';
+						
+						// Calculate scroll position
+						const scrollRatio = (newThumbTop - 2) / (maxThumbTop - 2);
+						
+						// Get actual content height
+						const containerHeight = canvasContainer.clientHeight - 30;
+						let contentHeight = canvas.getHeight();
+						
+						// Calculate content bounds
+						const objects = canvas.getObjects();
+						if (objects.length > 0) {
+							objects.forEach(obj => {
+								const objBounds = obj.getBoundingRect();
+								contentHeight = Math.max(contentHeight, objBounds.top + objBounds.height + 50);
+							});
+						}
+						
+						const maxScrollTop = Math.max(0, contentHeight - containerHeight);
+						scrollTop = scrollRatio * maxScrollTop;
+						
+						// Update canvas position
+						const canvas_elem = document.getElementById('canvas');
+						if (canvas_elem) {
+							canvas_elem.style.marginTop = (30 - scrollTop) + 'px';
+						}
+					}
+					
+					function onMouseUp(e) {
+						e.preventDefault();
+						isDraggingVertical = false;
+						document.removeEventListener('mousemove', onMouseMove);
+						document.removeEventListener('mouseup', onMouseUp);
+					}
+					
+					document.addEventListener('mousemove', onMouseMove);
+					document.addEventListener('mouseup', onMouseUp);
+				});
+				
+				// Mouse wheel scrolling
+				canvasContainer.addEventListener('wheel', function(e) {
+					e.preventDefault();
+					
+					const containerWidth = canvasContainer.clientWidth - 30;
+					const containerHeight = canvasContainer.clientHeight - 30;
+					const canvasActualWidth = canvas.getWidth();
+					const canvasActualHeight = canvas.getHeight();
+					
+					if (e.shiftKey) {
+						// Horizontal scroll with Shift + wheel
+						const maxScrollLeft = Math.max(0, canvasActualWidth - containerWidth);
+						scrollLeft = Math.max(0, Math.min(scrollLeft + e.deltaY, maxScrollLeft));
+					} else {
+						// Vertical scroll
+						const maxScrollTop = Math.max(0, canvasActualHeight - containerHeight);
+						scrollTop = Math.max(0, Math.min(scrollTop + e.deltaY, maxScrollTop));
+					}
+					
+					updateScrollbars();
+				});
+				
+				// Update scrollbars when canvas size changes
+				function updateScrollbarsOnResize() {
+					updateScrollbars();
+				}
+				
+				// Initial scrollbar setup
+				updateScrollbars();
+				
+				// Click on scrollbar track to jump
+				horizontalScrollbar.addEventListener('click', function(e) {
+					if (e.target === horizontalScrollbar) {
+						const rect = horizontalScrollbar.getBoundingClientRect();
+						const clickX = e.clientX - rect.left;
+						const scrollbarWidth = horizontalScrollbar.offsetWidth;
+						const thumbWidth = horizontalThumb.offsetWidth;
+						
+						const newThumbLeft = Math.max(2, Math.min(clickX - thumbWidth/2, scrollbarWidth - thumbWidth - 2));
+						horizontalThumb.style.left = newThumbLeft + 'px';
+						
+						const scrollRatio = (newThumbLeft - 2) / (scrollbarWidth - thumbWidth - 4);
+						
+						// Get actual content width
+						const containerWidth = canvasContainer.clientWidth - 30;
+						let contentWidth = canvas.getWidth();
+						
+						const objects = canvas.getObjects();
+						if (objects.length > 0) {
+							objects.forEach(obj => {
+								const objBounds = obj.getBoundingRect();
+								contentWidth = Math.max(contentWidth, objBounds.left + objBounds.width + 50);
+							});
+						}
+						
+						const maxScrollLeft = Math.max(0, contentWidth - containerWidth);
+						scrollLeft = scrollRatio * maxScrollLeft;
+						
+						const canvas_elem = document.getElementById('canvas');
+						if (canvas_elem) {
+							canvas_elem.style.marginLeft = (30 - scrollLeft) + 'px';
+						}
+					}
+				});
+				
+				// Update scrollbars when window resizes
+				window.addEventListener('resize', updateScrollbarsOnResize);
+				
+				// Fix canvas offset on resize and fullscreen changes
+				window.addEventListener('resize', function() {
+					setTimeout(function() {
+						// Update canvas width to match viewport
+						const newWidth = window.innerWidth - 30;
+						if (newWidth > canvas.getWidth()) {
+							canvas.setWidth(newWidth);
+							addRulers();
+						}
+						
+						canvas.calcOffset();
+						canvas.renderAll();
+						updateScrollbars();
+					}, 100);
+				});
 				
 
 				// Add EdgeProfiles for Shapes in Modal
@@ -952,6 +1658,9 @@ foreach( $params as $param ) {
 				// Function to get total length of objects
 				function getTotalMM() {
 					totalMM = 0;
+					onlyCutAreaMM = 0;
+					mitredEdgeAreaMM = 0;
+					
 					canvas.getObjects().forEach(obj => {
 						if ( obj.mainShape ) {
 							if ( obj._objects[0].type == 'group' ) {
@@ -961,10 +1670,26 @@ foreach( $params as $param ) {
 							} else {
 								getObjectMM(obj._objects[0].shapeName, obj);
 							}
+						} else if ( obj.customName && obj.customName.includes('EdgeProfile') ) {
+							// This is a mitred edge profile
+							mitredEdgeAreaMM += convertPxToMm(obj.width);
 						}
 					});
 					
-					jQuery('.total_mms').html(totalMM);
+					// Calculate only cut area (total minus mitred edges)
+					onlyCutAreaMM = totalMM;
+					
+					// Calculate grand total
+					const grandTotal = onlyCutAreaMM + mitredEdgeAreaMM;
+					
+					// Update displays with proper formatting
+					jQuery('.only_cut_mm').html(Math.round(onlyCutAreaMM));
+					jQuery('.mitred_edge_mm').html(Math.round(mitredEdgeAreaMM));
+					
+					// Keep old total display for backward compatibility if it exists
+					if (jQuery('.total_mms').length > 0) {
+						jQuery('.total_mms').html(Math.round(grandTotal));
+					}
 				}
 				
 				
@@ -1136,6 +1861,14 @@ foreach( $params as $param ) {
 					canvas.add(newBox);
 					canvas.sendToBack(newBox);
 					infoBoxes.push(newBox);
+					
+					// Only add watermark to the first/initial green box
+					if (infoBoxes.length === 1) {
+						loadWatermarkForBox(newBox);
+					}
+					
+					// Ensure watermarks stay behind everything
+					ensureWatermarksAtBack();
 
 					// If this is the first box, store it as initial box
 					if (infoBoxes.length === 1) {
@@ -1148,6 +1881,8 @@ foreach( $params as $param ) {
 					if (canvasWidth > canvas.width || canvasHeight > canvas.height) {
 						canvas.setDimensions({ width: canvasWidth, height: canvasHeight });
 						addRulers();
+						updateWatermarks(); // Update watermarks when canvas size changes
+						setTimeout(() => updateScrollbars(), 100); // Update scrollbars when canvas size changes
 					}
 				}
 
@@ -1193,7 +1928,10 @@ foreach( $params as $param ) {
 
 				// Function to remove empty boxes
 				function cleanupEmptyInfoBoxes() {
-					// Get all boxes except the initial one
+					// NEVER remove the initial/first box - it should always stay
+					// Only remove NEW boxes that were created when dragging shapes
+					
+					// Get all boxes except the initial one (first box should never be removed)
 					const boxesToCheck = infoBoxes.filter(box => box !== initialBox);
 
 					boxesToCheck.forEach(box => {
@@ -2419,7 +3157,17 @@ foreach( $params as $param ) {
 					// Add the group to the canvas
 					canvas.add(group);
 					shape.setCoords();
+					
+					// Ensure watermarks stay at the back
+					ensureWatermarksAtBack();
+					
 					canvas.requestRenderAll();
+					
+					// Expand canvas and update scrollbars when new shapes are added
+					setTimeout(() => {
+						expandCanvasIfNeeded();
+						updateScrollbars();
+					}, 100);
 
 					return group;
 				}
@@ -3167,16 +3915,87 @@ foreach( $params as $param ) {
 				});
 
 
-				// Show alert if no object is selected
+				// Show custom notification if no object is selected
 				function checkIfShapeSelected() {
 					var activeObject = canvas.getActiveObject();
 					if ( ! activeObject ) {
-						alert('Please select any shape first');
-
+						showCustomAlert('Please select any shape first');
 						return false;
 					} else {
 						return activeObject;
 					}
+				}
+				
+				// Custom alert function that won't exit fullscreen
+				function showCustomAlert(message) {
+					// Create custom alert modal
+					var alertModal = jQuery('<div class="custom-alert-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000002; justify-content: center; align-items: center;">' +
+						'<div class="custom-alert-content" style="background: white; padding: 20px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; text-align: center;">' +
+						'<p style="margin: 0 0 15px 0; font-size: 16px;">' + message + '</p>' +
+						'<button class="custom-alert-ok" style="background: #0d6efd; color: white; border: none; padding: 8px 20px; border-radius: 3px; cursor: pointer;">OK</button>' +
+						'</div>' +
+					'</div>');
+					
+					// Add to body
+					jQuery('body').append(alertModal);
+					
+					// Show modal
+					alertModal.css('display', 'flex');
+					
+					// Handle OK button
+					alertModal.find('.custom-alert-ok').click(function() {
+						alertModal.remove();
+					});
+					
+					// Handle backdrop click
+					alertModal.click(function(e) {
+						if (e.target === this) {
+							alertModal.remove();
+						}
+					});
+					
+					// Auto close after 3 seconds
+					setTimeout(function() {
+						if (alertModal.length) {
+							alertModal.remove();
+						}
+					}, 3000);
+				}
+				
+				// Custom confirm function that won't exit fullscreen
+				function showCustomConfirm(message, callback) {
+					// Create custom confirm modal
+					var confirmModal = jQuery('<div class="custom-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000002; justify-content: center; align-items: center;">' +
+						'<div class="custom-confirm-content" style="background: white; padding: 20px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; text-align: center;">' +
+						'<p style="margin: 0 0 15px 0; font-size: 16px;">' + message + '</p>' +
+						'<button class="custom-confirm-yes" style="background: #dc3545; color: white; border: none; padding: 8px 20px; border-radius: 3px; cursor: pointer; margin-right: 10px;">Yes</button>' +
+						'<button class="custom-confirm-no" style="background: #6c757d; color: white; border: none; padding: 8px 20px; border-radius: 3px; cursor: pointer;">No</button>' +
+						'</div>' +
+					'</div>');
+					
+					// Add to body
+					jQuery('body').append(confirmModal);
+					
+					// Show modal
+					confirmModal.css('display', 'flex');
+					
+					// Handle Yes button
+					confirmModal.find('.custom-confirm-yes').click(function() {
+						confirmModal.remove();
+						if (callback) callback();
+					});
+					
+					// Handle No button
+					confirmModal.find('.custom-confirm-no').click(function() {
+						confirmModal.remove();
+					});
+					
+					// Handle backdrop click (acts as No)
+					confirmModal.click(function(e) {
+						if (e.target === this) {
+							confirmModal.remove();
+						}
+					});
 				}
 
 
@@ -3235,6 +4054,16 @@ foreach( $params as $param ) {
 						// Hide the modal
 						jQuery('#shapeModal #saveShapeDetails').attr('data-state', 'edit');
 						jQuery('#shapeModal').css('display', 'flex').attr('data-shape', shapeName);
+						
+						// Maintain fullscreen when modal opens
+						if (isFullscreen) {
+							setTimeout(function() {
+								var calculatorContainer = jQuery('.calculator-container');
+								if (!calculatorContainer.hasClass('fullscreen-mode')) {
+									calculatorContainer.addClass('fullscreen-mode');
+								}
+							}, 50);
+						}
 					}
 				});
 
@@ -3297,7 +4126,8 @@ foreach( $params as $param ) {
 				// Delete selected object
 				jQuery('#toolbar .tools #delete').click(function() {
 					var activeObject = checkIfShapeSelected();
-					if (activeObject && confirm('Are you sure you want to delete this shape?')) {
+					if (activeObject) {
+						showCustomConfirm('Are you sure you want to delete this shape?', function() {
 						if (activeObject.type === 'group') {
 							// Ungroup all the objects from the group
 							activeObject.forEachObject(function(object) {
@@ -3309,6 +4139,160 @@ foreach( $params as $param ) {
 						cleanupEmptyInfoBoxes();
 						getTotalMM();
 						saveState();
+						
+						// Ensure fullscreen is maintained after operations
+						if (isFullscreen) {
+							setTimeout(function() {
+								var calculatorContainer = jQuery('.calculator-container');
+								if (!calculatorContainer.hasClass('fullscreen-mode')) {
+									calculatorContainer.addClass('fullscreen-mode');
+								}
+							}, 100);
+						}
+						});
+					}
+				});
+
+				// Fullscreen functionality
+				var isFullscreen = false;
+				
+				jQuery('#toolbar .tools #fullscreen').click(function() {
+					toggleFullscreen();
+				});
+				
+				function toggleFullscreen() {
+					var calculatorContainer = jQuery('.calculator-container');
+					var fullscreenIcon = jQuery('#fullscreen');
+					
+					if (!isFullscreen) {
+						// Enter native browser fullscreen
+						var element = document.documentElement; // Use entire document
+						
+						if (element.requestFullscreen) {
+							element.requestFullscreen();
+						} else if (element.mozRequestFullScreen) { // Firefox
+							element.mozRequestFullScreen();
+						} else if (element.webkitRequestFullscreen) { // Chrome, Safari
+							element.webkitRequestFullscreen();
+						} else if (element.msRequestFullscreen) { // IE/Edge
+							element.msRequestFullscreen();
+						}
+						
+						// Apply fullscreen styling
+						calculatorContainer.addClass('fullscreen-mode');
+						fullscreenIcon.addClass('exit-fullscreen');
+						fullscreenIcon.attr('title', 'Exit Fullscreen');
+						isFullscreen = true;
+						
+						// Resize canvas and update rulers after entering fullscreen
+						setTimeout(function() {
+							canvas.calcOffset();
+							canvas.renderAll();
+							addRulers();
+						}, 300);
+						
+					} else {
+						// Exit native browser fullscreen
+						if (document.exitFullscreen) {
+							document.exitFullscreen();
+						} else if (document.mozCancelFullScreen) { // Firefox
+							document.mozCancelFullScreen();
+						} else if (document.webkitExitFullscreen) { // Chrome, Safari
+							document.webkitExitFullscreen();
+						} else if (document.msExitFullscreen) { // IE/Edge
+							document.msExitFullscreen();
+						}
+						
+						// Remove fullscreen styling
+						calculatorContainer.removeClass('fullscreen-mode');
+						fullscreenIcon.removeClass('exit-fullscreen');
+						fullscreenIcon.attr('title', 'Enter Fullscreen');
+						isFullscreen = false;
+						
+						// Resize canvas and update rulers after exiting fullscreen
+						setTimeout(function() {
+							canvas.calcOffset();
+							canvas.renderAll();
+							addRulers();
+						}, 300);
+					}
+				}
+				
+				// Listen for fullscreen change events
+				document.addEventListener('fullscreenchange', handleFullscreenChange);
+				document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+				document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+				document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+				
+				function handleFullscreenChange() {
+					var calculatorContainer = jQuery('.calculator-container');
+					var fullscreenIcon = jQuery('#fullscreen');
+					
+					// Check if we're in fullscreen mode
+					var isInFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || 
+						document.mozFullScreenElement || document.msFullscreenElement);
+					
+					if (isInFullscreen && !isFullscreen) {
+						// Entered fullscreen
+						calculatorContainer.addClass('fullscreen-mode');
+						fullscreenIcon.addClass('exit-fullscreen');
+						fullscreenIcon.attr('title', 'Exit Fullscreen');
+						isFullscreen = true;
+						
+						setTimeout(function() {
+							canvas.calcOffset();
+							canvas.renderAll();
+							addRulers();
+							updateScrollbars(); // Update scrollbars for fullscreen
+							
+							// Fix canvas interaction in fullscreen
+							canvas.selection = false; // Keep selection disabled as set initially
+							canvas.forEachObject(function(obj) {
+								// Only make shapes selectable, not green boxes or watermarks
+								if (!isGreenBox(obj) && !obj.isWatermark) {
+									obj.selectable = true;
+									obj.evented = true;
+								} else {
+									obj.selectable = false;
+									obj.evented = false;
+								}
+							});
+							canvas.calcOffset();
+						}, 300);
+						
+					} else if (!isInFullscreen && isFullscreen) {
+						// Exited fullscreen (could be via ESC key)
+						calculatorContainer.removeClass('fullscreen-mode');
+						fullscreenIcon.removeClass('exit-fullscreen');
+						fullscreenIcon.attr('title', 'Enter Fullscreen');
+						isFullscreen = false;
+						
+						setTimeout(function() {
+							canvas.calcOffset();
+							canvas.renderAll();
+							addRulers();
+							updateScrollbars(); // Update scrollbars when exiting fullscreen
+							
+							// Fix canvas interaction when exiting fullscreen
+							canvas.forEachObject(function(obj) {
+								// Only make shapes selectable, not green boxes or watermarks
+								if (!isGreenBox(obj) && !obj.isWatermark) {
+									obj.selectable = true;
+									obj.evented = true;
+								} else {
+									obj.selectable = false;
+									obj.evented = false;
+								}
+							});
+							canvas.calcOffset();
+						}, 300);
+					}
+				}
+				
+				// Handle ESC key to exit fullscreen
+				jQuery(document).keydown(function(e) {
+					if (e.keyCode === 27 && isFullscreen) { // ESC key
+						toggleFullscreen();
 					}
 				});
 
@@ -3324,8 +4308,25 @@ foreach( $params as $param ) {
 				function saveState() {
 					if (!isUndoRedo) { // Prevent saving state during undo/redo operations
 						redoStack = []; // Clear the redo stack when a new change is made
+						
+						// Temporarily hide watermarks during state save
+						const watermarks = [];
+						canvas.getObjects().forEach(obj => {
+							if (obj.isWatermark) {
+								watermarks.push(obj);
+								canvas.remove(obj);
+							}
+						});
+						
 						const json = canvas.toJSON(customProperties);
 						undoStack.push(json);
+						
+						// Restore watermarks
+						watermarks.forEach(watermark => {
+							canvas.add(watermark);
+							canvas.sendToBack(watermark);
+						});
+						canvas.renderAll();
 					}
 				}
 
@@ -3355,6 +4356,7 @@ foreach( $params as $param ) {
 						const lastState = undoStack[undoStack.length - 1];
 						canvas.loadFromJSON(lastState, function() {
 							restoreCustomProperties();
+							loadWatermark(); // Restore watermarks after undo
 							canvas.renderAll();
 						});
 						isUndoRedo = false; // Reset flag after undo
@@ -3368,6 +4370,7 @@ foreach( $params as $param ) {
 						undoStack.push(canvas.toJSON(customProperties)); // Push current state back to undo stack
 						canvas.loadFromJSON(state, function() {
 							restoreCustomProperties();
+							loadWatermark(); // Restore watermarks after redo
 							canvas.renderAll();
 						});
 						isUndoRedo = false; // Reset flag after redo
@@ -3380,6 +4383,29 @@ foreach( $params as $param ) {
 				var isObjectMoving  = false;
 				canvas.on('object:moving', function (event) {
 					isObjectMoving = true;
+					
+					// Expand canvas in real-time while dragging
+					const obj = event.target;
+					if (obj && !obj.isWatermark && !isGreenBox(obj)) {
+						const bounds = obj.getBoundingRect();
+						const rightEdge = bounds.left + bounds.width + 100;
+						const bottomEdge = bounds.top + bounds.height + 100;
+						
+						let needsUpdate = false;
+						if (rightEdge > canvas.getWidth()) {
+							canvas.setWidth(rightEdge);
+							needsUpdate = true;
+						}
+						if (bottomEdge > canvas.getHeight()) {
+							canvas.setHeight(bottomEdge);
+							needsUpdate = true;
+						}
+						
+						if (needsUpdate) {
+							addRulers();
+							updateScrollbars();
+						}
+					}
 				});
 
 				canvas.on('mouse:up', function (event) {
@@ -3387,6 +4413,8 @@ foreach( $params as $param ) {
 						isObjectMoving = false;
 						cleanupEmptyInfoBoxes();
 						saveState();
+						expandCanvasIfNeeded(); // Expand canvas when objects are moved
+						updateScrollbars(); // Update scrollbars when objects are moved
 					} 
 				});
 
@@ -3484,19 +4512,23 @@ foreach( $params as $param ) {
 					const blob = dataURLToBlob(dataURL);
 					const blobURL = URL.createObjectURL(blob);
 
-					if (downloadType === 'JPG') {
-						// Trigger download
-						const downloadLink = document.createElement('a');
-						downloadLink.href = blobURL;
-						downloadLink.download = 'canvas-image.jpeg';
-						downloadLink.style.display = 'none';
-						document.body.appendChild(downloadLink);
-						downloadLink.click();
-
-						// Clean up
+					if (downloadType === 'EMAIL') {
+						// Open email modal instead of download
+						jQuery('#emailModal').css('display', 'flex');
+						
+						// Maintain fullscreen when modal opens
+						if (isFullscreen) {
+							setTimeout(function() {
+								var calculatorContainer = jQuery('.calculator-container');
+								if (!calculatorContainer.hasClass('fullscreen-mode')) {
+									calculatorContainer.addClass('fullscreen-mode');
+								}
+							}, 50);
+						}
+						
+						// Clean up blob
 						setTimeout(() => {
 							URL.revokeObjectURL(blobURL);
-							downloadLink.remove();
 						}, 100);
 						
 					} else if (downloadType === 'PDF') {
@@ -3525,11 +4557,6 @@ foreach( $params as $param ) {
 					// Restore canvas state
 					restoreCanvasState(canvas, state);
 				});
-
-				jQuery('#toolbar .btns #share').click(function() {
-					jQuery('#emailModal').css('display', 'flex');
-				});
-
 
 				jQuery('form#email-form').on('submit', function(e) {
 					e.preventDefault();
@@ -3625,6 +4652,16 @@ foreach( $params as $param ) {
 
 				jQuery('#toolbar .btns #tutorial').click(function() {
 					jQuery('#videoTutorialModal').css('display', 'flex');
+					
+					// Maintain fullscreen when modal opens
+					if (isFullscreen) {
+						setTimeout(function() {
+							var calculatorContainer = jQuery('.calculator-container');
+							if (!calculatorContainer.hasClass('fullscreen-mode')) {
+								calculatorContainer.addClass('fullscreen-mode');
+							}
+						}, 50);
+					}
 				});
 
 			});
