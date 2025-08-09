@@ -1160,7 +1160,7 @@ foreach( $params as $param ) {
 
 			#shapeModal .form-group .edge-profile-section > div.U select#shapeEdgeProfile1 {
 
-				top: 0;
+				top: 70px;
 
 				left: 50%;
 
@@ -1684,7 +1684,7 @@ foreach( $params as $param ) {
 
 					</div>
 
-					<div class="stats-table">
+					<!-- <div class="stats-table">
 
 						<div class="stat-column">
 
@@ -1734,7 +1734,7 @@ foreach( $params as $param ) {
 
 						</div>
 
-					</div>
+					</div> -->
 
 				</div>
 
@@ -1819,6 +1819,8 @@ foreach( $params as $param ) {
 				<div class="tools">
 
 					<img src="./../assets/images/info.png" alt="Info" id="info">
+
+					<img src="./../assets/images/shape-3.png" alt="Clone" title="Clone Shape" id="clone">
 
 					<img src="./../assets/images/rotate.png" alt="Rotate" id="rotate">
 
@@ -2175,6 +2177,9 @@ foreach( $params as $param ) {
 
 				fabric.Object.prototype.objectCaching = true;
 
+				// Hide shape-specific toolbar icons initially
+				hideShapeToolbarIcons();
+
 				
 
 				// Dynamic canvas expansion function
@@ -2333,13 +2338,19 @@ foreach( $params as $param ) {
 
 					
 
-					// Only add watermark to the first green box (initial box)
+					// Add watermarks to ALL green boxes (not just the initial box)
 
-					if (initialBox) {
+					const allGreenBoxes = canvas.getObjects().filter(obj => isGreenBox(obj));
 
-						loadWatermarkForBox(initialBox);
+					allGreenBoxes.forEach(box => {
 
-					}
+						loadWatermarkForBox(box);
+
+					});
+
+					
+
+					ensureWatermarksAtBack();
 
 				}
 
@@ -3725,13 +3736,15 @@ foreach( $params as $param ) {
 
 					
 
-					// Only add watermark to the first/initial green box
+					// Add watermark to EVERY new green box
 
-					if (infoBoxes.length === 1) {
+					loadWatermarkForBox(newBox);
 
-						loadWatermarkForBox(newBox);
+					
 
-					}
+					// Ensure watermarks stay behind everything
+
+					ensureWatermarksAtBack();
 
 					
 
@@ -3894,6 +3907,60 @@ foreach( $params as $param ) {
 
 
 
+
+				// Function to add only one green box at a time (simplified version)
+
+				function checkAndAddSingleBox(objectBounds, boxBounds) {
+
+					// Only add one box at a time - check which direction the shape extends most
+
+					const rightExtend = Math.max(0, objectBounds.right - boxBounds.right);
+
+					const leftExtend = Math.max(0, boxBounds.left - objectBounds.left);
+
+					const bottomExtend = Math.max(0, objectBounds.bottom - boxBounds.bottom);
+
+					const topExtend = Math.max(0, boxBounds.top - objectBounds.top);
+
+					
+
+					// Find the direction with maximum extension
+
+					const maxExtend = Math.max(rightExtend, leftExtend, bottomExtend, topExtend);
+
+					
+
+					// Only create one box in the direction of maximum extension
+
+					if (maxExtend > 0) {
+
+						if (maxExtend === rightExtend && rightExtend > 0) {
+
+							// Add one box to the right
+
+							addBox(boxBounds.right, boxBounds.top);
+
+						} else if (maxExtend === leftExtend && leftExtend > 0) {
+
+							// Add one box to the left
+
+							addBox(boxBounds.left - boxWidth, boxBounds.top);
+
+						} else if (maxExtend === topExtend && topExtend > 0) {
+
+							// Add one box to the top
+
+							addBox(boxBounds.left, boxBounds.top - boxHeight);
+
+						}
+
+						// Note: We intentionally DON'T add boxes below (bottomExtend)
+
+					}
+
+				}
+
+				
 
 				function checkAndAddBoxInDirection(objectBounds, boxBounds) {
 
@@ -4115,11 +4182,11 @@ foreach( $params as $param ) {
 
 
 
-						// If object overlaps the box, add new boxes if necessary
+						// If object overlaps the box, add new boxes if necessary (only one at a time)
 
 						if (checkIntersection(objectBounds, boxBounds)) {
 
-							checkAndAddBoxInDirection(objectBounds, boxBounds);
+							checkAndAddSingleBox(objectBounds, boxBounds);
 
 						}
 
@@ -7656,7 +7723,30 @@ foreach( $params as $param ) {
 
 						checkShapeBounds(finalGroup); // Check bounds immediately after adding the shape
 
+						// Add double-click event handler to open shape details modal (both left and right click)
+						finalGroup.on('mousedblclick', function(e) {
+							e.e.preventDefault();
+							canvas.setActiveObject(finalGroup);
+							jQuery('#toolbar .tools #info').trigger('click');
+						});
 
+						// Additional handler for right-click double-click
+						let finalGroupClickCount = 0;
+						let finalGroupClickTimer = null;
+						finalGroup.on('mousedown', function(e) {
+							finalGroupClickCount++;
+							if (finalGroupClickCount === 1) {
+								finalGroupClickTimer = setTimeout(function() {
+									finalGroupClickCount = 0;
+								}, 300);
+							} else if (finalGroupClickCount === 2) {
+								clearTimeout(finalGroupClickTimer);
+								finalGroupClickCount = 0;
+								// Double-click detected (left or right button)
+								canvas.setActiveObject(finalGroup);
+								jQuery('#toolbar .tools #info').trigger('click');
+							}
+						});
 
 						// Ensure the group updates properly during dragging and scaling
 
@@ -7773,7 +7863,30 @@ foreach( $params as $param ) {
 
 						checkShapeBounds(group);
 
+						// Add double-click event handler to open shape details modal (both left and right click)
+						group.on('mousedblclick', function(e) {
+							e.e.preventDefault();
+							canvas.setActiveObject(group);
+							jQuery('#toolbar .tools #info').trigger('click');
+						});
 
+						// Additional handler for right-click double-click
+						let groupClickCount = 0;
+						let groupClickTimer = null;
+						group.on('mousedown', function(e) {
+							groupClickCount++;
+							if (groupClickCount === 1) {
+								groupClickTimer = setTimeout(function() {
+									groupClickCount = 0;
+								}, 300);
+							} else if (groupClickCount === 2) {
+								clearTimeout(groupClickTimer);
+								groupClickCount = 0;
+								// Double-click detected (left or right button)
+								canvas.setActiveObject(group);
+								jQuery('#toolbar .tools #info').trigger('click');
+							}
+						});
 
 						group.on('modified', function(e) {
 
@@ -7875,6 +7988,22 @@ foreach( $params as $param ) {
 
 					}
 
+				}
+
+				// Function to show toolbar icons when shape is selected
+				function showShapeToolbarIcons() {
+					jQuery('#toolbar .tools #info').show();
+					jQuery('#toolbar .tools #clone').show();
+					jQuery('#toolbar .tools #delete').show();
+					jQuery('#toolbar .tools #rotate').show();
+				}
+
+				// Function to hide toolbar icons when no shape is selected
+				function hideShapeToolbarIcons() {
+					jQuery('#toolbar .tools #info').hide();
+					jQuery('#toolbar .tools #clone').hide();
+					jQuery('#toolbar .tools #delete').hide();
+					jQuery('#toolbar .tools #rotate').hide();
 				}
 
 				
@@ -8329,6 +8458,37 @@ foreach( $params as $param ) {
 
 					}
 
+				});
+
+				// Clone selected object
+				jQuery('#toolbar .tools #clone').click(function() {
+					var activeObject = checkIfShapeSelected();
+					if (activeObject) {
+						// Clone the object
+						activeObject.clone(function(clonedObj) {
+							// Position the clone slightly offset from original
+							clonedObj.set({
+								left: activeObject.left + 20,
+								top: activeObject.top + 20
+							});
+							
+							// Add the clone to canvas
+							canvas.add(clonedObj);
+							canvas.setActiveObject(clonedObj);
+							canvas.renderAll();
+							
+							// Ensure watermarks stay at the back
+							ensureWatermarksAtBack();
+							
+							// Save state for undo/redo
+							saveState();
+							
+							// Update bounds and scrollbars
+							checkShapeBounds(clonedObj);
+							expandCanvasIfNeeded();
+							updateScrollbars();
+						});
+					}
 				});
 
 
@@ -8859,6 +9019,25 @@ foreach( $params as $param ) {
 
 					} 
 
+				});
+
+				// Show/hide toolbar icons based on selection
+				canvas.on('selection:created', function(e) {
+					if (e.target && e.target.mainShape) {
+						showShapeToolbarIcons();
+					}
+				});
+
+				canvas.on('selection:updated', function(e) {
+					if (e.target && e.target.mainShape) {
+						showShapeToolbarIcons();
+					} else {
+						hideShapeToolbarIcons();
+					}
+				});
+
+				canvas.on('selection:cleared', function() {
+					hideShapeToolbarIcons();
 				});
 
 

@@ -286,24 +286,65 @@ if (!function_exists('slab_calculator_email_template_callback')) {
 <body style="font-family: Arial, sans-serif; line-height: 1.6;">
     <p>Hi {{customer_name}},</p>
     
-    <p>Thank you for choosing us! We\'re thrilled to be part of your project. To receive a detailed quote or invoice, please email us at <a href="mailto:welcome@bambystone.com.au" style="color: #007bff;">welcome@bambystone.com.au</a>, including this email with the attached drawings.</p>
+    <p>Thank you for choosing us! We\'re thrilled to be part of your project. Please find your project details and drawing calculations below.</p>
     
     <h3 style="margin-top: 20px; color: #333;">Project Details</h3>
+    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+        <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Slab Name:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{slab_name}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Standard Cutting Area:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{only_cut_mm}} mm</td>
+        </tr>
+        <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Mitred Cutting Area:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{mitred_cut_mm}} mm</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Total Cutting Area:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{total_cutting_mm}} mm</td>
+        </tr>
+    </table>
+
+    <h3 style="margin-top: 20px; color: #333;">Cost Breakdown</h3>
+    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+        <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Slab Cost:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{slab_cost}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Production Cost:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{production_cost}}</td>
+        </tr>
+        <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Installation Cost:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{installation_cost}}</td>
+        </tr>
+        <tr style="background-color: #e9ecef; font-weight: bold;">
+            <td style="padding: 8px; border: 1px solid #ddd;">Total Project Cost:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{total_project_cost}}</td>
+        </tr>
+    </table>
+
+    <div style="margin: 20px 0; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+        <h4 style="margin: 0 0 10px 0; color: #155724;">📋 Your Drawing</h4>
+        <p style="margin: 0; color: #155724;">
+            <a href="{{drawing_link}}" style="color: #155724; text-decoration: underline;">View Your Drawing Online</a><br>
+            <em>A PDF copy of your drawing is also attached to this email.</em>
+        </p>
+    </div>
+
+    <h3 style="margin-top: 20px; color: #333;">Next Steps</h3>
     <ul style="list-style-type: disc; margin-left: 20px;">
-        <li><strong>Slab Name:</strong> {{slab_name}}</li>
-        <li><strong>Total Cutting Area:</strong> {{total_cutting_mm}} mm²</li>
-        <li><strong>Drawing Link:</strong> <a href="{{drawing_link}}" style="color: #007bff;">View Drawing</a></li>
+        <li><strong>Quote Request:</strong> To receive a detailed quote or invoice, please email us at <a href="mailto:welcome@bambystone.com.au" style="color: #007bff;">welcome@bambystone.com.au</a> with this email and attached drawings.</li>
+        <li><strong>Payment:</strong> Full payment is required before we can proceed with your project.</li>
+        <li><strong>Pricing:</strong> All prices are available online and subject to change.</li>
+        <li><strong>Stock Holds:</strong> Due to high demand, we are unable to place holds on stock.</li>
     </ul>
 
-    <h3 style="margin-top: 20px; color: #333;">Payment and Next Steps</h3>
-    <ul style="list-style-type: disc; margin-left: 20px;">
-        <li><strong>Holds:</strong> Unfortunately, due to high demand and frequent changes, we are unable to place holds on stock.</li>
-        <li><strong>Payment:</strong> Full payment is required before we can proceed.</li>
-        <li><strong>Prices:</strong> All our prices are available online and are subject to change.</li>
-        <li><strong>Drawings:</strong> Your drawings, based on the entered sizes, are available in the attached PDF.</li>
-    </ul>
-
-    <p>We look forward to hearing your feedback!</p>
+    <p>We look forward to working with you on this project!</p>
 
     <p>Warm regards,</p>
     <p>
@@ -323,13 +364,22 @@ if (!function_exists('slab_calculator_email_template_callback')) {
         
         echo '<div style="margin-bottom: 15px;">';
         echo '<p><strong>Available Dynamic Fields:</strong></p>';
-        echo '<ul style="margin-left: 20px; columns: 2;">';
-        echo '<li><code>{{customer_name}}</code> - Customer name (from user account)</li>';
-        echo '<li><code>{{slab_name}}</code> - Slab name (from drawing)</li>';
-        echo '<li><code>{{total_cutting_mm}}</code> - Total cutting area in mm²</li>';
-        echo '<li><code>{{drawing_link}}</code> - Link to the drawing (if applicable)</li>';
+        echo '<ul style="margin-left: 20px;">';
+        echo '<li><code>{{customer_name}}</code> - Customer name (extracted from user account or input)</li>';
+        echo '<li><code>{{slab_name}}</code> - Slab name (from the calculator drawing)</li>';
+        echo '<li><code>{{total_cutting_mm}}</code> - Total cutting area in millimeters</li>';
+        echo '<li><code>{{only_cut_mm}}</code> - Standard cutting area in millimeters</li>';
+        echo '<li><code>{{mitred_cut_mm}}</code> - Mitred cutting area in millimeters</li>';
+        echo '<li><code>{{drawing_link}}</code> - Link to view the drawing online</li>';
+        echo '<li><code>{{slab_cost}}</code> - Cost of the slab from WooCommerce product</li>';
+        echo '<li><code>{{production_cost}}</code> - Total production cost based on cutting areas</li>';
+        echo '<li><code>{{installation_cost}}</code> - Total installation cost</li>';
+        echo '<li><code>{{total_project_cost}}</code> - Complete project cost including all components</li>';
         echo '</ul>';
-        echo '<p style="margin-top: 10px;"><em>Note: PDF attachment is automatically included with emails.</em></p>';
+        echo '<div style="margin-top: 15px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">';
+        echo '<h4 style="margin: 0 0 8px 0; color: #856404;">📎 PDF Attachment</h4>';
+        echo '<p style="margin: 0; color: #856404;">PDF with the drawing is automatically generated and attached to every email sent through the calculator.</p>';
+        echo '</div>';
         echo '</div>';
         
         wp_editor($email_template, 'slab_calculator_email_template', array(

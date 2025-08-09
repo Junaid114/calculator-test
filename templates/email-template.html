@@ -1,40 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Project Drawings & Calculations</title>
-	</head>
-	<body style="font-family: Arial, sans-serif; line-height: 1.6;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Drawings & Calculations</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6;">
+    
+    <!-- NOTE: Set sender details in your email-sending configuration -->
+    <!-- Example: From: Bamby Stone <welcome@bambystone.com.au> -->
+    
+    <p>Hi {{customer_name}},</p>
+    
+    <p>Thank you for choosing us! We're thrilled to be part of your project. Please find your project details and drawing calculations below.</p>
+    
+    <h3 style="margin-top: 20px; color: #333;">Project Details</h3>
+    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+        <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Slab Name:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{slab_name}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Standard Cutting Area:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{only_cut_mm}} mm</td>
+        </tr>
+        <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Mitred Cutting Area:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{mitred_cut_mm}} mm</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Total Cutting Area:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{total_cutting_mm}} mm</td>
+        </tr>
+    </table>
 
-		<!-- NOTE: Set sender details in your email-sending configuration -->
-		<!-- Example: From: Bamby Stone <welcome@bambystone.com.au> -->
+    <h3 style="margin-top: 20px; color: #333;">Cost Breakdown</h3>
+    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+        <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Slab Cost:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{slab_cost}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Production Cost:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{production_cost}}</td>
+        </tr>
+        <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Installation Cost:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{installation_cost}}</td>
+        </tr>
+        <tr style="background-color: #e9ecef; font-weight: bold;">
+            <td style="padding: 8px; border: 1px solid #ddd;">Total Project Cost:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{total_project_cost}}</td>
+        </tr>
+    </table>
 
-		<p>Hi,</p>
+    <div style="margin: 20px 0; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+        <h4 style="margin: 0 0 10px 0; color: #155724;">📋 Your Drawing</h4>
+        <p style="margin: 0; color: #155724;">
+            <a href="{{drawing_link}}" style="color: #155724; text-decoration: underline;">View Your Drawing Online</a><br>
+            <em>A PDF copy of your drawing is also attached to this email.</em>
+        </p>
+    </div>
 
-		<p>Thank you for choosing us! We’re thrilled to be part of your project. To receive a detailed quote or invoice, please email us at <a href="mailto:welcome@bambystone.com.au" style="color: #007bff;">welcome@bambystone.com.au</a>, including this email with the attached drawings.</p>
+    <h3 style="margin-top: 20px; color: #333;">Next Steps</h3>
+    <ul style="list-style-type: disc; margin-left: 20px;">
+        <li><strong>Quote Request:</strong> To receive a detailed quote or invoice, please email us at <a href="mailto:welcome@bambystone.com.au" style="color: #007bff;">welcome@bambystone.com.au</a> with this email and attached drawings.</li>
+        <li><strong>Payment:</strong> Full payment is required before we can proceed with your project.</li>
+        <li><strong>Pricing:</strong> All prices are available online and subject to change.</li>
+        <li><strong>Stock Holds:</strong> Due to high demand, we are unable to place holds on stock.</li>
+    </ul>
 
-		<h3 style="margin-top: 20px; color: #333;">Payment and Next Steps</h3>
-		<ul style="list-style-type: disc; margin-left: 20px;">
-			<li><strong>Holds:</strong> Unfortunately, due to high demand and frequent changes, we are unable to place holds on stock.</li>
-			<li><strong>Payment:</strong> Full payment is required before we can proceed.</li>
-			<li><strong>Prices:</strong> All our prices are available online and are subject to change.</li>
-			<li><strong>Drawings:</strong> Your drawings, based on the entered sizes, are available below, along with the total cutting area required in millimeters.</li>
-		</ul>
+    <p>We look forward to working with you on this project!</p>
 
-		<p>We look forward to hearing your feedback!</p>
+    <p>Warm regards,</p>
+    <p>
+        <strong>Adele Anderson</strong> | Customer Relations Representative<br>
+        Phone: <a href="tel:1300536120" style="color: #007bff;">1300 536 120</a><br>
+        Email: <a href="mailto:welcome@bambystone.com.au" style="color: #007bff;">welcome@bambystone.com.au</a><br>
+        Website: <a href="https://www.bambystone.com.au" style="color: #007bff;">www.bambystone.com.au</a><br>
+        Address: Unit 6, 8 Technology Drive, Arundel QLD, Australia 4214
+    </p>
 
-		<p>Warm regards,</p>
-		<p>
-			<strong>Adele Anderson</strong> | Customer Relations Representative<br>
-			Phone: <a href="tel:1300536120" style="color: #007bff;">1300 536 120</a><br>
-			Email: <a href="mailto:welcome@bambystone.com.au" style="color: #007bff;">welcome@bambystone.com.au</a><br>
-			Website: <a href="https://www.bambystone.com.au" style="color: #007bff;">www.bambystone.com.au</a><br>
-			Address: Unit 6, 8 Technology Drive, Arundel QLD, Australia 4214
-		</p>
+    <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;">
+    <p style="font-size: 0.85em; color: #555;">DISCLAIMER: This email is intended for the recipient only. If received in error, please notify us and delete it immediately. Bamby Stone does not guarantee the integrity or error-free nature of this communication.</p>
 
-		<hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;">
-		<p style="font-size: 0.85em; color: #555;">DISCLAIMER: This email is intended for the recipient only. If received in error, please notify us and delete it immediately. Bamby Stone does not guarantee the integrity or error-free nature of this communication.</p>
-
-	</body>
+</body>
 </html>
