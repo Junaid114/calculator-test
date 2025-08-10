@@ -966,6 +966,20 @@ foreach( $params as $param ) {
 				box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 			}
 
+			.auth-btn.secondary {
+				background: #6c757d;
+				color: white;
+				margin-right: 10px;
+				width: auto;
+				display: inline-block;
+			}
+
+			.auth-btn.secondary:hover {
+				background: #5a6268;
+				transform: translateY(-2px);
+				box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+			}
+
 			.auth-error {
 				background: #f8d7da;
 				color: #721c24;
@@ -1023,6 +1037,52 @@ foreach( $params as $param ) {
 			.calculator-container {
 				position: relative;
 				overflow: visible;
+			}
+
+			/* Email verification message styles */
+			.verification-message {
+				text-align: center;
+				padding: 20px;
+			}
+
+			.verification-message h3 {
+				color: #667eea;
+				margin-bottom: 15px;
+				font-size: 20px;
+			}
+
+			.verification-message p {
+				color: #6c757d;
+				margin-bottom: 15px;
+				line-height: 1.5;
+			}
+
+			.verification-info {
+				background: #f8f9fa;
+				padding: 15px;
+				border-radius: 8px;
+				margin: 20px 0;
+				text-align: left;
+			}
+
+			.verification-info p {
+				margin: 8px 0;
+				color: #495057;
+			}
+
+			.status-pending {
+				color: #ffc107;
+				font-weight: 600;
+			}
+
+			.verification-actions {
+				margin-top: 20px;
+			}
+
+			.verification-actions .auth-btn {
+				margin: 0 5px;
+				width: auto;
+				display: inline-block;
 			}
 
 
@@ -2128,10 +2188,10 @@ foreach( $params as $param ) {
 						</div>
 						
 					
-						 <form id="loginForm" class="auth-form active" onsubmit="return false;">
+						 						<form id="loginForm" class="auth-form active" onsubmit="return false;">
 							<div class="form-group">
-								<label for="username">Username</label>
-								<input type="text" id="username" name="username" placeholder="Enter username" required>
+								<label for="email">Email</label>
+								<input type="email" id="email" name="email" placeholder="Enter your email" required>
 							</div>
 							<div class="form-group">
 								<label for="password">Password</label>
@@ -2161,7 +2221,23 @@ foreach( $params as $param ) {
 							</div>
 							<div class="auth-error" id="registerError" style="display: none;"></div>
 							<button type="submit" class="auth-btn primary">Register</button>
-						</form> 
+						</form>
+
+						<!-- Email Verification Message - TEMPORARILY DISABLED -->
+						<div id="emailVerificationMessage" class="auth-form" style="display: none;">
+							<div class="verification-message">
+								<h3>Check Your Email</h3>
+								<p>We've sent a verification link to your email address. Please check your inbox and click the verification link to activate your account.</p>
+								<div class="verification-info">
+									<p><strong>Email:</strong> <span id="verificationEmail"></span></p>
+									<p><strong>Status:</strong> <span class="status-pending">Pending Verification</span></p>
+								</div>
+								<div class="verification-actions">
+									<button type="button" class="auth-btn secondary" id="resendVerificationBtn">Resend Verification</button>
+									<button type="button" class="auth-btn secondary" id="backToLoginBtn">Back to Login</button>
+								</div>
+							</div>
+						</div> 
 					
 													<div class="auth-footer">
 								<div id="authFooterText">
@@ -9928,7 +10004,7 @@ foreach( $params as $param ) {
 										jQuery('#auth').text('Login');
 										
 										// Clear form fields
-										jQuery('#username').val('');
+										jQuery('#email').val('');
 										jQuery('#password').val('');
 										jQuery('#loginError').hide();
 										
@@ -10011,12 +10087,12 @@ foreach( $params as $param ) {
 				// Login form submission
 				jQuery('#loginForm').submit(function(e) {
 					e.preventDefault();
-					const username = jQuery('#username').val();
+					const email = jQuery('#email').val();
 					const password = jQuery('#password').val();
 					const errorElement = jQuery('#loginError');
 
-					if (!username || !password) {
-						errorElement.html('Please enter both username and password').show();
+					if (!email || !password) {
+						errorElement.html('Please enter both email and password').show();
 						return;
 					}
 
@@ -10027,7 +10103,7 @@ foreach( $params as $param ) {
 					// Make AJAX request to WordPress login
 					jQuery.post(ajaxurl, {
 						action: 'stone_slab_login',
-						username: username,
+						email: email,
 						password: password,
 						nonce: nonce
 					}, function(response) {
@@ -10046,7 +10122,7 @@ foreach( $params as $param ) {
 								jQuery('#auth').text('Logout');
 								
 								// Show success message
-								alert('Login successful! Welcome ' + username);
+								alert('Login successful! Welcome ' + email);
 								
 								// Close auth modal after successful login
 								jQuery('#authSection').removeClass('show').css('display', 'none');
@@ -10106,21 +10182,17 @@ foreach( $params as $param ) {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
 							
 							if (result.success) {
-								isAuthenticated = true;
+								// VERIFICATION EMAIL TEMPORARILY DISABLED - Enable calculator directly
+								// jQuery('#registerForm').hide();
+								// jQuery('#emailVerificationMessage').show();
+								// jQuery('#verificationEmail').text(jQuery('#reg_email').val());
 								
-								// Enable calculator functionality
+								// Update footer text
+								// jQuery('#authFooterText').html('Please check your email and click the verification link to activate your account.');
+								
+								// Show success message and enable calculator
+								alert('Registration successful! You can now use the calculator.');
 								enableCalculator();
-								
-								// Update UI to show logged in state
-								jQuery('#auth').css('opacity', '0.7');
-								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
-								jQuery('#auth').text('Logout');
-								
-								// Show success message
-								alert('Registration successful! Welcome ' + username);
-								
-								// Close auth modal after successful registration
-								jQuery('#authSection').removeClass('show').css('display', 'none');
 							} else {
 								errorElement.html(result.message || 'Registration failed').show();
 								errorElement.css('background', '#f8d7da');
@@ -10175,7 +10247,7 @@ foreach( $params as $param ) {
 									jQuery('#auth').text('Login');
 									
 									// Clear form fields
-									jQuery('#username').val('');
+									jQuery('#email').val('');
 									jQuery('#password').val('');
 									jQuery('#loginError').hide();
 									
@@ -10225,7 +10297,7 @@ foreach( $params as $param ) {
 									jQuery('#auth').text('Login');
 									
 									// Clear form fields
-									jQuery('#username').val('');
+									jQuery('#email').val('');
 									jQuery('#password').val('');
 									jQuery('#loginError').hide();
 									
@@ -10253,6 +10325,52 @@ foreach( $params as $param ) {
 							alert('Network error during logout');
 						});
 					}
+				});
+
+				// Email verification button handlers - TEMPORARILY DISABLED
+				jQuery('#resendVerificationBtn').click(function() {
+					var email = jQuery('#verificationEmail').text();
+					
+					// Make AJAX request to resend verification
+					jQuery.post(ajaxurl, {
+						action: 'stone_slab_resend_verification',
+						email: email,
+						nonce: nonce
+					}, function(response) {
+						try {
+							var result = typeof response === 'string' ? JSON.parse(response) : response;
+							
+							if (result.success) {
+								alert('Verification email resent successfully! Please check your inbox.');
+							} else {
+								alert('Failed to resend verification: ' + (result.message || 'Unknown error'));
+							}
+						} catch (e) {
+							alert('An error occurred while resending verification');
+						}
+					}).fail(function() {
+						alert('Network error while resending verification');
+					});
+				});
+
+				jQuery('#backToLoginBtn').click(function() {
+					// Reset to login form
+					jQuery('#emailVerificationMessage').hide();
+					jQuery('#registerForm').show();
+					jQuery('#authFooterText').html('Not a member yet? <a href="#" id="switchToRegister">Register now.</a>');
+					
+					// Clear register form
+					jQuery('#reg_username').val('');
+					jQuery('#reg_email').val('');
+					jQuery('#reg_password').val('');
+					jQuery('#reg_confirm_password').val('');
+					jQuery('#registerError').hide();
+					
+					// Switch to login tab
+					jQuery('#loginTab').addClass('active');
+					jQuery('#registerTab').removeClass('active');
+					jQuery('#loginForm').addClass('active');
+					jQuery('#registerForm').removeClass('active');
 				});
 
 				// Check authentication status on page load

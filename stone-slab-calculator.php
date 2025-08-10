@@ -23,6 +23,8 @@ define('SSC_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 
 require_once( SSC_PLUGIN_DIR . 'admin/admin.php');
+	// EMAIL VERIFICATION TEMPORARILY DISABLED
+	// require_once( SSC_PLUGIN_DIR . 'includes/email-verification.php');
 
 
 add_shortcode( 'slab_calculator', 'slab_calculator_shortcode' );
@@ -240,13 +242,13 @@ if (!function_exists('stone_slab_login_handler')) {
 		// 	wp_send_json_error(['message' => 'Security check failed']);
 		// }
 
-		$username = sanitize_text_field($_POST['username']);
+		$email = sanitize_email($_POST['email']);
 		$password = $_POST['password'];
 		$remember = isset($_POST['remember']) ? true : false;
 
-		// Check if username/email is empty
-		if (empty($username)) {
-			wp_send_json_error(['message' => 'Username or email is required']);
+		// Check if email is empty
+		if (empty($email)) {
+			wp_send_json_error(['message' => 'Email is required']);
 		}
 
 		// Check if password is empty
@@ -254,12 +256,19 @@ if (!function_exists('stone_slab_login_handler')) {
 			wp_send_json_error(['message' => 'Password is required']);
 		}
 
-		// Attempt to authenticate user
-		$user = wp_authenticate($username, $password);
-
-		if (is_wp_error($user)) {
-			wp_send_json_error(['message' => 'Invalid username/email or password']);
+		// Attempt to authenticate user by email
+		$user = get_user_by('email', $email);
+		
+		if (!$user || !wp_check_password($password, $user->user_pass)) {
+			wp_send_json_error(['message' => 'Invalid email or password']);
 		}
+
+		// EMAIL VERIFICATION TEMPORARILY DISABLED
+		// Check if email is verified
+		// $email_verified = get_user_meta($user->ID, 'email_verified', true);
+		// if (!$email_verified) {
+		// 	wp_send_json_error(['message' => 'Please verify your email address before logging in. Check your inbox for the verification link.']);
+		// }
 
 		// Log in the user
 		wp_set_current_user($user->ID);
@@ -338,13 +347,13 @@ if (!function_exists('stone_slab_register_handler')) {
 			'display_name' => $username
 		]);
 
-		// Log in the user automatically
-		wp_set_current_user($user_id);
-		wp_set_auth_cookie($user_id);
+		// EMAIL VERIFICATION TEMPORARILY DISABLED
+		// Don't log in the user automatically - they need to verify email first
+		// The email verification will be handled by the email-verification.php file
 
 		// Return success response
 		wp_send_json_success([
-			'message' => 'Account created successfully! You are now logged in.',
+			'message' => 'Account created successfully! You can now login to your account.',
 			'user' => [
 				'id' => $user_id,
 				'username' => $username,
