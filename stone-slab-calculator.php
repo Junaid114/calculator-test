@@ -93,7 +93,7 @@ function slab_calculator_shortcode(){
 			let iframePath = "<?=SSC_PLUGIN_URL?>templates/calculator.php";
 
 			// Append the data as query parameters to the iframe URL
-			iframePath += "?name=<?=$product->get_name()?>&slab_width=<?=$dimensions['width']?>&slab_heigth=<?=$dimensions['height']?>&pad_width=<?=$drawing_pad_width?>&pad_heigth=<?=$drawing_pad_height?>&edges="+edgeProfiles;
+			iframePath += "?name=<?=$product->get_name()?>&slab_width=<?=$dimensions['width']?>&slab_height=<?=$dimensions['height']?>&pad_width=<?=$drawing_pad_width?>&pad_height=<?=$drawing_pad_height?>&edges="+edgeProfiles+"&nonce=<?=wp_create_nonce('stone_slab_auth_nonce')?>&site_url=<?=urlencode(site_url())?>";
 			
 			if ( youtubeUrl != '' ) {
 				let videoId = '';
@@ -198,7 +198,8 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 		}
 
 		// Replace dynamic fields in the template
-		$customer_name = $user->display_name ?: $user->user_login;
+		$current_user = wp_get_current_user();
+		$customer_name = $current_user->display_name ?: $current_user->user_login;
 		
 		$replacements = array(
 			'{{customer_name}}' => $customer_name,
@@ -227,4 +228,204 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 	
 	add_action('wp_ajax_send_html_email', 'handle_send_html_email');
 	add_action('wp_ajax_nopriv_send_html_email', 'handle_send_html_email');
+}
+
+// Authentication System Functions
+
+// Handle user login
+if (!function_exists('stone_slab_login_handler')) {
+	function stone_slab_login_handler() {
+		// Verify nonce for security
+		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce')) {
+			wp_send_json_error(['message' => 'Security check failed']);
+		}
+
+		$username = sanitize_text_field($_POST['username']);
+		$password = $_POST['password'];
+		$remember = isset($_POST['remember']) ? true : false;
+
+		// Check if username/email is empty
+		if (empty($username)) {
+			wp_send_json_error(['message' => 'Username or email is required']);
+		}
+
+		// Check if password is empty
+		if (empty($password)) {
+			wp_send_json_error(['message' => 'Password is required']);
+		}
+
+		// Attempt to authenticate user
+		$user = wp_authenticate($username, $password);
+
+		if (is_wp_error($user)) {
+			wp_send_json_error(['message' => 'Invalid username/email or password']);
+		}
+
+		// Log in the user
+		wp_set_current_user($user->ID);
+		wp_set_auth_cookie($user->ID, $remember);
+
+		// Return success response
+		wp_send_json_success([
+			'message' => 'Login successful!',
+			'user' => [
+				'id' => $user->ID,
+				'username' => $user->user_login,
+				'display_name' => $user->display_name,
+				'email' => $user->user_email
+			]
+		]);
+	}
+	add_action('wp_ajax_stone_slab_login', 'stone_slab_login_handler');
+	add_action('wp_ajax_nopriv_stone_slab_login', 'stone_slab_login_handler');
+}
+
+// Handle user registration
+if (!function_exists('stone_slab_register_handler')) {
+	function stone_slab_register_handler() {
+		// Verify nonce for security
+		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce')) {
+			wp_send_json_error(['message' => 'Security check failed']);
+		}
+
+		$username = sanitize_text_field($_POST['username']);
+		$email = sanitize_email($_POST['email']);
+		$first_name = sanitize_text_field($_POST['first_name']);
+		$last_name = sanitize_text_field($_POST['last_name']);
+		$password = $_POST['password'];
+		$confirm_password = $_POST['confirm_password'];
+
+		// Validation
+		if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+			wp_send_json_error(['message' => 'All fields are required']);
+		}
+
+		if ($password !== $confirm_password) {
+			wp_send_json_error(['message' => 'Passwords do not match']);
+		}
+
+		if (strlen($password) < 6) {
+			wp_send_json_error(['message' => 'Password must be at least 6 characters long']);
+		}
+
+		if (!is_email($email)) {
+			wp_send_json_error(['message' => 'Invalid email address']);
+		}
+
+		// Check if username already exists
+		if (username_exists($username)) {
+			wp_send_json_error(['message' => 'Username already exists']);
+		}
+
+		// Check if email already exists
+		if (email_exists($email)) {
+			wp_send_json_error(['message' => 'Email already exists']);
+		}
+
+		// Check if user registration is allowed
+		if (!get_option('users_can_register')) {
+			wp_send_json_error(['message' => 'User registration is currently disabled']);
+		}
+
+		// Create the user
+		$user_id = wp_create_user($username, $password, $email);
+
+		if (is_wp_error($user_id)) {
+			wp_send_json_error(['message' => 'Failed to create user account']);
+		}
+
+		// Update user meta
+		wp_update_user([
+			'ID' => $user_id,
+			'first_name' => $first_name,
+			'last_name' => $last_name,
+			'display_name' => $first_name . ' ' . $last_name
+		]);
+
+		// Log in the user automatically
+		wp_set_current_user($user_id);
+		wp_set_auth_cookie($user_id);
+
+		// Return success response
+		wp_send_json_success([
+			'message' => 'Account created successfully! You are now logged in.',
+			'user' => [
+				'id' => $user_id,
+				'username' => $username,
+				'display_name' => $first_name . ' ' . $last_name,
+				'email' => $email
+			]
+		]);
+	}
+	add_action('wp_ajax_stone_slab_register', 'stone_slab_register_handler');
+	add_action('wp_ajax_nopriv_stone_slab_register', 'stone_slab_register_handler');
+}
+
+// Handle user logout
+if (!function_exists('stone_slab_logout_handler')) {
+	function stone_slab_logout_handler() {
+		// Verify nonce for security
+		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce')) {
+			wp_send_json_error(['message' => 'Security check failed']);
+		}
+
+		// Check if user is logged in
+		if (!is_user_logged_in()) {
+			wp_send_json_error(['message' => 'No user is currently logged in']);
+		}
+
+		// Log out the user
+		wp_logout();
+
+		// Return success response
+		wp_send_json_success(['message' => 'Logged out successfully']);
+	}
+	add_action('wp_ajax_stone_slab_logout', 'stone_slab_logout_handler');
+}
+
+// Check authentication status
+if (!function_exists('stone_slab_check_auth_handler')) {
+	function stone_slab_check_auth_handler() {
+		// Verify nonce for security
+		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce')) {
+			wp_send_json_error(['message' => 'Security check failed']);
+		}
+
+		if (is_user_logged_in()) {
+			$user = wp_get_current_user();
+			wp_send_json_success([
+				'authenticated' => true,
+				'user' => [
+					'id' => $user->ID,
+					'username' => $user->user_login,
+					'display_name' => $user->display_name,
+					'email' => $user->user_email
+				]
+			]);
+		} else {
+			wp_send_json_success([
+				'authenticated' => false,
+				'user' => null
+			]);
+		}
+	}
+	add_action('wp_ajax_stone_slab_check_auth', 'stone_slab_check_auth_handler');
+	add_action('wp_ajax_nopriv_stone_slab_check_auth', 'stone_slab_check_auth_handler');
+}
+
+// Enqueue authentication scripts and localize data
+if (!function_exists('stone_slab_enqueue_auth_scripts')) {
+	function stone_slab_enqueue_auth_scripts() {
+		// Only enqueue on pages where the calculator might be used
+		if (is_product() || is_shop() || is_page()) {
+			wp_enqueue_script('jquery');
+			
+			// Localize script with AJAX URL and nonce
+			wp_localize_script('jquery', 'stone_slab_ajax', [
+				'ajaxurl' => admin_url('admin-ajax.php'),
+				'nonce' => wp_create_nonce('stone_slab_auth_nonce')
+			]);
+		}
+	}
+	add_action('wp_enqueue_scripts', 'stone_slab_enqueue_auth_scripts');
 }

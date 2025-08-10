@@ -1,6 +1,6 @@
 <?php
 
-$params = ['name', 'slab_width', 'slab_heigth', 'pad_width', 'pad_heigth', 'edges'];
+$params = ['name', 'slab_width', 'slab_height', 'pad_width', 'pad_height', 'edges', 'site_url'];
 
 foreach( $params as $param ) {
 
@@ -2113,6 +2113,14 @@ foreach( $params as $param ) {
 						<!-- Register Form -->
 						<form id="registerForm" class="auth-form">
 							<div class="form-group">
+								<label for="reg_first_name">First Name</label>
+								<input type="text" id="reg_first_name" name="reg_first_name" required>
+							</div>
+							<div class="form-group">
+								<label for="reg_last_name">Last Name</label>
+								<input type="text" id="reg_last_name" name="reg_last_name" required>
+							</div>
+							<div class="form-group">
 								<label for="reg_username">Username</label>
 								<input type="text" id="reg_username" name="reg_username" required>
 							</div>
@@ -2358,10 +2366,20 @@ foreach( $params as $param ) {
 		<script src="./../assets/js/jspdf.umd.min.js"></script>
 
 		<script>
+			// Define AJAX URL for authentication
+			// Get the WordPress site URL from URL parameters to construct the correct AJAX URL
+			var urlParams = new URLSearchParams(window.location.search);
+			var siteUrl = urlParams.get('site_url') || window.location.protocol + '//' + window.location.hostname;
+			var ajaxurl = siteUrl + '/wp-admin/admin-ajax.php';
+			// Get nonce from URL parameters
+			var nonce = urlParams.get('nonce') || 'stone_slab_auth_nonce_temp';
+			
+			var stone_slab_ajax = {
+				ajaxurl: ajaxurl,
+				nonce: nonce
+			};
 
 			jQuery(document).ready(function() {
-
-																
 
 				// Convert mm to pixels (adjust this factor based on your canvas scaling)
 
@@ -2385,7 +2403,7 @@ foreach( $params as $param ) {
 
 				let canvasWidth = window.innerWidth - 30; // Start with full viewport width
 
-				let canvasHeight = convertMmToPx(<?=$_GET['pad_heigth']?>); // Keep original height
+				let canvasHeight = convertMmToPx(<?=$_GET['pad_height']?>); // Keep original height
 
 				const rulerInterval = 100; // 50mm intervals
 
@@ -2423,7 +2441,7 @@ foreach( $params as $param ) {
 
 				const boxWidth = convertMmToPx(<?=$_GET['slab_width']?>);
 
-				const boxHeight = convertMmToPx(<?=$_GET['slab_heigth']?>);
+				const boxHeight = convertMmToPx(<?=$_GET['slab_height']?>);
 
 
 
@@ -2450,6 +2468,7 @@ foreach( $params as $param ) {
 // 					allowTouchScrolling: true,
 
 				});
+
 
 				
 
@@ -4501,6 +4520,12 @@ foreach( $params as $param ) {
 				// Add initial detection box to the canvas
 
 				addBox(0, 0); // Center the box
+
+				
+
+				// Force a render to ensure everything is displayed
+
+				canvas.renderAll();
 
 
 
@@ -9913,7 +9938,7 @@ foreach( $params as $param ) {
 					errorElement.hide();
 
 					// Make AJAX request to WordPress login
-					jQuery.post(ajaxurl, {
+					jQuery.post(stone_slab_ajax.ajaxurl, {
 						action: 'stone_slab_login',
 						username: username,
 						password: password,
@@ -9932,7 +9957,7 @@ foreach( $params as $param ) {
 								alert('Login successful! Welcome ' + username);
 								
 								// Update UI to show logged in state
-								jQuery('#auth').attr('src', './../assets/images/check.png');
+								jQuery('#auth').attr('src', './../assets/images/info.png');
 								jQuery('#auth').attr('alt', 'Logged In');
 							} else {
 								errorElement.html(result.message || 'Login failed').show();
@@ -9952,13 +9977,15 @@ foreach( $params as $param ) {
 				// Register form submission
 				jQuery('#registerForm').submit(function(e) {
 					e.preventDefault();
+					const first_name = jQuery('#reg_first_name').val();
+					const last_name = jQuery('#reg_last_name').val();
 					const username = jQuery('#reg_username').val();
 					const email = jQuery('#reg_email').val();
 					const password = jQuery('#reg_password').val();
 					const confirmPassword = jQuery('#reg_confirm_password').val();
 					const errorElement = jQuery('#registerError');
 
-					if (!username || !email || !password || !confirmPassword) {
+					if (!first_name || !last_name || !username || !email || !password || !confirmPassword) {
 						errorElement.html('All fields are required').show();
 						return;
 					}
@@ -9978,8 +10005,10 @@ foreach( $params as $param ) {
 					errorElement.hide();
 
 					// Make AJAX request to WordPress registration
-					jQuery.post(ajaxurl, {
+					jQuery.post(stone_slab_ajax.ajaxurl, {
 						action: 'stone_slab_register',
+						first_name: first_name,
+						last_name: last_name,
 						username: username,
 						email: email,
 						password: password,
@@ -10042,11 +10071,11 @@ foreach( $params as $param ) {
 				// Logout button functionality
 				jQuery('#logoutBtn').click(function() {
 					if (confirm('Are you sure you want to logout?')) {
-						// Make AJAX request to logout
-						jQuery.post(ajaxurl, {
-							action: 'stone_slab_logout',
-							nonce: stone_slab_ajax.nonce
-						}, function(response) {
+											// Make AJAX request to logout
+					jQuery.post(stone_slab_ajax.ajaxurl, {
+						action: 'stone_slab_logout',
+						nonce: stone_slab_ajax.nonce
+					}, function(response) {
 							try {
 								var result = typeof response === 'string' ? JSON.parse(response) : response;
 								
@@ -10084,7 +10113,7 @@ foreach( $params as $param ) {
 
 				// Check authentication status on page load
 				function checkAuthStatus() {
-					jQuery.post(ajaxurl, {
+					jQuery.post(stone_slab_ajax.ajaxurl, {
 						action: 'stone_slab_check_auth',
 						nonce: stone_slab_ajax.nonce
 					}, function(response) {
@@ -10095,7 +10124,7 @@ foreach( $params as $param ) {
 								isAuthenticated = true;
 								jQuery('#auth').css('opacity', '0.7');
 								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
-								jQuery('#auth').attr('src', './../assets/images/check.png');
+								jQuery('#auth').attr('src', './../assets/images/info.png');
 								jQuery('#auth').attr('alt', 'Logged In');
 							}
 						} catch (e) {
