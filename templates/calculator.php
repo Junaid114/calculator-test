@@ -10185,6 +10185,9 @@ foreach( $params as $param ) {
 					formData.append('pdf', pdfBlob, 'canvas.pdf'); // Name the file
 					formData.append('slab_name', slabName);
 					formData.append('total_cutting_mm', Math.round(totalCuttingMM));
+					formData.append('only_cut_mm', Math.round(onlyCutAreaMM));
+					formData.append('mitred_cut_mm', Math.round(mitredEdgeAreaMM));
+					formData.append('slab_cost', '$' + slabCost.toLocaleString());
 					formData.append('drawing_link', window.location.href); // Current page URL as drawing link
 
 

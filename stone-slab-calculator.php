@@ -184,6 +184,9 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 		// Get additional data from POST
 		$slab_name = sanitize_text_field($_POST['slab_name'] ?? 'Custom Slab');
 		$total_cutting_mm = sanitize_text_field($_POST['total_cutting_mm'] ?? '0');
+		$only_cut_mm = sanitize_text_field($_POST['only_cut_mm'] ?? '0');
+		$mitred_cut_mm = sanitize_text_field($_POST['mitred_cut_mm'] ?? '0');
+		$slab_cost = sanitize_text_field($_POST['slab_cost'] ?? '$0');
 		$drawing_link = esc_url($_POST['drawing_link'] ?? '');
 
 		// Get the email template from admin settings
@@ -207,6 +210,9 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 			'{{customer_name}}' => $customer_name,
 			'{{slab_name}}' => $slab_name,
 			'{{total_cutting_mm}}' => number_format($total_cutting_mm),
+			'{{only_cut_mm}}' => number_format($only_cut_mm),
+			'{{mitred_cut_mm}}' => number_format($mitred_cut_mm),
+			'{{slab_cost}}' => $slab_cost,
 			'{{drawing_link}}' => $drawing_link
 		);
 		

@@ -294,16 +294,16 @@ if (!function_exists('slab_calculator_email_template_callback')) {
             <td style="padding: 8px; border: 1px solid #ddd;">{{slab_name}}</td>
         </tr>
         <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Total Cutting MM:</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{total_cutting_mm}} mm</td>
+        </tr>
+        <tr style="background-color: #f8f9fa;">
             <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Standard Cutting Area:</td>
             <td style="padding: 8px; border: 1px solid #ddd;">{{only_cut_mm}} mm</td>
         </tr>
-        <tr style="background-color: #f8f9fa;">
+        <tr>
             <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Mitred Cutting Area:</td>
             <td style="padding: 8px; border: 1px solid #ddd;">{{mitred_cut_mm}} mm</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Total Cutting Area:</td>
-            <td style="padding: 8px; border: 1px solid #ddd;">{{total_cutting_mm}} mm</td>
         </tr>
     </table>
 
@@ -354,7 +354,7 @@ if (!function_exists('slab_calculator_email_template_callback')) {
         echo '<ul style="margin-left: 20px;">';
         echo '<li><code>{{customer_name}}</code> - Customer name (extracted from user account or input)</li>';
         echo '<li><code>{{slab_name}}</code> - Slab name (from the calculator drawing)</li>';
-        echo '<li><code>{{total_cutting_mm}}</code> - Total cutting area in millimeters</li>';
+        echo '<li><code>{{total_cutting_mm}}</code> - Total cutting MM (sum of all cutting areas)</li>';
         echo '<li><code>{{only_cut_mm}}</code> - Standard cutting area in millimeters</li>';
         echo '<li><code>{{mitred_cut_mm}}</code> - Mitred cutting area in millimeters</li>';
         echo '<li><code>{{drawing_link}}</code> - Link to view the drawing online</li>';
