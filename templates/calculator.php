@@ -834,7 +834,7 @@ foreach( $params as $param ) {
 			.auth-header {
 				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 				color: white;
-				padding: 25px;
+				padding: 20px;
 				text-align: center;
 				border-radius: 15px 15px 0 0;
 			}
@@ -2095,11 +2095,16 @@ foreach( $params as $param ) {
 						 <form id="loginForm" class="auth-form active" onsubmit="return false;">
 							<div class="form-group">
 								<label for="username">Username</label>
-								<input type="text" id="username" name="username" required>
+								<input type="text" id="username" name="username" placeholder="Enter username" required>
 							</div>
 							<div class="form-group">
 								<label for="password">Password</label>
-								<input type="password" id="password" name="password" required>
+								<input type="password" id="password" name="password" placeholder="Enter password" required>
+							</div>
+							<div class="form-group" style="font-size: 12px; color: #666; background: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #e9ecef;">
+								<strong>Test Credentials:</strong><br>
+								Username: <code>admin</code><br>
+								Password: <code>admin123</code>
 							</div>
 							<div class="auth-error" id="loginError" style="display: none;"></div>
 							<button type="submit" class="auth-btn primary">Login</button>
@@ -2127,11 +2132,16 @@ foreach( $params as $param ) {
 							<button type="submit" class="auth-btn primary">Register</button>
 						</form> 
 					
-						<div class="auth-footer">
-							<div id="authFooterText">
-								Not a member yet? <a href="#" id="switchToRegister">Register now.</a>
+													<div class="auth-footer">
+								<div id="authFooterText">
+									Not a member yet? <a href="#" id="switchToRegister">Register now.</a>
+								</div>
+								<div id="logoutSection" style="display: none; margin-top: 15px; text-align: center;">
+									<button type="button" id="logoutBtn" class="auth-btn" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">
+										Logout
+									</button>
+								</div>
 							</div>
-						</div>
 					</div>
 				</div> 
 
@@ -9813,13 +9823,50 @@ foreach( $params as $param ) {
 				// Auth Modal Functionality
 				let isAuthenticated = false;
 
-				// Show auth modal
+				// Show auth modal or logout
 				jQuery('#toolbar .btns #auth').click(function() {
-					console.log('Auth button clicked!');
-					jQuery('#authSection').addClass('show');
-					console.log('Auth modal should be visible now');
-					// Force show for debugging
-					jQuery('#authSection').css('display', 'flex');
+					if (isAuthenticated) {
+						// User is logged in, show logout confirmation
+						if (confirm('Are you sure you want to logout?')) {
+							// Make AJAX request to logout
+							jQuery.post(ajaxurl, {
+								action: 'stone_slab_logout',
+								nonce: stone_slab_ajax.nonce
+							}, function(response) {
+								try {
+									var result = typeof response === 'string' ? JSON.parse(response) : response;
+									
+									if (result.success) {
+										isAuthenticated = false;
+										jQuery('#auth').css('opacity', '1');
+										jQuery('#auth').attr('title', 'Click to login');
+										jQuery('#auth').attr('src', './../assets/images/info.png');
+										jQuery('#auth').attr('alt', 'Auth');
+										
+										// Clear form fields
+										jQuery('#username').val('');
+										jQuery('#password').val('');
+										jQuery('#loginError').hide();
+										
+										alert('Logged out successfully!');
+									} else {
+										alert('Logout failed: ' + (result.message || 'Unknown error'));
+									}
+								} catch (e) {
+									alert('An error occurred during logout');
+								}
+							}).fail(function() {
+								alert('Network error during logout');
+							});
+						}
+					} else {
+						// User is not logged in, show login modal
+						console.log('Auth button clicked!');
+						jQuery('#authSection').addClass('show');
+						console.log('Auth modal should be visible now');
+						// Force show for debugging
+						jQuery('#authSection').css('display', 'flex');
+					}
 				});
 
 				// Tab switching functionality
@@ -9856,16 +9903,50 @@ foreach( $params as $param ) {
 					const password = jQuery('#password').val();
 					const errorElement = jQuery('#loginError');
 
-					if (username === 'admin' && password === 'password') {
-						isAuthenticated = true;
-						jQuery('#authSection').removeClass('show');
-						jQuery('#auth').css('opacity', '0.7');
-						jQuery('#auth').attr('title', 'Authenticated - Click to logout');
-						// Show success message or redirect
-						alert('Login successful! Welcome ' + username);
-					} else {
-						errorElement.html('Invalid username or password. Try: admin/password').show();
+					if (!username || !password) {
+						errorElement.html('Please enter both username and password').show();
+						return;
 					}
+
+					// Show loading state
+					jQuery('#loginForm .auth-btn').text('Logging in...').prop('disabled', true);
+					errorElement.hide();
+
+					// Make AJAX request to WordPress login
+					jQuery.post(ajaxurl, {
+						action: 'stone_slab_login',
+						username: username,
+						password: password,
+						nonce: stone_slab_ajax.nonce
+					}, function(response) {
+						try {
+							var result = typeof response === 'string' ? JSON.parse(response) : response;
+							
+							if (result.success) {
+								isAuthenticated = true;
+								jQuery('#authSection').removeClass('show');
+								jQuery('#auth').css('opacity', '0.7');
+								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
+								
+								// Show success message
+								alert('Login successful! Welcome ' + username);
+								
+								// Update UI to show logged in state
+								jQuery('#auth').attr('src', './../assets/images/check.png');
+								jQuery('#auth').attr('alt', 'Logged In');
+							} else {
+								errorElement.html(result.message || 'Login failed').show();
+							}
+						} catch (e) {
+							errorElement.html('An error occurred. Please try again.').show();
+						}
+						
+						// Reset button state
+						jQuery('#loginForm .auth-btn').text('Login').prop('disabled', false);
+					}).fail(function() {
+						errorElement.html('Network error. Please try again.').show();
+						jQuery('#loginForm .auth-btn').text('Login').prop('disabled', false);
+					});
 				});
 
 				// Register form submission
@@ -9877,6 +9958,11 @@ foreach( $params as $param ) {
 					const confirmPassword = jQuery('#reg_confirm_password').val();
 					const errorElement = jQuery('#registerError');
 
+					if (!username || !email || !password || !confirmPassword) {
+						errorElement.html('All fields are required').show();
+						return;
+					}
+
 					if (password !== confirmPassword) {
 						errorElement.html('Passwords do not match').show();
 						return;
@@ -9887,20 +9973,58 @@ foreach( $params as $param ) {
 						return;
 					}
 
-					// Simulate successful registration
-					errorElement.html('Registration successful! You can now login.').show();
-					errorElement.css('background', '#d4edda');
-					errorElement.css('color', '#155724');
-					errorElement.css('border-color', '#c3e6cb');
-					
-					// Clear form
-					jQuery('#registerForm')[0].reset();
-					
-					// Switch to login tab after 2 seconds
-					setTimeout(function() {
-						jQuery('#loginTab').click();
-						errorElement.hide();
-					}, 2000);
+					// Show loading state
+					jQuery('#registerForm .auth-btn').text('Registering...').prop('disabled', true);
+					errorElement.hide();
+
+					// Make AJAX request to WordPress registration
+					jQuery.post(ajaxurl, {
+						action: 'stone_slab_register',
+						username: username,
+						email: email,
+						password: password,
+						confirm_password: confirmPassword,
+						nonce: stone_slab_ajax.nonce
+					}, function(response) {
+						try {
+							var result = typeof response === 'string' ? JSON.parse(response) : response;
+							
+							if (result.success) {
+								errorElement.html('Registration successful! You can now login.').show();
+								errorElement.css('background', '#d4edda');
+								errorElement.css('color', '#155724');
+								errorElement.css('border-color', '#c3e6cb');
+								
+								// Clear form
+								jQuery('#registerForm')[0].reset();
+								
+								// Switch to login tab after 2 seconds
+								setTimeout(function() {
+									jQuery('#loginTab').click();
+									errorElement.hide();
+								}, 2000);
+							} else {
+								errorElement.html(result.message || 'Registration failed').show();
+								errorElement.css('background', '#f8d7da');
+								errorElement.css('color', '#721c24');
+								errorElement.css('border-color', '#f5c6cb');
+							}
+						} catch (e) {
+							errorElement.html('An error occurred. Please try again.').show();
+							errorElement.css('background', '#f8d7da');
+							errorElement.css('color', '#721c24');
+							errorElement.css('border-color', '#f5c6cb');
+						}
+						
+						// Reset button state
+						jQuery('#registerForm .auth-btn').text('Register').prop('disabled', false);
+					}).fail(function() {
+						errorElement.html('Network error. Please try again.').show();
+						errorElement.css('background', '#f8d7da');
+						errorElement.css('color', '#721c24');
+						errorElement.css('border-color', '#f5c6cb');
+						jQuery('#registerForm .auth-btn').text('Register').prop('disabled', false);
+					});
 				});
 
 				// Close modal when clicking outside
@@ -9914,6 +10038,76 @@ foreach( $params as $param ) {
 				jQuery('#closeAuthModal').click(function() {
 					jQuery('#authSection').removeClass('show');
 				});
+
+				// Logout button functionality
+				jQuery('#logoutBtn').click(function() {
+					if (confirm('Are you sure you want to logout?')) {
+						// Make AJAX request to logout
+						jQuery.post(ajaxurl, {
+							action: 'stone_slab_logout',
+							nonce: stone_slab_ajax.nonce
+						}, function(response) {
+							try {
+								var result = typeof response === 'string' ? JSON.parse(response) : response;
+								
+								if (result.success) {
+									isAuthenticated = false;
+									jQuery('#auth').css('opacity', '1');
+									jQuery('#auth').attr('title', 'Click to login');
+									jQuery('#auth').attr('src', './../assets/images/info.png');
+									jQuery('#auth').attr('alt', 'Auth');
+									
+									// Clear form fields
+									jQuery('#username').val('');
+									jQuery('#password').val('');
+									jQuery('#loginError').hide();
+									
+									// Hide logout section and show register link
+									jQuery('#logoutSection').hide();
+									jQuery('#authFooterText').show();
+									
+									// Close modal
+									jQuery('#authSection').removeClass('show');
+									
+									alert('Logged out successfully!');
+								} else {
+									alert('Logout failed: ' + (result.message || 'Unknown error'));
+								}
+							} catch (e) {
+								alert('An error occurred during logout');
+							}
+						}).fail(function() {
+							alert('Network error during logout');
+						});
+					}
+				});
+
+				// Check authentication status on page load
+				function checkAuthStatus() {
+					jQuery.post(ajaxurl, {
+						action: 'stone_slab_check_auth',
+						nonce: stone_slab_ajax.nonce
+					}, function(response) {
+						try {
+							var result = typeof response === 'string' ? JSON.parse(response) : response;
+							
+							if (result.success && result.authenticated) {
+								isAuthenticated = true;
+								jQuery('#auth').css('opacity', '0.7');
+								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
+								jQuery('#auth').attr('src', './../assets/images/check.png');
+								jQuery('#auth').attr('alt', 'Logged In');
+							}
+						} catch (e) {
+							console.log('Error checking auth status:', e);
+						}
+					}).fail(function() {
+						console.log('Failed to check auth status');
+					});
+				}
+
+				// Check auth status when page loads
+				checkAuthStatus();
 
 				// Test buttons functionality
 				jQuery('#testAuthBtn').click(function() {
