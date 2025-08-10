@@ -50,11 +50,17 @@ foreach( $params as $param ) {
 
 			.heading {
 
-				background: #f8f9fa;
+				background: white;
 
-				border: 1px solid #dee2e6;
+				border: 1px solid #e0e0e0;
 
-				padding: 8px 15px;
+				padding: 25px;
+
+				border-radius: 10px;
+
+				box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+
+				margin-bottom: 30px;
 
 			}
 
@@ -64,11 +70,7 @@ foreach( $params as $param ) {
 
 				display: flex;
 
-				justify-content: space-between;
-
-				align-items: center;
-
-				gap: 20px;
+				flex-direction: column;
 
 			}
 
@@ -76,7 +78,7 @@ foreach( $params as $param ) {
 
 			.title-section {
 
-				flex: 0 0 auto;
+				width: 100%;
 
 			}
 
@@ -84,11 +86,15 @@ foreach( $params as $param ) {
 
 			.calculator-title {
 
-				font-weight: 400;
+				font-weight: 700;
 
-				font-size: 14px;
+				font-size: 28px;
 
-				color: #333;
+				color: #000;
+
+				margin-bottom: 20px;
+
+				display: block;
 
 			}
 
@@ -98,15 +104,21 @@ foreach( $params as $param ) {
 
 				display: flex;
 
-				gap: 0;
+				gap: 30px;
 
-				align-items: stretch;
+				align-items: flex-start;
 
-				border: 1px solid #ccc;
+				border: 1px solid #ddd;
 
-				border-radius: 3px;
+				border-radius: 8px;
 
 				background: white;
+
+				padding: 25px;
+
+				box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+				justify-content: center;
 
 			}
 
@@ -118,11 +130,48 @@ foreach( $params as $param ) {
 
 				flex-direction: column;
 
-				min-width: 120px;
+				min-width: 220px;
 
-				text-align: center;
+				text-align: left;
 
-				border-right: 1px solid #ccc;
+				border: 1px solid #e0e0e0;
+
+				border-radius: 8px;
+
+				background: #f8f9fa;
+
+				padding: 15px;
+
+				box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+
+				transition: all 0.3s ease;
+
+				position: relative;
+
+			}
+			
+			.stat-column:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+			}
+
+			
+
+			.stat-column.left-column {
+
+				background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+
+				border-color: #b3d9ff;
+
+			}
+
+			
+
+			.stat-column.right-column {
+
+				background: linear-gradient(135deg, #fff8f0 0%, #fff2e6 100%);
+
+				border-color: #ffd9b3;
 
 			}
 
@@ -130,7 +179,7 @@ foreach( $params as $param ) {
 
 			.stat-column:last-child {
 
-				border-right: none;
+				border-right: 1px solid #e0e0e0;
 
 			}
 
@@ -138,34 +187,86 @@ foreach( $params as $param ) {
 
 			.stat-label {
 
-				font-size: 11px;
+				font-size: 12px;
 
-				color: #666;
+				color: #333;
 
-				padding: 4px 8px;
+				padding: 8px 0 4px 0;
 
-				background: #f8f9fa;
+				background: transparent;
 
-				border-bottom: 1px solid #ccc;
+				border-bottom: none;
 
-				font-weight: 500;
+				font-weight: 600;
 
+				margin-bottom: 2px;
+
+			}
+			
+			.stat-column .stat-label:first-child {
+				font-size: 14px;
+				font-weight: 700;
+				color: #000;
+				padding: 0 0 8px 0;
+				margin-bottom: 8px;
+				border-bottom: 2px solid rgba(0,0,0,0.1);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+			
+			.stat-column.left-column .stat-label:first-child {
+				color: #0066cc;
+				border-bottom-color: #b3d9ff;
+			}
+			
+			.stat-column.right-column .stat-label:first-child {
+				color: #cc6600;
+				border-bottom-color: #ffd9b3;
 			}
 
 			
 
 			.stat-value {
 
-				font-size: 12px;
+				font-size: 14px;
 
-				color: #333;
+				color: #000;
 
-				padding: 4px 8px;
+				padding: 0 0 8px 0;
 
-				font-weight: 600;
+				font-weight: 700;
 
-				line-height: 1.2;
+				line-height: 1.3;
 
+				margin-bottom: 8px;
+
+			}
+			
+			.stat-column .stat-value:first-child {
+				font-size: 16px;
+				font-weight: 800;
+				color: #000;
+				margin-bottom: 12px;
+			}
+			
+			/* Add subtle animations for better UX */
+			.stat-column {
+				animation: fadeInUp 0.6s ease-out;
+			}
+			
+			.stat-column:nth-child(2) {
+				animation-delay: 0.1s;
+			}
+			
+			@keyframes fadeInUp {
+				from {
+					opacity: 0;
+					transform: translateY(20px);
+				}
+				to {
+					opacity: 1;
+					transform: translateY(0);
+				}
 			}
 
 			
@@ -176,26 +277,48 @@ foreach( $params as $param ) {
 
 				.stat-column {
 
-					min-width: 100px;
+					min-width: 180px;
 
 				}
 
 				.stat-label {
 
-					font-size: 10px;
+					font-size: 11px;
 
-					padding: 3px 6px;
+					padding: 6px 0 3px 0;
 
 				}
 
 				.stat-value {
 
-					font-size: 11px;
+					font-size: 13px;
 
-					padding: 3px 6px;
+					padding: 0 0 6px 0;
 
 				}
 
+			}
+			
+			@media (max-width: 768px) {
+				.stats-table {
+					flex-direction: column;
+					gap: 20px;
+					align-items: center;
+				}
+				
+				.stat-column {
+					min-width: 280px;
+					width: 100%;
+					max-width: 320px;
+				}
+				
+				.calculator-title {
+					font-size: 24px;
+				}
+				
+				.heading {
+					padding: 20px;
+				}
 			}
 
 			
@@ -1037,6 +1160,11 @@ foreach( $params as $param ) {
 			.calculator-container {
 				position: relative;
 				overflow: visible;
+				background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+				/* padding: 20px; */
+				border-radius: 10px;
+				min-height: 100vh;
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 			}
 
 			/* Email verification message styles */
@@ -1975,14 +2103,50 @@ foreach( $params as $param ) {
 
 		<div class="calculator-container">
 
-							<div class="heading">
+							<div style="font-family: Arial, sans-serif; padding: 10px; background-color: #f0f0f0;">
 
 					<div class="header-row">
 
-						<div class="title-section">
+						<div  style="
+        display: flex;
+        justify-content: space-between;
+        color: #333;
+    ">
 
-							<span class="calculator-title">"<?=$_GET['name']?>" Slab & Cutting Area MM Calculator</span>
+							 <div style="
+            font-weight: bold;
+            line-height: 12px;
+			 font-size:18px;
+			 padding-top:18px;
+        ">
+            "<?=$_GET['name']?>" Slab & Cutting Area  MM Calculator
+        </div>
 
+							 <div style="
+            text-align: center;
+            flex: 1;
+            line-height: 12px;
+			font-size:14px;
+			padding-left:30px;
+        ">
+            <div><strong>Total Slab:</strong> <span id="slabUsageDisplay" style="color: #0066cc;">1 Slab/s</span></div>
+            <div><strong>Only Cut Area:</strong> <span class="only_cut_mm" style="color: #666;">0</span> mm <span style="color: #888; font-size: 8px;">(50.00 p/mm)</span></div>
+            <div><strong>Mitred Cut Area:</strong> <span class="mitred_edge_mm" style="color: #666;">0</span> mm <span style="color: #888; font-size: 8px;">(50.16 p/mm)</span></div>
+            <div><strong>Total Cutting:</strong> <span id="totalCuttingDisplay" style="color: #cc6600;">0 mm</span></div>
+        </div>
+        
+        <!-- Right: Cost Stats -->
+        <div style="
+            text-align: right;
+            flex: 1;
+			 font-size:14px;
+            line-height: 12px;
+        ">
+            <div><strong>Slab Cost:</strong> <span id="slabCostDisplay" style="color: #0066cc; font-weight: bold;">$1000</span></div>
+            <div><strong>Production Cost:</strong> <span id="productionCostDisplay" style="color: #666;">$0</span></div>
+            <div><strong>Installation Cost:</strong> <span id="installationCostDisplay" style="color: #666;">$0</span></div>
+            <div><strong>Total Project Cost:</strong> <span id="totalProjectCostDisplay" style="color: #cc0000; font-weight: bold;">$1000</span></div>
+        </div>
 						</div>
 
 
@@ -2484,6 +2648,56 @@ foreach( $params as $param ) {
 				console.log('Auth button element:', jQuery('#auth'));
 				console.log('Auth button in toolbar .btns:', jQuery('#toolbar .btns #auth'));
 				console.log('Toolbar disabled state:', jQuery('#toolbar').hasClass('disabled'));
+
+				// Test button for Slab Usage Feature
+				jQuery('#testSlabUsage').click(function() {
+					console.log('Test Slab Usage button clicked!');
+					
+					// Test the calculateSlabUsage function
+					if (typeof calculateSlabUsage === 'function') {
+						console.log('calculateSlabUsage function exists');
+						calculateSlabUsage();
+					} else {
+						console.log('calculateSlabUsage function NOT found');
+					}
+					
+					// Test the updateSlabVisualization function
+					if (typeof updateSlabUsage === 'function') {
+						console.log('updateSlabVisualization function exists');
+						updateSlabVisualization();
+					} else {
+						console.log('updateSlabVisualization function NOT found');
+					}
+					
+					// Show current totalMM value
+					console.log('Current totalMM:', totalMM);
+					
+					// Show current slab dimensions
+					console.log('Slab width (mm):', <?=$_GET['slab_width']?>);
+					console.log('Slab height (mm):', <?=$_GET['slab_height']?>);
+					
+					alert('Check browser console for test results!');
+				});
+				
+				// Initialize display values
+				function initializeDisplayValues() {
+					// Set initial values
+					jQuery('#slabUsageDisplay').html('1 Slab/s');
+					jQuery('#totalCuttingDisplay').html('0 mm');
+					jQuery('#slabCostDisplay').html('$1000');
+					jQuery('#productionCostDisplay').html('$0.00');
+					jQuery('#installationCostDisplay').html('$0.00');
+					jQuery('#totalProjectCostDisplay').html('$1000.00');
+					
+					// Update the cutting area displays with proper formatting
+					jQuery('.only_cut_mm').html('0');
+					jQuery('.mitred_edge_mm').html('0');
+					
+					console.log('Display values initialized');
+				}
+				
+				// Call initialization function
+				initializeDisplayValues();
 
 				// Initialize toolbar logout button as hidden
 				jQuery('#toolbarLogoutBtn').hide();
@@ -3825,6 +4039,12 @@ foreach( $params as $param ) {
 
 					}
 
+					// Update slab usage calculation and visualization
+
+					calculateSlabUsage();
+
+					updateSlabVisualization();
+
 				}
 
 				
@@ -4642,6 +4862,10 @@ foreach( $params as $param ) {
 				canvas.on('object:modified', function(e) {
 
 					cleanupEmptyInfoBoxes();
+					
+					// Update slab usage calculation and visualization when objects are moved
+					calculateSlabUsage();
+					updateSlabVisualization();
 
 				});
 
@@ -4658,6 +4882,12 @@ foreach( $params as $param ) {
 				// Force a render to ensure everything is displayed
 
 				canvas.renderAll();
+				
+				// Initialize slab usage calculation and visualization
+				setTimeout(() => {
+					calculateSlabUsage();
+					updateSlabVisualization();
+				}, 500);
 
 
 
@@ -6841,6 +7071,12 @@ foreach( $params as $param ) {
 
 						updateScrollbars();
 
+						// Update slab usage calculation and visualization
+
+						calculateSlabUsage();
+
+						updateSlabVisualization();
+
 					}, 100);
 
 
@@ -7000,6 +7236,10 @@ foreach( $params as $param ) {
 							canvas.remove(activeObject);
 
 							canvas.renderAll(); // Re-render the canvas
+							
+							// Update slab usage calculation and visualization
+							calculateSlabUsage();
+							updateSlabVisualization();
 
 							jQuery(this).attr('data-state', 'save');
 
@@ -8153,6 +8393,10 @@ foreach( $params as $param ) {
 						// Add the group to the canvas
 
 						canvas.add(finalGroup);
+					
+					// Update slab usage calculation and visualization
+					calculateSlabUsage();
+					updateSlabVisualization();
 
 						canvas.renderAll();
 
@@ -8869,9 +9113,10 @@ foreach( $params as $param ) {
 
 						cleanupEmptyInfoBoxes();
 
-						getTotalMM();
+											getTotalMM();
+					updateTotalMMDisplay();
 
-						saveState();
+					saveState();
 
 						
 
@@ -8926,6 +9171,10 @@ foreach( $params as $param ) {
 							checkShapeBounds(clonedObj);
 							expandCanvasIfNeeded();
 							updateScrollbars();
+							
+							// Update slab usage calculation and visualization
+							calculateSlabUsage();
+							updateSlabVisualization();
 						});
 					}
 				});
@@ -9875,6 +10124,7 @@ foreach( $params as $param ) {
 
 					// Get current total cutting MM
 					getTotalMM(); // Ensure we have the latest calculations
+					updateTotalMMDisplay();
 					const totalCuttingMM = onlyCutAreaMM + mitredEdgeAreaMM;
 					
 					// Get slab name from URL parameters
@@ -10421,6 +10671,158 @@ foreach( $params as $param ) {
 						jQuery('#authSection').addClass('show').css('display', 'flex');
 					}
 				}, 1000); // 1 second delay to ensure page is fully loaded
+
+				// Function to calculate actual slab usage based on shape coverage
+				function calculateSlabUsage() {
+					// Get total area in mm²
+					const totalAreaMM = totalMM;
+					
+					// Calculate single slab area in mm²
+					const slabAreaMM = <?=$_GET['slab_width']?> * <?=$_GET['slab_height']?>;
+					
+					// Calculate how many slabs are actually needed
+					const slabsNeeded = totalAreaMM / slabAreaMM;
+					
+					// Round to 1 decimal place for display
+					const slabsNeededRounded = Math.round(slabsNeeded * 10) / 10;
+					
+					// Update the slab usage display - format as "1 Slab/s" for single slab
+					if (slabsNeededRounded <= 1) {
+						jQuery('#slabUsageDisplay').html('1 Slab/s');
+					} else {
+						jQuery('#slabUsageDisplay').html(slabsNeededRounded + ' Slab/s');
+					}
+					
+					// Calculate total cutting area
+					const totalCutting = onlyCutAreaMM + mitredEdgeAreaMM;
+					jQuery('#totalCuttingDisplay').html(Math.round(totalCutting) + ' mm');
+					
+					// Calculate costs
+					calculateCosts();
+					
+					console.log('Slab Usage Updated:', {
+						totalAreaMM: totalAreaMM,
+						slabAreaMM: slabAreaMM,
+						slabsNeeded: slabsNeeded,
+						slabsNeededRounded: slabsNeededRounded,
+						totalCutting: totalCutting
+					});
+					
+					return slabsNeededRounded;
+				}
+				
+				// Function to calculate costs based on cutting areas
+				function calculateCosts() {
+					// Base slab cost (from URL parameter or default)
+					const slabCost = 1000; // Default $1000, can be made dynamic
+					
+					// Production cost based on cutting areas (50.00 p/mm for only cut, 50.16 p/mm for mitred)
+					const onlyCutCost = (onlyCutAreaMM * 50.00) / 1000; // Convert to dollars
+					const mitredCutCost = (mitredEdgeAreaMM * 50.16) / 1000; // Convert to dollars
+					const productionCost = onlyCutCost + mitredCutCost;
+					
+					// Installation cost (can be made configurable)
+					const installationCost = 0; // Default $0, can be made dynamic
+					
+					// Total project cost
+					const totalProjectCost = slabCost + productionCost + installationCost;
+					
+					// Update cost displays
+					jQuery('#slabCostDisplay').html('$' + slabCost.toLocaleString());
+					jQuery('#productionCostDisplay').html('$' + productionCost.toFixed(2));
+					jQuery('#installationCostDisplay').html('$' + installationCost.toFixed(2));
+					jQuery('#totalProjectCostDisplay').html('$' + totalProjectCost.toFixed(2));
+					
+					console.log('Costs Calculated:', {
+						slabCost: slabCost,
+						onlyCutCost: onlyCutCost,
+						mitredCutCost: mitredCutCost,
+						productionCost: productionCost,
+						installationCost: installationCost,
+						totalProjectCost: totalProjectCost
+					});
+				}
+
+				// Function to update Total MM² display
+				function updateTotalMMDisplay() {
+					jQuery('#totalMMDisplay').html(totalMM.toLocaleString() + ' mm²');
+					console.log('Total MM Updated:', totalMM);
+				}
+
+				// Function to visually shade used slabs based on shape placement
+				function updateSlabVisualization() {
+					// Get all shapes on canvas
+					const shapes = canvas.getObjects().filter(obj => obj.mainShape);
+					
+					// For each green box, check if it contains shapes and shade accordingly
+					infoBoxes.forEach((box, index) => {
+						let hasShapes = false;
+						let shapeArea = 0;
+						
+						// Check if this box contains any shapes
+						shapes.forEach(shape => {
+							if (checkIntersection(
+								{
+									left: shape.left,
+									top: shape.top,
+									right: shape.left + shape.width,
+									bottom: shape.top + shape.height
+								},
+								{
+									left: box.left,
+									top: box.top,
+									right: box.left + boxWidth,
+									bottom: box.top + boxHeight
+								}
+							)) {
+								hasShapes = true;
+								// Calculate area of shape within this box
+								shapeArea += shape.width * shape.height;
+							}
+						});
+						
+						// Update box appearance based on usage
+						if (hasShapes) {
+							// Calculate usage percentage
+							const usagePercentage = Math.min(shapeArea / (boxWidth * boxHeight), 1);
+							
+							// Create gradient fill based on usage
+							if (usagePercentage > 0.8) {
+								// High usage - darker green
+								box.set('fill', 'rgba(65, 186, 126, 0.3)');
+								box.set('stroke', '#2d8a5a');
+								box.set('strokeWidth', 3);
+							} else if (usagePercentage > 0.5) {
+								// Medium usage - medium green
+								box.set('fill', 'rgba(65, 186, 126, 0.2)');
+								box.set('stroke', '#41ba7e');
+								box.set('strokeWidth', 2);
+							} else if (usagePercentage > 0.2) {
+								// Low usage - light green
+								box.set('fill', 'rgba(65, 186, 126, 0.1)');
+								box.set('stroke', '#41ba7e');
+								box.set('strokeWidth', 2);
+							} else {
+								// Very low usage - very light green
+								box.set('fill', 'rgba(65, 186, 126, 0.05)');
+								box.set('stroke', '#41ba7e');
+								box.set('strokeWidth', 1);
+							}
+						} else {
+							// No shapes - transparent with light border
+							box.set('fill', 'transparent');
+							box.set('stroke', '#41ba7e');
+							box.set('strokeWidth', 1);
+						}
+					});
+					
+					canvas.renderAll();
+				}
+
+				// Function to update slab usage visualization (alias for updateSlabVisualization)
+				function updateSlabUsage() {
+					updateSlabVisualization();
+				}
 
 			});
 
