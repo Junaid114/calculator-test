@@ -2103,6 +2103,118 @@ foreach( $params as $param ) {
 			#toolbar .tools #rotate {
 				display: none;
 			}
+			
+			/* Saved Drawings Grid Styles */
+			.drawings-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+				gap: 20px;
+				margin: 20px 0;
+			}
+			
+			.drawing-item {
+				border: 1px solid #ddd;
+				border-radius: 8px;
+				padding: 15px;
+				background: #fff;
+				box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+			}
+			
+			.drawing-item h4 {
+				margin: 0 0 10px 0;
+				color: #333;
+				border-bottom: 2px solid #007cba;
+				padding-bottom: 5px;
+			}
+			
+			.drawing-item p {
+				margin: 5px 0;
+				color: #666;
+			}
+			
+			.drawing-actions {
+				margin-top: 15px;
+				padding-top: 15px;
+				border-top: 1px solid #eee;
+			}
+			
+			.drawing-actions .button {
+				margin-right: 10px;
+				margin-bottom: 5px;
+				padding: 8px 12px;
+				text-decoration: none;
+				border-radius: 4px;
+				font-size: 12px;
+			}
+			
+			.button-delete {
+				background-color: #dc3545;
+				color: white;
+				border: none;
+				cursor: pointer;
+			}
+			
+			.button-delete:hover {
+				background-color: #c82333;
+			}
+			
+			/* Drawings Grid Styling */
+			.drawings-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+				gap: 20px;
+				margin-top: 20px;
+			}
+			
+			.drawing-item {
+				background: white;
+				border: 1px solid #e0e0e0;
+				border-radius: 8px;
+				padding: 20px;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+			}
+			
+			.drawing-item h4 {
+				margin: 0 0 15px 0;
+				color: #333;
+				font-size: 18px;
+			}
+			
+			.drawing-item p {
+				margin: 8px 0;
+				color: #666;
+				font-size: 14px;
+			}
+			
+			.drawing-item p strong {
+				color: #333;
+			}
+			
+			.drawing-actions {
+				margin-top: 20px;
+				display: flex;
+				gap: 10px;
+				flex-wrap: wrap;
+			}
+			
+			.drawing-actions .button {
+				padding: 8px 16px;
+				font-size: 14px;
+				text-decoration: none;
+				border-radius: 4px;
+				border: none;
+				cursor: pointer;
+				transition: background-color 0.3s;
+			}
+			
+			.drawing-actions .button:not(.button-delete) {
+				background-color: #007cba;
+				color: white;
+			}
+			
+			.drawing-actions .button:not(.button-delete):hover {
+				background-color: #005a87;
+			}
 		</style>
 
 	</head>
@@ -2324,6 +2436,8 @@ foreach( $params as $param ) {
 							<li data-type="PDF">Download as PDF</li>
 
 							<li data-type="EMAIL">Send Email (Registered Users Only)</li>
+<li data-type="SAVE">Save Drawing</li>
+<li data-type="VIEW">View Saved Drawings</li>
 						</ul>
 
 					</div>
@@ -2628,7 +2742,36 @@ foreach( $params as $param ) {
 
 		</div>
 
+		<!-- Save Drawing Modal -->
+		<div id="saveDrawingModal" class="modal">
+			<div class="modal-content">
+				<h2 class="modal-title">Save Drawing</h2>
+				<form id="save-drawing-form">
+					<div class="form-group">
+						<label for="drawing-name">Drawing Name:</label>
+						<input type="text" id="drawing-name" name="drawing-name" required placeholder="Enter a name for this drawing">
+					</div>
+					<div class="form-group">
+						<label for="drawing-notes">Notes (Optional):</label>
+						<textarea id="drawing-notes" name="drawing-notes" placeholder="Add any notes about this drawing"></textarea>
+					</div>
+					<div class="error-message" style="color:red;margin: 10px 0;display:none;"></div>
+					<button type="submit">Save Drawing</button>
+				</form>
+				<button type="button" id="cancel-save">Close</button>
+			</div>
+		</div>
 
+		<!-- View Saved Drawings Modal -->
+		<div id="viewDrawingsModal" class="modal">
+			<div class="modal-content">
+				<h2 class="modal-title">Saved Drawings</h2>
+				<div id="saved-drawings-list">
+					<p>Loading your saved drawings...</p>
+				</div>
+				<button type="button" id="cancel-view">Close</button>
+			</div>
+		</div>
 
 		<script src="./../assets/js/jquery-3.6.0.min.js"></script>
 
@@ -2642,8 +2785,8 @@ foreach( $params as $param ) {
 			var urlParams = new URLSearchParams(window.location.search);
 			var siteUrl = urlParams.get('site_url') || window.location.protocol + '//' + window.location.hostname;
 			var ajaxurl = siteUrl + '/wp-admin/admin-ajax.php';
-			// Nonce verification temporarily disabled for testing
-			var nonce = 'disabled_for_testing';
+			// Get nonce from URL parameters
+			var nonce = urlParams.get('nonce') || 'disabled_for_testing';
 			
 			var stone_slab_ajax = {
 				ajaxurl: ajaxurl,
@@ -10003,6 +10146,47 @@ foreach( $params as $param ) {
 
 						
 
+					} else if (downloadType === 'SAVE') {
+						// Open save drawing modal
+						jQuery('#saveDrawingModal').css('display', 'flex');
+						
+						// Maintain fullscreen when modal opens
+						if (isFullscreen) {
+							setTimeout(function() {
+								var calculatorContainer = jQuery('.calculator-container');
+								if (!calculatorContainer.hasClass('fullscreen-mode')) {
+									calculatorContainer.addClass('fullscreen-mode');
+								}
+							}, 50);
+						}
+						
+						// Clean up blob
+						setTimeout(() => {
+							URL.revokeObjectURL(blobURL);
+						}, 100);
+						
+					} else if (downloadType === 'VIEW') {
+						// Open view drawings modal
+						jQuery('#viewDrawingsModal').css('display', 'flex');
+						
+						// Load saved drawings
+						loadSavedDrawings();
+						
+						// Maintain fullscreen when modal opens
+						if (isFullscreen) {
+							setTimeout(function() {
+								var calculatorContainer = jQuery('.calculator-container');
+								if (!calculatorContainer.hasClass('fullscreen-mode')) {
+									calculatorContainer.addClass('fullscreen-mode');
+								}
+							}, 50);
+						}
+						
+						// Clean up blob
+						setTimeout(() => {
+							URL.revokeObjectURL(blobURL);
+						}, 100);
+						
 					} else if (downloadType === 'PDF') {
 
 						const { jsPDF } = window.jspdf;
@@ -10279,6 +10463,7 @@ foreach( $params as $param ) {
 
 				// Auth Modal Functionality
 				let isAuthenticated = false;
+				let currentUserId = null; // Store the current user ID
 
 				// Show auth modal or logout
 				jQuery('#auth').click(function(e) {
@@ -10299,6 +10484,7 @@ foreach( $params as $param ) {
 									
 									if (result.success) {
 										isAuthenticated = false;
+										currentUserId = null; // Clear user ID on logout
 										jQuery('#auth').css('opacity', '1');
 										jQuery('#auth').attr('title', 'Click to login');
 										jQuery('#auth').text('Login');
@@ -10413,6 +10599,12 @@ foreach( $params as $param ) {
 							if (result.success) {
 								console.log('Login successful, setting isAuthenticated to true');
 								isAuthenticated = true;
+								
+								// Store the user ID for future AJAX requests
+								if (result.user && result.user.id) {
+									currentUserId = result.user.id;
+									console.log('Stored user ID:', currentUserId);
+								}
 								
 								// Enable calculator functionality
 								console.log('Calling enableCalculator()');
@@ -10881,6 +11073,241 @@ foreach( $params as $param ) {
 				function updateSlabUsage() {
 					updateSlabVisualization();
 				}
+				
+				// Function to save drawing
+				function saveDrawing() {
+					const drawingName = jQuery('#drawing-name').val();
+					const drawingNotes = jQuery('#drawing-notes').val();
+					
+					if (!drawingName) {
+						alert('Please enter a drawing name');
+						return;
+					}
+					
+					// Generate PDF
+					const { jsPDF } = window.jspdf;
+					const pdf = new jsPDF({
+						orientation: 'l',
+						unit: 'mm',
+						format: 'a4'
+					});
+					
+					// Get canvas data
+					const canvasData = canvas.toDataURL({
+						format: 'jpeg',
+						quality: 1.0,
+						multiplier: 2
+					});
+					
+					// Add image to PDF
+					pdf.addImage(canvasData, 'JPEG', 10, 10, 190, 140);
+					
+					// Add drawing details
+					pdf.setFontSize(12);
+					pdf.text('Drawing Name: ' + drawingName, 10, 160);
+					pdf.text('Total Cutting MM: ' + totalCuttingMM, 10, 170);
+					pdf.text('Standard Cut MM: ' + onlyCutAreaMM, 10, 180);
+					pdf.text('Mitred Cut MM: ' + mitredEdgeAreaMM, 10, 190);
+					pdf.text('Slab Cost: $' + slabCost, 10, 200);
+					
+					if (drawingNotes) {
+						pdf.text('Notes: ' + drawingNotes, 10, 210);
+					}
+					
+					// Convert to blob and create file
+					const pdfBlob = pdf.output('blob');
+					const pdfFile = new File([pdfBlob], 'drawing_' + Date.now() + '.pdf', { type: 'application/pdf' });
+					
+					// Create FormData
+					const formData = new FormData();
+					formData.append('action', 'ssc_save_drawing');
+					formData.append('nonce', nonce);
+					
+					// Add user ID if available
+					if (currentUserId) {
+						formData.append('user_id', currentUserId);
+					}
+					formData.append('drawing_name', drawingName);
+					formData.append('drawing_notes', drawingNotes);
+					formData.append('total_cutting_mm', totalCuttingMM);
+					formData.append('only_cut_mm', onlyCutAreaMM);
+					formData.append('mitred_cut_mm', mitredEdgeAreaMM);
+					formData.append('slab_cost', '$' + slabCost);
+					formData.append('pdf_file', pdfFile);
+					formData.append('drawing_data', JSON.stringify({
+						name: drawingName,
+						notes: drawingNotes,
+						total_cutting_mm: totalCuttingMM,
+						only_cut_mm: onlyCutAreaMM,
+						mitred_cut_mm: mitredEdgeAreaMM,
+						slab_cost: slabCost,
+						created_at: new Date().toISOString()
+					}));
+					formData.append('drawing_link', window.location.href);
+					
+					// Send AJAX request
+					jQuery.ajax({
+						url: ajaxurl,
+						type: 'POST',
+						data: formData,
+						processData: false,
+						contentType: false,
+						success: function(response) {
+							if (response.success) {
+								alert('Drawing and PDF saved successfully!');
+								jQuery('#saveDrawingModal').css('display', 'none');
+								jQuery('#drawing-name').val('');
+								jQuery('#drawing-notes').val('');
+								
+								// Provide view and download options
+								if (response.data && response.data.pdf_filename) {
+									let viewLink = ajaxurl + '?action=ssc_view_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + nonce;
+									let downloadLink = ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + nonce;
+									
+									// Add user ID if available
+									if (currentUserId) {
+										viewLink += '&user_id=' + currentUserId;
+										downloadLink += '&user_id=' + currentUserId;
+									}
+									
+									const choice = confirm('Drawing saved! Click OK to view the PDF in browser, or Cancel to download it.');
+									if (choice) {
+										// View in browser
+										window.open(viewLink, '_blank');
+									} else {
+										// Download
+										window.open(downloadLink, '_blank');
+									}
+								}
+							} else {
+								alert('Failed to save drawing: ' + response.data);
+							}
+						},
+						error: function() {
+							alert('Error saving drawing');
+						}
+					});
+				}
+				
+				// Function to load saved drawings
+				function loadSavedDrawings() {
+					const requestData = {
+						action: 'ssc_get_drawings',
+						nonce: nonce
+					};
+					
+					// Add user ID if available
+					if (currentUserId) {
+						requestData.user_id = currentUserId;
+					}
+					
+					jQuery.ajax({
+						url: ajaxurl,
+						type: 'POST',
+						data: requestData,
+						success: function(response) {
+							if (response.success) {
+								displaySavedDrawings(response.data);
+							} else {
+								jQuery('#saved-drawings-list').html('<p>Error loading drawings: ' + response.data + '</p>');
+							}
+						},
+						error: function() {
+							jQuery('#saved-drawings-list').html('<p>Error loading drawings</p>');
+						}
+					});
+				}
+				
+				// Function to display saved drawings
+				function displaySavedDrawings(drawings) {
+					if (drawings.length === 0) {
+						jQuery('#saved-drawings-list').html('<p>No saved drawings found.</p>');
+						return;
+					}
+					
+					let html = '<div class="drawings-grid">';
+					drawings.forEach(function(drawing) {
+						html += '<div class="drawing-item">';
+						html += '<h4>' + (drawing.drawing_name || 'Untitled Drawing') + '</h4>';
+						if (drawing.drawing_notes) {
+							html += '<p><strong>Notes:</strong> ' + drawing.drawing_notes + '</p>';
+						}
+						html += '<p><strong>Total Cutting:</strong> ' + drawing.total_cutting_mm + ' mm</p>';
+						html += '<p><strong>Standard Cut:</strong> ' + drawing.only_cut_mm + ' mm</p>';
+						html += '<p><strong>Mitred Cut:</strong> ' + drawing.mitred_cut_mm + ' mm</p>';
+						html += '<p><strong>Slab Cost:</strong> ' + drawing.slab_cost + '</p>';
+						html += '<p><strong>Created:</strong> ' + new Date(drawing.created_at).toLocaleDateString() + '</p>';
+						html += '<div class="drawing-actions">';
+						let viewUrl = ajaxurl + '?action=ssc_view_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + nonce;
+						let downloadUrl = ajaxurl + '?action=ssc_download_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + nonce;
+						
+						// Add user ID if available
+						if (currentUserId) {
+							viewUrl += '&user_id=' + currentUserId;
+							downloadUrl += '&user_id=' + currentUserId;
+						}
+						
+						html += '<a href="' + viewUrl + '" target="_blank" class="button">View PDF</a> ';
+						html += '<a href="' + downloadUrl + '" class="button">Download PDF</a> ';
+						html += '<button onclick="deleteDrawing(' + drawing.id + ')" class="button button-delete">Delete</button>';
+						html += '</div>';
+						html += '</div>';
+					});
+					html += '</div>';
+					
+					jQuery('#saved-drawings-list').html(html);
+				}
+				
+				// Function to delete drawing
+				function deleteDrawing(drawingId) {
+					if (confirm('Are you sure you want to delete this drawing?')) {
+						const requestData = {
+							action: 'ssc_delete_drawing',
+							nonce: nonce,
+							drawing_id: drawingId
+						};
+						
+						// Add user ID if available
+						if (currentUserId) {
+							requestData.user_id = currentUserId;
+						}
+						
+						jQuery.ajax({
+							url: ajaxurl,
+							type: 'POST',
+							data: requestData,
+							success: function(response) {
+								if (response.success) {
+									alert('Drawing deleted successfully!');
+									loadSavedDrawings(); // Reload the list
+								} else {
+									alert('Failed to delete drawing: ' + response.data);
+								}
+							},
+							error: function() {
+								alert('Error deleting drawing');
+							}
+						});
+					}
+				}
+				
+				// Add event handlers for new modals
+				jQuery(document).ready(function() {
+					// Save drawing form submit
+					jQuery('#save-drawing-form').on('submit', function(e) {
+						e.preventDefault();
+						saveDrawing();
+					});
+					
+					// Modal close buttons
+					jQuery('#cancel-save').click(function() {
+						jQuery('#saveDrawingModal').css('display', 'none');
+					});
+					
+					jQuery('#cancel-view').click(function() {
+						jQuery('#viewDrawingsModal').css('display', 'none');
+					});
+				});
 
 			});
 

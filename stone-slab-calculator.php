@@ -27,6 +27,443 @@ require_once( SSC_PLUGIN_DIR . 'admin/admin.php');
 	// require_once( SSC_PLUGIN_DIR . 'includes/email-verification.php');
 
 
+// Activation hook to create database tables
+register_activation_hook(__FILE__, 'ssc_activate_plugin');
+
+function ssc_activate_plugin() {
+    global $wpdb;
+    
+    $charset_collate = $wpdb->get_charset_collate();
+    
+    // Table for storing drawing data and PDFs
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    
+    $sql = "CREATE TABLE $table_name (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) NOT NULL,
+        drawing_name varchar(255) NOT NULL,
+        drawing_notes text,
+        total_cutting_mm decimal(10,2) NOT NULL,
+        only_cut_mm decimal(10,2) NOT NULL,
+        mitred_cut_mm decimal(10,2) NOT NULL,
+        slab_cost varchar(50) NOT NULL,
+        drawing_data longtext NOT NULL,
+        pdf_file_path varchar(500) NOT NULL,
+        drawing_link varchar(500) NOT NULL,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY user_id (user_id),
+        KEY created_at (created_at)
+    ) $charset_collate;";
+    
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+// Function to save drawing to database
+function ssc_save_drawing($data) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    
+    // Get user ID from data or current user
+    $user_id = isset($data['user_id']) ? intval($data['user_id']) : get_current_user_id();
+    if (!$user_id) {
+        return false;
+    }
+    
+    // Prepare data for insertion
+    $insert_data = array(
+        'user_id' => $user_id,
+        'drawing_name' => sanitize_text_field($data['drawing_name']),
+        'drawing_notes' => sanitize_textarea_field($data['drawing_notes']),
+        'total_cutting_mm' => floatval($data['total_cutting_mm']),
+        'only_cut_mm' => floatval($data['only_cut_mm']),
+        'mitred_cut_mm' => floatval($data['mitred_cut_mm']),
+        'slab_cost' => sanitize_text_field($data['slab_cost']),
+        'drawing_data' => wp_kses_post($data['drawing_data']),
+        'pdf_file_path' => sanitize_text_field($data['pdf_file_path']),
+        'drawing_link' => esc_url_raw($data['drawing_link']),
+        'created_at' => current_time('mysql')
+    );
+    
+    $result = $wpdb->insert($table_name, $insert_data);
+    
+    if ($result === false) {
+        return false;
+    }
+    
+    return $wpdb->insert_id;
+}
+
+// Function to get drawings for a user
+function ssc_get_user_drawings($user_id = null) {
+    global $wpdb;
+    
+    if (!$user_id) {
+        $user_id = get_current_user_id();
+    }
+    
+    if (!$user_id) {
+        return array();
+    }
+    
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    
+    $drawings = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT * FROM $table_name WHERE user_id = %d ORDER BY created_at DESC",
+            $user_id
+        ),
+        ARRAY_A
+    );
+    
+    return $drawings;
+}
+
+// Function to get a specific drawing
+function ssc_get_drawing($drawing_id) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    
+    $drawing = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d",
+            $drawing_id
+        ),
+        ARRAY_A
+    );
+    
+    return $drawing;
+}
+
+// Function to delete a drawing
+function ssc_delete_drawing($drawing_id) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    
+    // Get the drawing first to delete the PDF file
+    $drawing = ssc_get_drawing($drawing_id);
+    if ($drawing && !empty($drawing['pdf_file_path'])) {
+        $pdf_path = SSC_PLUGIN_DIR . 'uploads/' . basename($drawing['pdf_file_path']);
+        if (file_exists($pdf_path)) {
+            unlink($pdf_path);
+        }
+    }
+    
+    $result = $wpdb->delete(
+        $table_name,
+        array('id' => $drawing_id),
+        array('%d')
+    );
+    
+    return $result !== false;
+}
+
+// AJAX handler for saving drawing
+add_action('wp_ajax_ssc_save_drawing', 'ssc_ajax_save_drawing');
+add_action('wp_ajax_nopriv_ssc_save_drawing', 'ssc_ajax_save_drawing');
+
+function ssc_ajax_save_drawing() {
+    // Check nonce for security
+    if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+        wp_die('Security check failed');
+    }
+    
+    // Check if user is logged in or if user_id is provided
+    $user_id = null;
+    if (is_user_logged_in()) {
+        $user_id = get_current_user_id();
+    } elseif (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
+        $user_id = intval($_POST['user_id']);
+        // Verify the user exists
+        if (!get_user_by('ID', $user_id)) {
+            wp_die('Invalid user ID');
+        }
+    } else {
+        wp_die('User not logged in and no user ID provided');
+    }
+    
+    // Check if PDF file was uploaded
+    if (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
+        $error_message = 'PDF file upload failed';
+        if (isset($_FILES['pdf_file']['error'])) {
+            switch ($_FILES['pdf_file']['error']) {
+                case UPLOAD_ERR_INI_SIZE:
+                    $error_message = 'PDF file exceeds maximum allowed size';
+                    break;
+                case UPLOAD_ERR_FORM_SIZE:
+                    $error_message = 'PDF file exceeds form maximum size';
+                    break;
+                case UPLOAD_ERR_PARTIAL:
+                    $error_message = 'PDF file was only partially uploaded';
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    $error_message = 'No PDF file was uploaded';
+                    break;
+                case UPLOAD_ERR_NO_TMP_DIR:
+                    $error_message = 'Missing temporary folder';
+                    break;
+                case UPLOAD_ERR_CANT_WRITE:
+                    $error_message = 'Failed to write PDF file to disk';
+                    break;
+                case UPLOAD_ERR_EXTENSION:
+                    $error_message = 'PDF file upload stopped by extension';
+                    break;
+            }
+        }
+        wp_send_json_error($error_message);
+    }
+    
+    $pdf_file = $_FILES['pdf_file'];
+    
+    // Check file size (limit to 10MB)
+    $max_size = 10 * 1024 * 1024; // 10MB in bytes
+    if ($pdf_file['size'] > $max_size) {
+        wp_send_json_error('PDF file size exceeds 10MB limit');
+    }
+    
+    // Validate file type
+    $allowed_types = array('application/pdf');
+    $file_type = mime_content_type($pdf_file['tmp_name']);
+    
+    if (!in_array($file_type, $allowed_types)) {
+        wp_send_json_error('Invalid file type. Only PDF files are allowed.');
+    }
+    
+    // Additional security: check file extension
+    $file_extension = strtolower(pathinfo($pdf_file['name'], PATHINFO_EXTENSION));
+    if ($file_extension !== 'pdf') {
+        wp_send_json_error('Invalid file extension. Only .pdf files are allowed.');
+    }
+    
+    // Create uploads directory if it doesn't exist
+    $upload_dir = SSC_PLUGIN_DIR . 'uploads/';
+    if (!file_exists($upload_dir)) {
+        wp_mkdir_p($upload_dir);
+    }
+    
+    // Generate unique filename
+    $filename = 'drawing_' . time() . '_' . wp_generate_password(8, false) . '.pdf';
+    $file_path = $upload_dir . $filename;
+    
+    // Move uploaded file to uploads directory
+    if (!move_uploaded_file($pdf_file['tmp_name'], $file_path)) {
+        wp_send_json_error('Failed to save PDF file to server');
+    }
+    
+    // Set file permissions
+    chmod($file_path, 0644);
+    
+    // Add PDF file path to POST data
+    $_POST['pdf_file_path'] = $filename;
+    
+    // Add user_id to POST data
+    $_POST['user_id'] = $user_id;
+    
+    // Save drawing to database
+    $drawing_id = ssc_save_drawing($_POST);
+    
+    if ($drawing_id) {
+        wp_send_json_success(array(
+            'drawing_id' => $drawing_id,
+            'pdf_filename' => $filename,
+            'message' => 'Drawing and PDF saved successfully'
+        ));
+    } else {
+        // If database save failed, delete the uploaded file
+        if (file_exists($file_path)) {
+            unlink($file_path);
+        }
+        wp_send_json_error('Failed to save drawing to database');
+    }
+}
+
+// AJAX handler for getting user drawings
+add_action('wp_ajax_ssc_get_drawings', 'ssc_ajax_get_drawings');
+add_action('wp_ajax_nopriv_ssc_get_drawings', 'ssc_ajax_get_drawings');
+
+function ssc_ajax_get_drawings() {
+    // Check nonce for security
+    if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+        wp_die('Security check failed');
+    }
+    
+    // Check if user is logged in or if user_id is provided
+    $user_id = null;
+    if (is_user_logged_in()) {
+        $user_id = get_current_user_id();
+    } elseif (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
+        $user_id = intval($_POST['user_id']);
+        // Verify the user exists
+        if (!get_user_by('ID', $user_id)) {
+            wp_die('Invalid user ID');
+        }
+    } else {
+        wp_die('User not logged in and no user ID provided');
+    }
+    
+    $drawings = ssc_get_user_drawings($user_id);
+    
+    if ($drawings !== false) {
+        wp_send_json_success($drawings);
+    } else {
+        wp_send_json_error('Failed to get drawings');
+    }
+}
+
+// AJAX handler for deleting drawing
+add_action('wp_ajax_ssc_delete_drawing', 'ssc_ajax_delete_drawing');
+add_action('wp_ajax_nopriv_ssc_delete_drawing', 'ssc_ajax_delete_drawing');
+
+// AJAX handler for downloading PDF
+add_action('wp_ajax_ssc_download_pdf', 'ssc_ajax_download_pdf');
+add_action('wp_ajax_nopriv_ssc_download_pdf', 'ssc_ajax_download_pdf');
+
+// AJAX handler for viewing PDF
+add_action('wp_ajax_ssc_view_pdf', 'ssc_ajax_view_pdf');
+add_action('wp_ajax_nopriv_ssc_view_pdf', 'ssc_ajax_view_pdf');
+
+function ssc_ajax_delete_drawing() {
+    // Check nonce for security
+    if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+        wp_die('Security check failed');
+    }
+    
+    // Check if user is logged in or if user_id is provided
+    $user_id = null;
+    if (is_user_logged_in()) {
+        $user_id = get_current_user_id();
+    } elseif (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
+        $user_id = intval($_POST['user_id']);
+        // Verify the user exists
+        if (!get_user_by('ID', $user_id)) {
+            wp_die('Invalid user ID');
+        }
+    } else {
+        wp_die('User not logged in and no user ID provided');
+    }
+    
+    $drawing_id = intval($_POST['drawing_id']);
+    
+    // Verify the drawing belongs to the user
+    $drawing = ssc_get_drawing($drawing_id);
+    if (!$drawing || $drawing['user_id'] != $user_id) {
+        wp_die('Access denied - drawing does not belong to user');
+    }
+    
+    if (ssc_delete_drawing($drawing_id)) {
+        wp_send_json_success('Drawing deleted successfully');
+    } else {
+        wp_send_json_error('Failed to delete drawing');
+    }
+}
+
+// Function to handle PDF download
+function ssc_ajax_download_pdf() {
+    // Check nonce for security
+    if (!wp_verify_nonce($_GET['nonce'], 'ssc_save_drawing_nonce')) {
+        wp_die('Security check failed');
+    }
+    
+    // Check if user is logged in or if user_id is provided
+    $user_id = null;
+    if (is_user_logged_in()) {
+        $user_id = get_current_user_id();
+    } elseif (isset($_GET['user_id']) && !empty($_GET['user_id'])) {
+        $user_id = intval($_GET['user_id']);
+        // Verify the user exists
+        if (!get_user_by('ID', $user_id)) {
+            wp_die('Invalid user ID');
+        }
+    } else {
+        wp_die('User not logged in and no user ID provided');
+    }
+    
+    $pdf_filename = sanitize_text_field($_GET['pdf']);
+    
+    if (empty($pdf_filename)) {
+        wp_die('PDF filename not provided');
+    }
+    
+    // Get drawing to verify user access
+    $drawing = ssc_get_drawing_by_pdf($pdf_filename);
+    if (!$drawing || $drawing['user_id'] != $user_id) {
+        wp_die('Access denied');
+    }
+    
+    $file_path = SSC_PLUGIN_DIR . 'uploads/' . $pdf_filename;
+    
+    if (!file_exists($file_path)) {
+        wp_die('PDF file not found');
+    }
+    
+    // Set headers for download
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $pdf_filename . '"');
+    header('Content-Length: ' . filesize($file_path));
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    
+    // Output file content
+    readfile($file_path);
+    exit;
+}
+
+// Function to handle PDF viewing
+function ssc_ajax_view_pdf() {
+    // Check nonce for security
+    if (!wp_verify_nonce($_GET['nonce'], 'ssc_save_drawing_nonce')) {
+        wp_die('Security check failed');
+    }
+    
+    // Check if user is logged in or if user_id is provided
+    $user_id = null;
+    if (is_user_logged_in()) {
+        $user_id = get_current_user_id();
+    } elseif (isset($_GET['user_id']) && !empty($_GET['user_id'])) {
+        $user_id = intval($_GET['user_id']);
+        // Verify the user exists
+        if (!get_user_by('ID', $user_id)) {
+            wp_die('Invalid user ID');
+        }
+    } else {
+        wp_die('User not logged in and no user ID provided');
+    }
+    
+    $pdf_filename = sanitize_text_field($_GET['pdf']);
+    
+    if (empty($pdf_filename)) {
+        wp_die('PDF filename not provided');
+    }
+    
+    // Get drawing to verify user access
+    $drawing = ssc_get_drawing_by_pdf($pdf_filename);
+    if (!$drawing || $drawing['user_id'] != $user_id) {
+        wp_die('Access denied');
+    }
+    
+    $file_path = SSC_PLUGIN_DIR . 'uploads/' . $pdf_filename;
+    
+    if (!file_exists($file_path)) {
+        wp_die('PDF file not found');
+    }
+    
+    // Set headers for viewing in browser
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: inline; filename="' . $pdf_filename . '"');
+    header('Content-Length: ' . filesize($file_path));
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    
+    // Output file content
+    readfile($file_path);
+    exit;
+}
+
+
 add_shortcode( 'slab_calculator', 'slab_calculator_shortcode' );
 function slab_calculator_shortcode(){
 	if ( class_exists('WooCommerce') && is_product() && slab_calculator_check_user_access() ) {
@@ -95,7 +532,7 @@ function slab_calculator_shortcode(){
 			let iframePath = "<?=SSC_PLUGIN_URL?>templates/calculator.php";
 
 			// Append the data as query parameters to the iframe URL
-			iframePath += "?name=<?=$product->get_name()?>&slab_width=<?=$dimensions['width']?>&slab_height=<?=$dimensions['height']?>&pad_width=<?=$drawing_pad_width?>&pad_height=<?=$drawing_pad_height?>&edges="+edgeProfiles+"&site_url=<?=urlencode(site_url())?>";
+			iframePath += "?name=<?=$product->get_name()?>&slab_width=<?=$dimensions['width']?>&slab_height=<?=$dimensions['height']?>&pad_width=<?=$drawing_pad_width?>&pad_height=<?=$drawing_pad_height?>&edges="+edgeProfiles+"&site_url=<?=urlencode(site_url())?>&nonce=<?=wp_create_nonce('ssc_save_drawing_nonce')?>";
 			
 			if ( youtubeUrl != '' ) {
 				let videoId = '';
@@ -173,8 +610,16 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 
 		// Handle the uploaded PDF file
 		$pdf_file = $_FILES['pdf'];
-		$upload_dir = wp_upload_dir();
-		$target_path = $upload_dir['path'] . '/' . $pdf_file['name'];
+		
+		// Create uploads directory if it doesn't exist
+		$uploads_dir = SSC_PLUGIN_DIR . 'uploads/';
+		if (!file_exists($uploads_dir)) {
+			wp_mkdir_p($uploads_dir);
+		}
+		
+		// Generate unique filename for PDF
+		$pdf_filename = 'drawing_' . time() . '_' . sanitize_file_name($pdf_file['name']);
+		$target_path = $uploads_dir . $pdf_filename;
 
 		// Move the uploaded file
 		if (!move_uploaded_file($pdf_file['tmp_name'], $target_path)) {
@@ -225,17 +670,97 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 		$sent = wp_mail($email, 'Project Proposal and Quote', $html_content, $headers, [$target_path]);
 
 		if ($sent) {
-			wp_send_json_success(['message' => 'Email sent successfully!']);
+			// Save drawing data to database
+			$drawing_data = array(
+				'customer_name' => $customer_name,
+				'slab_name' => $slab_name,
+				'total_cutting_mm' => $total_cutting_mm,
+				'only_cut_mm' => $only_cut_mm,
+				'mitred_cut_mm' => $mitred_cut_mm,
+				'slab_cost' => $slab_cost,
+				'drawing_data' => json_encode(array(
+					'slab_name' => $slab_name,
+					'total_cutting_mm' => $total_cutting_mm,
+					'only_cut_mm' => $only_cut_mm,
+					'mitred_cut_mm' => $mitred_cut_mm,
+					'slab_cost' => $slab_cost,
+					'created_at' => current_time('mysql')
+				)),
+				'pdf_file_path' => $pdf_filename,
+				'drawing_link' => $drawing_link
+			);
+			
+			$drawing_id = ssc_save_drawing($drawing_data);
+			
+			if ($drawing_id) {
+				wp_send_json_success([
+					'message' => 'Email sent successfully and drawing saved!',
+					'drawing_id' => $drawing_id
+				]);
+			} else {
+				wp_send_json_success([
+					'message' => 'Email sent successfully but failed to save drawing.',
+					'drawing_id' => null
+				]);
+			}
 		} else {
 			wp_send_json_error(['message' => 'Failed to send email.']);
+			// Cleanup PDF if email failed
+			@unlink($target_path);
 		}
-		
-		// Cleanup
-		@unlink($target_path);
 	}
 	
 	add_action('wp_ajax_send_html_email', 'handle_send_html_email');
 	add_action('wp_ajax_nopriv_send_html_email', 'handle_send_html_email');
+	
+	// Add rewrite rule for serving PDF files
+	add_action('init', 'ssc_add_rewrite_rules');
+	add_action('template_redirect', 'ssc_serve_pdf');
+	
+	function ssc_add_rewrite_rules() {
+		add_rewrite_rule(
+			'ssc-pdf/([^/]+)/?$',
+			'index.php?ssc_pdf=$matches[1]',
+			'top'
+		);
+	}
+	
+	function ssc_serve_pdf() {
+		if (get_query_var('ssc_pdf')) {
+			$filename = get_query_var('ssc_pdf');
+			$file_path = SSC_PLUGIN_DIR . 'uploads/' . $filename;
+			
+			if (file_exists($file_path) && is_user_logged_in()) {
+				// Check if user has access to this file
+				$drawing = ssc_get_drawing_by_pdf($filename);
+				if ($drawing && $drawing['user_id'] == get_current_user_id()) {
+					header('Content-Type: application/pdf');
+					header('Content-Disposition: inline; filename="' . $filename . '"');
+					header('Content-Length: ' . filesize($file_path));
+					readfile($file_path);
+					exit;
+				}
+			}
+			
+			wp_die('File not found or access denied');
+		}
+	}
+	
+	function ssc_get_drawing_by_pdf($pdf_filename) {
+		global $wpdb;
+		
+		$table_name = $wpdb->prefix . 'ssc_drawings';
+		
+		$drawing = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM $table_name WHERE pdf_file_path = %s",
+				$pdf_filename
+			),
+			ARRAY_A
+		);
+		
+		return $drawing;
+	}
 }
 
 // Authentication System Functions

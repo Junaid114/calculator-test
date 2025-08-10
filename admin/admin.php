@@ -13,6 +13,20 @@ if (!function_exists('slab_calculator_settings_page')) {
         );
     }
     add_action('admin_menu', 'slab_calculator_settings_page');
+
+// Add submenu for saved drawings
+add_action('admin_menu', 'ssc_add_saved_drawings_menu');
+
+function ssc_add_saved_drawings_menu() {
+	add_submenu_page(
+		'slab_calculator_settings',
+		'Saved Drawings',
+		'Saved Drawings',
+		'manage_options',
+		'ssc_saved_drawings',
+		'ssc_saved_drawings_page'
+	);
+}
 }
 
 if (!function_exists('slab_calculator_settings_page_html')) {
@@ -406,4 +420,91 @@ if (!function_exists('slab_calculator_check_user_access')) {
 			return false;
 		}
 	}
+}
+
+// Saved Drawings Page
+function ssc_saved_drawings_page() {
+	// Check if user has permission
+	if (!current_user_can('manage_options')) {
+		wp_die(__('You do not have sufficient permissions to access this page.'));
+	}
+	
+	// Handle drawing deletion
+	if (isset($_POST['delete_drawing']) && isset($_POST['drawing_id'])) {
+		$drawing_id = intval($_POST['drawing_id']);
+		if (wp_verify_nonce($_POST['_wpnonce'], 'delete_drawing_' . $drawing_id)) {
+			// Include the main plugin file to access the delete function
+			require_once(plugin_dir_path(__FILE__) . '../stone-slab-calculator.php');
+			if (ssc_delete_drawing($drawing_id)) {
+				echo '<div class="notice notice-success"><p>Drawing deleted successfully!</p></div>';
+			} else {
+				echo '<div class="notice notice-error"><p>Failed to delete drawing.</p></div>';
+			}
+		}
+	}
+	
+	// Get all drawings
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'ssc_drawings';
+	$drawings = $wpdb->get_results("SELECT * FROM $table_name ORDER BY created_at DESC", ARRAY_A);
+	
+	echo '<div class="wrap">';
+	echo '<h1>Saved Drawings</h1>';
+	echo '<p>View and manage all saved drawings and PDFs from the calculator.</p>';
+	
+	if (empty($drawings)) {
+		echo '<div class="notice notice-info"><p>No drawings have been saved yet.</p></div>';
+	} else {
+		echo '<table class="wp-list-table widefat fixed striped">';
+		echo '<thead>';
+		echo '<tr>';
+		echo '<th>Customer</th>';
+		echo '<th>Slab Name</th>';
+		echo '<th>Total Cutting (mm)</th>';
+		echo '<th>Standard Cut (mm)</th>';
+		echo '<th>Mitred Cut (mm)</th>';
+		echo '<th>Slab Cost</th>';
+		echo '<th>Created</th>';
+		echo '<th>Actions</th>';
+		echo '</tr>';
+		echo '</thead>';
+		echo '<tbody>';
+		
+		foreach ($drawings as $drawing) {
+			$user = get_user_by('id', $drawing['user_id']);
+			$customer_name = $user ? $user->display_name : 'Unknown User';
+			
+			echo '<tr>';
+			echo '<td>' . esc_html($customer_name) . '</td>';
+			echo '<td>' . esc_html($drawing['slab_name']) . '</td>';
+			echo '<td>' . esc_html($drawing['total_cutting_mm']) . '</td>';
+			echo '<td>' . esc_html($drawing['only_cut_mm']) . '</td>';
+			echo '<td>' . esc_html($drawing['mitred_cut_mm']) . '</td>';
+			echo '<td>' . esc_html($drawing['slab_cost']) . '</td>';
+			echo '<td>' . esc_html(date('M j, Y g:i A', strtotime($drawing['created_at']))) . '</td>';
+			echo '<td>';
+			
+			// View PDF link
+			$pdf_url = home_url('/ssc-pdf/' . $drawing['pdf_file_path']);
+			echo '<a href="' . esc_url($pdf_url) . '" target="_blank" class="button button-small">View PDF</a> ';
+			
+			// Download PDF link
+			echo '<a href="' . esc_url($pdf_url) . '" download class="button button-small">Download</a> ';
+			
+			// Delete button
+			echo '<form method="post" style="display:inline;">';
+			echo wp_nonce_field('delete_drawing_' . $drawing['id'], '_wpnonce', true, false);
+			echo '<input type="hidden" name="drawing_id" value="' . $drawing['id'] . '">';
+			echo '<input type="submit" name="delete_drawing" value="Delete" class="button button-small button-link-delete" onclick="return confirm(\'Are you sure you want to delete this drawing?\')">';
+			echo '</form>';
+			
+			echo '</td>';
+			echo '</tr>';
+		}
+		
+		echo '</tbody>';
+		echo '</table>';
+	}
+	
+	echo '</div>';
 }
