@@ -2095,6 +2095,14 @@ foreach( $params as $param ) {
 			#canvas.disabled {
 				cursor: not-allowed;
 			}
+
+			/* Hide shape-specific toolbar icons by default - they will be shown via JavaScript when shapes are selected */
+			#toolbar .tools #info,
+			#toolbar .tools #clone,
+			#toolbar .tools #delete,
+			#toolbar .tools #rotate {
+				display: none;
+			}
 		</style>
 
 	</head>
@@ -2702,13 +2710,32 @@ foreach( $params as $param ) {
 				// Initialize toolbar logout button as hidden
 				jQuery('#toolbarLogoutBtn').hide();
 
+				// Global function to force hide auth modal
+				function forceHideAuthModal() {
+					console.log('Force hiding auth modal');
+					jQuery('#authSection').removeClass('show');
+					jQuery('#authSection').hide();
+					jQuery('#authSection').css('display', 'none');
+					jQuery('#authSection').attr('style', 'display: none !important');
+				}
+
+				// Ensure shape-specific toolbar icons are hidden initially
+				hideShapeToolbarIcons();
+
+				// Ensure auth modal is hidden initially
+				forceHideAuthModal();
+
 				// Functions to enable/disable toolbar and canvas
 				function enableCalculator() {
+					console.log('enableCalculator() called, isAuthenticated:', isAuthenticated);
 					// Check if user is authenticated before enabling
 					if (isAuthenticated) {
+						console.log('User is authenticated, enabling calculator');
 						jQuery('#toolbar').removeClass('disabled');
 						jQuery('#canvas').removeClass('disabled');
-						jQuery('#authSection').removeClass('show').css('display', 'none');
+						console.log('Hiding auth modal in enableCalculator');
+						// Use the global function to force hide the auth modal
+						forceHideAuthModal();
 						// Show toolbar logout button
 						jQuery('#toolbarLogoutBtn').show();
 						console.log('Calculator enabled for authenticated user');
@@ -9728,6 +9755,22 @@ foreach( $params as $param ) {
 					hideShapeToolbarIcons();
 				});
 
+				// Handle when objects are removed from canvas
+				canvas.on('object:removed', function(e) {
+					// If the removed object was the active object, hide the toolbar icons
+					if (canvas.getActiveObject() === null) {
+						hideShapeToolbarIcons();
+					}
+				});
+
+				// Handle when objects are modified (moved, resized, etc.)
+				canvas.on('object:modified', function(e) {
+					// Ensure toolbar icons are still visible if a shape is selected
+					if (canvas.getActiveObject() && canvas.getActiveObject().mainShape) {
+						showShapeToolbarIcons();
+					}
+				});
+
 
 
 
@@ -9793,6 +9836,10 @@ foreach( $params as $param ) {
 					if (activeObject) {
 
 						canvas.discardActiveObject();
+
+						// Hide toolbar icons when deselecting objects
+
+						hideShapeToolbarIcons();
 
 					}
 
@@ -10361,9 +10408,11 @@ foreach( $params as $param ) {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
 							
 							if (result.success) {
+								console.log('Login successful, setting isAuthenticated to true');
 								isAuthenticated = true;
 								
 								// Enable calculator functionality
+								console.log('Calling enableCalculator()');
 								enableCalculator();
 								
 								// Update UI to show logged in state
@@ -10371,11 +10420,17 @@ foreach( $params as $param ) {
 								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
 								jQuery('#auth').text('Logout');
 								
-								// Show success message
+								// Show success message and ensure modal is hidden after alert
 								alert('Login successful! Welcome ' + email);
+								// Force hide modal again after alert is dismissed
+								forceHideAuthModal();
 								
-								// Close auth modal after successful login
-								jQuery('#authSection').removeClass('show').css('display', 'none');
+								// Additional explicit hiding of auth modal with timeout to ensure it's hidden
+								console.log('Hiding auth modal explicitly');
+								setTimeout(function() {
+									forceHideAuthModal();
+									console.log('Auth modal hidden after timeout');
+								}, 100);
 							} else {
 								errorElement.html(result.message || 'Login failed').show();
 							}

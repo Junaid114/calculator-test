@@ -45,7 +45,6 @@ if (!function_exists('slab_calculator_register_settings')) {
         register_setting('slab_calculator_settings_group', 'slab_calculator_drawing_pad_width');
 		register_setting('slab_calculator_settings_group', 'slab_calculator_min_screen_size');
 		register_setting('slab_calculator_settings_group', 'slab_calculator_email_template');
-		
 
         add_settings_section(
             'slab_calculator_settings_section',
@@ -111,12 +110,12 @@ if (!function_exists('slab_calculator_register_settings')) {
         );
 
         add_settings_field(
-            'slab_calculator_email_template',
-            'Email Template',
-            'slab_calculator_email_template_callback',
-            'slab_calculator_settings',
-            'slab_calculator_settings_section'
-        );
+            		'slab_calculator_email_template',
+		'Email Template',
+		'slab_calculator_email_template_callback',
+		'slab_calculator_settings',
+		'slab_calculator_settings_section'
+	);
 
     }
     add_action('admin_init', 'slab_calculator_register_settings');
@@ -314,18 +313,6 @@ if (!function_exists('slab_calculator_email_template_callback')) {
             <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Slab Cost:</td>
             <td style="padding: 8px; border: 1px solid #ddd;">{{slab_cost}}</td>
         </tr>
-        <tr>
-            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Production Cost:</td>
-            <td style="padding: 8px; border: 1px solid #ddd;">{{production_cost}}</td>
-        </tr>
-        <tr style="background-color: #f8f9fa;">
-            <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Installation Cost:</td>
-            <td style="padding: 8px; border: 1px solid #ddd;">{{installation_cost}}</td>
-        </tr>
-        <tr style="background-color: #e9ecef; font-weight: bold;">
-            <td style="padding: 8px; border: 1px solid #ddd;">Total Project Cost:</td>
-            <td style="padding: 8px; border: 1px solid #ddd;">{{total_project_cost}}</td>
-        </tr>
     </table>
 
     <div style="margin: 20px 0; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
@@ -372,9 +359,6 @@ if (!function_exists('slab_calculator_email_template_callback')) {
         echo '<li><code>{{mitred_cut_mm}}</code> - Mitred cutting area in millimeters</li>';
         echo '<li><code>{{drawing_link}}</code> - Link to view the drawing online</li>';
         echo '<li><code>{{slab_cost}}</code> - Cost of the slab from WooCommerce product</li>';
-        echo '<li><code>{{production_cost}}</code> - Total production cost based on cutting areas</li>';
-        echo '<li><code>{{installation_cost}}</code> - Total installation cost</li>';
-        echo '<li><code>{{total_project_cost}}</code> - Complete project cost including all components</li>';
         echo '</ul>';
         echo '<div style="margin-top: 15px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">';
         echo '<h4 style="margin: 0 0 8px 0; color: #856404;">📎 PDF Attachment</h4>';
