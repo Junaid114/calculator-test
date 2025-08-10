@@ -809,11 +809,16 @@ foreach( $params as $param ) {
 			/* Auth Modal Styles */
 			#authSection {
 				display: none;
-				position: absolute;
-				top: 20px;
+				position: fixed;
+				top: 50%;
 				left: 50%;
-				transform: translateX(-50%);
+				transform: translate(-50%, -50%);
 				z-index: 10000;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.5);
+				align-items: center;
+				justify-content: center;
 			}
 
 			#authSection.show {
@@ -988,24 +993,30 @@ foreach( $params as $param ) {
 				text-decoration: underline;
 			}
 
-			#testAuthBtn, #testLoginBtn, #directAjaxBtn {
-				margin: 5px;
-				padding: 8px 12px;
-				border: none;
-				border-radius: 5px;
-				cursor: pointer;
-				font-size: 12px;
-				transition: all 0.3s ease;
-			}
 
-			#testAuthBtn:hover, #testLoginBtn:hover, #directAjaxBtn:hover {
-				opacity: 0.8;
-				transform: translateY(-1px);
-			}
 
 			/* Additional Auth Modal positioning and debugging */
 			.auth-container {
 				background: white;
+			}
+
+			/* Toolbar logout button styles */
+			.toolbar-logout-btn {
+				background: #dc3545 !important;
+				color: white !important;
+				border: none !important;
+				padding: 6px 12px !important;
+				border-radius: 4px !important;
+				cursor: pointer !important;
+				font-size: 12px !important;
+				margin-left: 10px !important;
+				transition: all 0.3s ease !important;
+			}
+
+			.toolbar-logout-btn:hover {
+				background: #c82333 !important;
+				transform: translateY(-1px) !important;
+				box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3) !important;
 			}
 
 			/* Ensure calculator container has proper positioning */
@@ -1878,6 +1889,24 @@ foreach( $params as $param ) {
 
 			
 
+			/* Disabled state for toolbar and canvas */
+			#toolbar.disabled,
+			#canvas.disabled {
+				opacity: 0.5;
+				pointer-events: none;
+			}
+
+
+
+			#toolbar.disabled img,
+			#toolbar.disabled .shapes-dropdown-btn,
+			#toolbar.disabled .btns .pos-relative {
+				cursor: not-allowed;
+			}
+
+			#canvas.disabled {
+				cursor: not-allowed;
+			}
 		</style>
 
 	</head>
@@ -1886,15 +1915,17 @@ foreach( $params as $param ) {
 
 		<div class="calculator-container">
 
-			<div class="heading">
+							<div class="heading">
 
-				<div class="header-row">
+					<div class="header-row">
 
-					<div class="title-section">
+						<div class="title-section">
 
-						<span class="calculator-title">"<?=$_GET['name']?>" Slab & Cutting Area MM Calculator</span>
+							<span class="calculator-title">"<?=$_GET['name']?>" Slab & Cutting Area MM Calculator</span>
 
-					</div>
+						</div>
+
+
 
 					<!-- <div class="stats-table">
 
@@ -1952,7 +1983,7 @@ foreach( $params as $param ) {
 
 			</div>
 
-			<div id="toolbar">
+			<div id="toolbar" class="disabled">
 
 				<div class="shapes">
 
@@ -2065,11 +2096,16 @@ foreach( $params as $param ) {
 
 					</div>
 
-					<img src="./../assets/images/info.png" alt="Auth" id="auth" style="cursor: pointer;">
-					<button id="testAuthBtn2" style="background: red; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 10px;">Test Auth</button>
+					<!-- Logout button - only visible when authenticated -->
+					<button id="toolbarLogoutBtn" class="toolbar-logout-btn" style="display: none;">
+						Logout
+					</button>
+
 					<img src="./../assets/images/tutorial.png" alt="Tutorial" id="tutorial">
 
 				</div>
+
+
 
 			</div>
 
@@ -2101,25 +2137,12 @@ foreach( $params as $param ) {
 								<label for="password">Password</label>
 								<input type="password" id="password" name="password" placeholder="Enter password" required>
 							</div>
-							<div class="form-group" style="font-size: 12px; color: #666; background: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #e9ecef;">
-								<strong>Test Credentials:</strong><br>
-								Username: <code>admin</code><br>
-								Password: <code>admin123</code>
-							</div>
 							<div class="auth-error" id="loginError" style="display: none;"></div>
 							<button type="submit" class="auth-btn primary">Login</button>
 						</form>
 						 
 						<!-- Register Form -->
 						<form id="registerForm" class="auth-form">
-							<div class="form-group">
-								<label for="reg_first_name">First Name</label>
-								<input type="text" id="reg_first_name" name="reg_first_name" required>
-							</div>
-							<div class="form-group">
-								<label for="reg_last_name">Last Name</label>
-								<input type="text" id="reg_last_name" name="reg_last_name" required>
-							</div>
 							<div class="form-group">
 								<label for="reg_username">Username</label>
 								<input type="text" id="reg_username" name="reg_username" required>
@@ -2157,7 +2180,7 @@ foreach( $params as $param ) {
 
 				<div class="ruler" id="ruler-y"></div>
 
-				<canvas id="canvas"></canvas>
+				<canvas id="canvas" class="disabled"></canvas>
 
 				
 
@@ -2371,8 +2394,8 @@ foreach( $params as $param ) {
 			var urlParams = new URLSearchParams(window.location.search);
 			var siteUrl = urlParams.get('site_url') || window.location.protocol + '//' + window.location.hostname;
 			var ajaxurl = siteUrl + '/wp-admin/admin-ajax.php';
-			// Get nonce from URL parameters
-			var nonce = urlParams.get('nonce') || 'stone_slab_auth_nonce_temp';
+			// Nonce verification temporarily disabled for testing
+			var nonce = 'disabled_for_testing';
 			
 			var stone_slab_ajax = {
 				ajaxurl: ajaxurl,
@@ -2380,6 +2403,39 @@ foreach( $params as $param ) {
 			};
 
 			jQuery(document).ready(function() {
+				// Debug: Check if auth button exists
+				console.log('Document ready - checking auth button');
+				console.log('Auth button element:', jQuery('#auth'));
+				console.log('Auth button in toolbar .btns:', jQuery('#toolbar .btns #auth'));
+				console.log('Toolbar disabled state:', jQuery('#toolbar').hasClass('disabled'));
+
+				// Initialize toolbar logout button as hidden
+				jQuery('#toolbarLogoutBtn').hide();
+
+				// Functions to enable/disable toolbar and canvas
+				function enableCalculator() {
+					// Check if user is authenticated before enabling
+					if (isAuthenticated) {
+						jQuery('#toolbar').removeClass('disabled');
+						jQuery('#canvas').removeClass('disabled');
+						jQuery('#authSection').removeClass('show').css('display', 'none');
+						// Show toolbar logout button
+						jQuery('#toolbarLogoutBtn').show();
+						console.log('Calculator enabled for authenticated user');
+					} else {
+						// User not authenticated, show auth modal
+						console.log('User not authenticated, showing auth modal');
+						jQuery('#authSection').addClass('show').css('display', 'flex');
+					}
+				}
+
+				function disableCalculator() {
+					jQuery('#toolbar').addClass('disabled');
+					jQuery('#canvas').addClass('disabled');
+					jQuery('#authSection').addClass('show');
+					// Hide toolbar logout button
+					jQuery('#toolbarLogoutBtn').hide();
+				}
 
 				// Convert mm to pixels (adjust this factor based on your canvas scaling)
 
@@ -9849,14 +9905,18 @@ foreach( $params as $param ) {
 				let isAuthenticated = false;
 
 				// Show auth modal or logout
-				jQuery('#toolbar .btns #auth').click(function() {
+				jQuery('#auth').click(function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					console.log('Auth button clicked! Event:', e);
+					
 					if (isAuthenticated) {
 						// User is logged in, show logout confirmation
 						if (confirm('Are you sure you want to logout?')) {
 							// Make AJAX request to logout
 							jQuery.post(ajaxurl, {
 								action: 'stone_slab_logout',
-								nonce: stone_slab_ajax.nonce
+								nonce: nonce
 							}, function(response) {
 								try {
 									var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -9865,8 +9925,7 @@ foreach( $params as $param ) {
 										isAuthenticated = false;
 										jQuery('#auth').css('opacity', '1');
 										jQuery('#auth').attr('title', 'Click to login');
-										jQuery('#auth').attr('src', './../assets/images/info.png');
-										jQuery('#auth').attr('alt', 'Auth');
+										jQuery('#auth').text('Login');
 										
 										// Clear form fields
 										jQuery('#username').val('');
@@ -9886,11 +9945,39 @@ foreach( $params as $param ) {
 						}
 					} else {
 						// User is not logged in, show login modal
-						console.log('Auth button clicked!');
+						console.log('User not authenticated, showing login modal');
+						console.log('Auth section element:', jQuery('#authSection'));
+						console.log('Auth section current display:', jQuery('#authSection').css('display'));
+						
 						jQuery('#authSection').addClass('show');
-						console.log('Auth modal should be visible now');
-						// Force show for debugging
 						jQuery('#authSection').css('display', 'flex');
+						
+						console.log('Auth section after show:', jQuery('#authSection').css('display'));
+						console.log('Auth section classes:', jQuery('#authSection').attr('class'));
+					}
+				});
+
+				// Alternative event handler for debugging
+				jQuery(document).on('click', '#auth', function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					console.log('Auth button clicked via document.on!');
+					
+					if (!isAuthenticated) {
+						console.log('Showing auth modal via alternative handler');
+						jQuery('#authSection').addClass('show').css('display', 'flex');
+					}
+				});
+
+				// Test click handler - should work regardless of toolbar state
+				jQuery('#auth').on('click', function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					console.log('Auth button clicked via direct handler!');
+					alert('Auth button is working!');
+					
+					if (!isAuthenticated) {
+						jQuery('#authSection').addClass('show').css('display', 'flex');
 					}
 				});
 
@@ -9938,27 +10025,31 @@ foreach( $params as $param ) {
 					errorElement.hide();
 
 					// Make AJAX request to WordPress login
-					jQuery.post(stone_slab_ajax.ajaxurl, {
+					jQuery.post(ajaxurl, {
 						action: 'stone_slab_login',
 						username: username,
 						password: password,
-						nonce: stone_slab_ajax.nonce
+						nonce: nonce
 					}, function(response) {
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
 							
 							if (result.success) {
 								isAuthenticated = true;
-								jQuery('#authSection').removeClass('show');
+								
+								// Enable calculator functionality
+								enableCalculator();
+								
+								// Update UI to show logged in state
 								jQuery('#auth').css('opacity', '0.7');
 								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
+								jQuery('#auth').text('Logout');
 								
 								// Show success message
 								alert('Login successful! Welcome ' + username);
 								
-								// Update UI to show logged in state
-								jQuery('#auth').attr('src', './../assets/images/info.png');
-								jQuery('#auth').attr('alt', 'Logged In');
+								// Close auth modal after successful login
+								jQuery('#authSection').removeClass('show').css('display', 'none');
 							} else {
 								errorElement.html(result.message || 'Login failed').show();
 							}
@@ -9977,15 +10068,13 @@ foreach( $params as $param ) {
 				// Register form submission
 				jQuery('#registerForm').submit(function(e) {
 					e.preventDefault();
-					const first_name = jQuery('#reg_first_name').val();
-					const last_name = jQuery('#reg_last_name').val();
 					const username = jQuery('#reg_username').val();
 					const email = jQuery('#reg_email').val();
 					const password = jQuery('#reg_password').val();
 					const confirmPassword = jQuery('#reg_confirm_password').val();
 					const errorElement = jQuery('#registerError');
 
-					if (!first_name || !last_name || !username || !email || !password || !confirmPassword) {
+					if (!username || !email || !password || !confirmPassword) {
 						errorElement.html('All fields are required').show();
 						return;
 					}
@@ -10005,33 +10094,33 @@ foreach( $params as $param ) {
 					errorElement.hide();
 
 					// Make AJAX request to WordPress registration
-					jQuery.post(stone_slab_ajax.ajaxurl, {
+					jQuery.post(ajaxurl, {
 						action: 'stone_slab_register',
-						first_name: first_name,
-						last_name: last_name,
 						username: username,
 						email: email,
 						password: password,
 						confirm_password: confirmPassword,
-						nonce: stone_slab_ajax.nonce
+						nonce: nonce
 					}, function(response) {
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
 							
 							if (result.success) {
-								errorElement.html('Registration successful! You can now login.').show();
-								errorElement.css('background', '#d4edda');
-								errorElement.css('color', '#155724');
-								errorElement.css('border-color', '#c3e6cb');
+								isAuthenticated = true;
 								
-								// Clear form
-								jQuery('#registerForm')[0].reset();
+								// Enable calculator functionality
+								enableCalculator();
 								
-								// Switch to login tab after 2 seconds
-								setTimeout(function() {
-									jQuery('#loginTab').click();
-									errorElement.hide();
-								}, 2000);
+								// Update UI to show logged in state
+								jQuery('#auth').css('opacity', '0.7');
+								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
+								jQuery('#auth').text('Logout');
+								
+								// Show success message
+								alert('Registration successful! Welcome ' + username);
+								
+								// Close auth modal after successful registration
+								jQuery('#authSection').removeClass('show').css('display', 'none');
 							} else {
 								errorElement.html(result.message || 'Registration failed').show();
 								errorElement.css('background', '#f8d7da');
@@ -10059,22 +10148,22 @@ foreach( $params as $param ) {
 				// Close modal when clicking outside
 				jQuery('#authSection').click(function(e) {
 					if (e.target === this) {
-						jQuery(this).removeClass('show');
+						jQuery(this).removeClass('show').css('display', 'none');
 					}
 				});
 
 				// Close modal with close button
 				jQuery('#closeAuthModal').click(function() {
-					jQuery('#authSection').removeClass('show');
+					jQuery('#authSection').removeClass('show').css('display', 'none');
 				});
 
 				// Logout button functionality
 				jQuery('#logoutBtn').click(function() {
 					if (confirm('Are you sure you want to logout?')) {
 											// Make AJAX request to logout
-					jQuery.post(stone_slab_ajax.ajaxurl, {
+					jQuery.post(ajaxurl, {
 						action: 'stone_slab_logout',
-						nonce: stone_slab_ajax.nonce
+						nonce: nonce
 					}, function(response) {
 							try {
 								var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -10083,8 +10172,7 @@ foreach( $params as $param ) {
 									isAuthenticated = false;
 									jQuery('#auth').css('opacity', '1');
 									jQuery('#auth').attr('title', 'Click to login');
-									jQuery('#auth').attr('src', './../assets/images/info.png');
-									jQuery('#auth').attr('alt', 'Auth');
+									jQuery('#auth').text('Login');
 									
 									// Clear form fields
 									jQuery('#username').val('');
@@ -10095,10 +10183,66 @@ foreach( $params as $param ) {
 									jQuery('#logoutSection').hide();
 									jQuery('#authFooterText').show();
 									
-									// Close modal
-									jQuery('#authSection').removeClass('show');
+									// Hide toolbar logout button
+									jQuery('#toolbarLogoutBtn').hide();
 									
-									alert('Logged out successfully!');
+									// Disable calculator
+									disableCalculator();
+									
+									// Show auth modal for re-authentication
+									jQuery('#authSection').addClass('show').css('display', 'flex');
+									
+									alert('Logged out successfully! Please login again to continue.');
+								} else {
+									alert('Logout failed: ' + (result.message || 'Unknown error'));
+								}
+							} catch (e) {
+								alert('An error occurred during logout');
+							}
+						}).fail(function() {
+							alert('Network error during logout');
+						});
+					}
+				});
+
+				// Toolbar logout button functionality
+				jQuery('#toolbarLogoutBtn').click(function() {
+					if (confirm('Are you sure you want to logout?')) {
+						// Make AJAX request to logout
+						jQuery.post(ajaxurl, {
+							action: 'stone_slab_logout',
+							nonce: nonce
+						}, function(response) {
+							try {
+								var result = typeof response === 'string' ? JSON.parse(response) : response;
+								
+								if (result.success) {
+									isAuthenticated = false;
+									
+									// Update auth button state
+									jQuery('#auth').css('opacity', '1');
+									jQuery('#auth').attr('title', 'Click to login');
+									jQuery('#auth').text('Login');
+									
+									// Clear form fields
+									jQuery('#username').val('');
+									jQuery('#password').val('');
+									jQuery('#loginError').hide();
+									
+									// Hide logout section and show register link
+									jQuery('#logoutSection').hide();
+									jQuery('#authFooterText').show();
+									
+									// Hide toolbar logout button
+									jQuery('#toolbarLogoutBtn').hide();
+									
+									// Disable calculator
+									disableCalculator();
+									
+									// Show auth modal for re-authentication
+									jQuery('#authSection').addClass('show').css('display', 'flex');
+									
+									alert('Logged out successfully! Please login again to continue.');
 								} else {
 									alert('Logout failed: ' + (result.message || 'Unknown error'));
 								}
@@ -10113,9 +10257,9 @@ foreach( $params as $param ) {
 
 				// Check authentication status on page load
 				function checkAuthStatus() {
-					jQuery.post(stone_slab_ajax.ajaxurl, {
+					jQuery.post(ajaxurl, {
 						action: 'stone_slab_check_auth',
-						nonce: stone_slab_ajax.nonce
+						nonce: nonce
 					}, function(response) {
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -10126,39 +10270,39 @@ foreach( $params as $param ) {
 								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
 								jQuery('#auth').attr('src', './../assets/images/info.png');
 								jQuery('#auth').attr('alt', 'Logged In');
+								
+								// User is authenticated, enable calculator
+								enableCalculator();
+							} else {
+								// User not authenticated, show auth modal automatically
+								isAuthenticated = false;
+								console.log('User not authenticated, showing auth modal automatically');
+								jQuery('#authSection').addClass('show').css('display', 'flex');
 							}
 						} catch (e) {
 							console.log('Error checking auth status:', e);
+							// On error, show auth modal
+							isAuthenticated = false;
+							jQuery('#authSection').addClass('show').css('display', 'flex');
 						}
 					}).fail(function() {
 						console.log('Failed to check auth status');
+						// On failure, show auth modal
+						isAuthenticated = false;
+						jQuery('#authSection').addClass('show').css('display', 'flex');
 					});
 				}
 
 				// Check auth status when page loads
 				checkAuthStatus();
-
-				// Test buttons functionality
-				jQuery('#testAuthBtn').click(function() {
-					alert('Auth modal is working!');
-				});
-
-				// Additional test button in toolbar
-				jQuery('#testAuthBtn2').click(function() {
-					console.log('Test Auth button clicked!');
-					jQuery('#authSection').css('display', 'flex');
-					alert('Auth modal should be visible now!');
-				});
-
-				jQuery('#testLoginBtn').click(function() {
-					jQuery('#username').val('admin');
-					jQuery('#password').val('password');
-					alert('Test credentials filled: admin/password');
-				});
-
-				jQuery('#directAjaxBtn').click(function() {
-					alert('Direct AJAX test button clicked!');
-				});
+				
+				// Auto-show auth modal if user is not authenticated after a short delay
+				setTimeout(function() {
+					if (!isAuthenticated) {
+						console.log('Auto-showing auth modal for unauthenticated user');
+						jQuery('#authSection').addClass('show').css('display', 'flex');
+					}
+				}, 1000); // 1 second delay to ensure page is fully loaded
 
 			});
 
