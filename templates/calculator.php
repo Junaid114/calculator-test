@@ -496,7 +496,11 @@ foreach( $params as $param ) {
 
 				position: relative;
 
-				overflow: hidden; /* Hide default scrollbars */
+				overflow: visible; /* Allow modals to be visible */
+
+				min-height: 600px;
+
+				width: 100%;
 
 			}
 
@@ -800,6 +804,214 @@ foreach( $params as $param ) {
 
 				padding: 10px;
 
+			}
+
+			/* Auth Modal Styles */
+			#authSection {
+				display: none;
+				position: absolute;
+				top: 20px;
+				left: 50%;
+				transform: translateX(-50%);
+				z-index: 10000;
+			}
+
+			#authSection.show {
+				display: flex;
+			}
+
+			.auth-container {
+				background: white;
+				border-radius: 15px;
+				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+				width: 100%;
+				max-width: 600px;
+				max-height: 85vh;
+				overflow-y: auto;
+				position: relative;
+			}
+
+			.auth-header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+				padding: 25px;
+				text-align: center;
+				border-radius: 15px 15px 0 0;
+			}
+
+			.auth-header h2 {
+				margin: 0 0 10px 0;
+				font-size: 24px;
+				font-weight: 600;
+				position: relative;
+			}
+
+			.auth-header .close-btn {
+				position: absolute;
+				top: -10px;
+				right: -10px;
+				background: rgba(255, 255, 255, 0.2);
+				border: none;
+				color: white;
+				width: 30px;
+				height: 30px;
+				border-radius: 50%;
+				cursor: pointer;
+				font-size: 18px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: all 0.3s ease;
+			}
+
+			.auth-header .close-btn:hover {
+				background: rgba(255, 255, 255, 0.3);
+				transform: scale(1.1);
+			}
+
+			.auth-header p {
+				margin: 0;
+				opacity: 0.9;
+				font-size: 12px;
+			}
+
+			.auth-tabs {
+				display: flex;
+				background: #f8f9fa;
+				border-bottom: 1px solid #e9ecef;
+			}
+
+			.auth-tab {
+				flex: 1;
+				padding: 15px;
+				text-align: center;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				border-bottom: 3px solid transparent;
+			}
+
+			.auth-tab.active {
+				background: white;
+				border-bottom-color: #667eea;
+				color: #667eea;
+				font-weight: 600;
+			}
+
+			.auth-tab:hover:not(.active) {
+				background: #e9ecef;
+			}
+
+			.auth-form {
+				display: none;
+				padding: 20px;
+				max-height: 60vh;
+				overflow-y: auto;
+			}
+
+			.auth-form.active {
+				display: block;
+			}
+
+			.auth-form .form-group {
+				margin-bottom: 20px;
+			}
+
+			.auth-form label {
+				display: block;
+				margin-bottom: 8px;
+				font-weight: 500;
+				color: #495057;
+			}
+
+			.auth-form input {
+				width: 100%;
+				padding: 12px 15px;
+				border: 2px solid #e9ecef;
+				border-radius: 8px;
+				font-size: 14px;
+				transition: border-color 0.3s ease;
+				box-sizing: border-box;
+			}
+
+			.auth-form input:focus {
+				outline: none;
+				border-color: #667eea;
+				box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+			}
+
+			.auth-btn {
+				width: 100%;
+				padding: 12px;
+				border: none;
+				border-radius: 8px;
+				font-size: 16px;
+				font-weight: 600;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				margin-bottom: 15px;
+			}
+
+			.auth-btn.primary {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+			}
+
+			.auth-btn.primary:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+			}
+
+			.auth-error {
+				background: #f8d7da;
+				color: #721c24;
+				padding: 10px;
+				border-radius: 5px;
+				margin-bottom: 15px;
+				border: 1px solid #f5c6cb;
+			}
+
+			.auth-footer {
+				padding: 20px 25px;
+				text-align: center;
+				border-top: 1px solid #e9ecef;
+				background: #f8f9fa;
+				border-radius: 0 0 15px 15px;
+			}
+
+			.auth-footer a {
+				color: #667eea;
+				text-decoration: none;
+				font-weight: 500;
+			}
+
+			.auth-footer a:hover {
+				text-decoration: underline;
+			}
+
+			#testAuthBtn, #testLoginBtn, #directAjaxBtn {
+				margin: 5px;
+				padding: 8px 12px;
+				border: none;
+				border-radius: 5px;
+				cursor: pointer;
+				font-size: 12px;
+				transition: all 0.3s ease;
+			}
+
+			#testAuthBtn:hover, #testLoginBtn:hover, #directAjaxBtn:hover {
+				opacity: 0.8;
+				transform: translateY(-1px);
+			}
+
+			/* Additional Auth Modal positioning and debugging */
+			.auth-container {
+				background: white;
+			}
+
+			/* Ensure calculator container has proper positioning */
+			.calculator-container {
+				position: relative;
+				overflow: visible;
 			}
 
 
@@ -1853,6 +2065,8 @@ foreach( $params as $param ) {
 
 					</div>
 
+					<img src="./../assets/images/info.png" alt="Auth" id="auth" style="cursor: pointer;">
+					<button id="testAuthBtn2" style="background: red; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 10px;">Test Auth</button>
 					<img src="./../assets/images/tutorial.png" alt="Tutorial" id="tutorial">
 
 				</div>
@@ -1862,6 +2076,64 @@ foreach( $params as $param ) {
 
 
 			<div id="canvas-container">
+					
+			 <div id="authSection" class="auth-section">
+					<div class="auth-container">
+						<div class="auth-header">
+							<h2>Welcome 
+								<button class="close-btn" id="closeAuthModal">&times;</button>
+							</h2>
+							<p>Please login or register to access the calculator</p>
+						</div>
+						
+						<div class="auth-tabs">
+							<div class="auth-tab active" id="loginTab">Login</div>
+							<div class="auth-tab" id="registerTab">Register</div>
+						</div>
+						
+					
+						 <form id="loginForm" class="auth-form active" onsubmit="return false;">
+							<div class="form-group">
+								<label for="username">Username</label>
+								<input type="text" id="username" name="username" required>
+							</div>
+							<div class="form-group">
+								<label for="password">Password</label>
+								<input type="password" id="password" name="password" required>
+							</div>
+							<div class="auth-error" id="loginError" style="display: none;"></div>
+							<button type="submit" class="auth-btn primary">Login</button>
+						</form>
+						 
+						<!-- Register Form -->
+						<form id="registerForm" class="auth-form">
+							<div class="form-group">
+								<label for="reg_username">Username</label>
+								<input type="text" id="reg_username" name="reg_username" required>
+							</div>
+							<div class="form-group">
+								<label for="reg_email">Email</label>
+								<input type="email" id="reg_email" name="reg_email" required>
+							</div>
+							<div class="form-group">
+								<label for="reg_password">Password</label>
+								<input type="password" id="reg_password" name="reg_password" required>
+							</div>
+							<div class="form-group">
+								<label for="reg_confirm_password">Confirm Password</label>
+								<input type="password" id="reg_confirm_password" name="reg_confirm_password" required>
+							</div>
+							<div class="auth-error" id="registerError" style="display: none;"></div>
+							<button type="submit" class="auth-btn primary">Register</button>
+						</form> 
+					
+						<div class="auth-footer">
+							<div id="authFooterText">
+								Not a member yet? <a href="#" id="switchToRegister">Register now.</a>
+							</div>
+						</div>
+					</div>
+				</div> 
 
 				<div class="ruler" id="ruler-x"></div>
 
@@ -9538,7 +9810,132 @@ foreach( $params as $param ) {
 
 				});
 
+				// Auth Modal Functionality
+				let isAuthenticated = false;
 
+				// Show auth modal
+				jQuery('#toolbar .btns #auth').click(function() {
+					console.log('Auth button clicked!');
+					jQuery('#authSection').addClass('show');
+					console.log('Auth modal should be visible now');
+					// Force show for debugging
+					jQuery('#authSection').css('display', 'flex');
+				});
+
+				// Tab switching functionality
+				jQuery('#loginTab').click(function() {
+					jQuery('.auth-tab').removeClass('active');
+					jQuery('.auth-form').removeClass('active');
+					jQuery(this).addClass('active');
+					jQuery('#loginForm').addClass('active');
+					jQuery('#authFooterText').html('Not a member yet? <a href="#" id="switchToRegister">Register now.</a>');
+				});
+
+				jQuery('#registerTab').click(function() {
+					jQuery('.auth-tab').removeClass('active');
+					jQuery('.auth-form').removeClass('active');
+					jQuery(this).addClass('active');
+					jQuery('#registerForm').addClass('active');
+					jQuery('#authFooterText').html('Already have an account? <a href="#" id="switchToRegister">Login now.</a>');
+				});
+
+				// Switch between login and register
+				jQuery('body').on('click', '#switchToRegister', function(e) {
+					e.preventDefault();
+					if (jQuery('#loginForm').hasClass('active')) {
+						jQuery('#registerTab').click();
+					} else {
+						jQuery('#loginTab').click();
+					}
+				});
+
+				// Login form submission
+				jQuery('#loginForm').submit(function(e) {
+					e.preventDefault();
+					const username = jQuery('#username').val();
+					const password = jQuery('#password').val();
+					const errorElement = jQuery('#loginError');
+
+					if (username === 'admin' && password === 'password') {
+						isAuthenticated = true;
+						jQuery('#authSection').removeClass('show');
+						jQuery('#auth').css('opacity', '0.7');
+						jQuery('#auth').attr('title', 'Authenticated - Click to logout');
+						// Show success message or redirect
+						alert('Login successful! Welcome ' + username);
+					} else {
+						errorElement.html('Invalid username or password. Try: admin/password').show();
+					}
+				});
+
+				// Register form submission
+				jQuery('#registerForm').submit(function(e) {
+					e.preventDefault();
+					const username = jQuery('#reg_username').val();
+					const email = jQuery('#reg_email').val();
+					const password = jQuery('#reg_password').val();
+					const confirmPassword = jQuery('#reg_confirm_password').val();
+					const errorElement = jQuery('#registerError');
+
+					if (password !== confirmPassword) {
+						errorElement.html('Passwords do not match').show();
+						return;
+					}
+
+					if (password.length < 6) {
+						errorElement.html('Password must be at least 6 characters long').show();
+						return;
+					}
+
+					// Simulate successful registration
+					errorElement.html('Registration successful! You can now login.').show();
+					errorElement.css('background', '#d4edda');
+					errorElement.css('color', '#155724');
+					errorElement.css('border-color', '#c3e6cb');
+					
+					// Clear form
+					jQuery('#registerForm')[0].reset();
+					
+					// Switch to login tab after 2 seconds
+					setTimeout(function() {
+						jQuery('#loginTab').click();
+						errorElement.hide();
+					}, 2000);
+				});
+
+				// Close modal when clicking outside
+				jQuery('#authSection').click(function(e) {
+					if (e.target === this) {
+						jQuery(this).removeClass('show');
+					}
+				});
+
+				// Close modal with close button
+				jQuery('#closeAuthModal').click(function() {
+					jQuery('#authSection').removeClass('show');
+				});
+
+				// Test buttons functionality
+				jQuery('#testAuthBtn').click(function() {
+					alert('Auth modal is working!');
+				});
+
+				// Additional test button in toolbar
+				jQuery('#testAuthBtn2').click(function() {
+					console.log('Test Auth button clicked!');
+					jQuery('#authSection').css('display', 'flex');
+					alert('Auth modal should be visible now!');
+				});
+
+				jQuery('#testLoginBtn').click(function() {
+					jQuery('#username').val('admin');
+					jQuery('#password').val('password');
+					alert('Test credentials filled: admin/password');
+				});
+
+				jQuery('#directAjaxBtn').click(function() {
+					alert('Direct AJAX test button clicked!');
+				});
 
 			});
 
