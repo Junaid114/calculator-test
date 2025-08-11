@@ -8626,7 +8626,11 @@ foreach( $params as $param ) {
 						});
 
 						
-						// Customize controls to show only rotation handle
+						// Add the group to the canvas
+
+						canvas.add(finalGroup);
+						
+						// Customize controls to show only rotation handle (after adding to canvas)
 						finalGroup.setControlsVisibility({
 							mt: false, // middle top
 							mb: false, // middle bottom
@@ -8638,11 +8642,15 @@ foreach( $params as $param ) {
 							tr: false, // top right
 							mtr: true  // middle top rotate - this is the rotation handle
 						});
-
-
-						// Add the group to the canvas
-
-						canvas.add(finalGroup);
+						
+						// Additional settings to completely disable resize
+						finalGroup.lockScalingX = true;
+						finalGroup.lockScalingY = true;
+						finalGroup.lockScalingFlip = true;
+						
+						// Force update of controls
+						finalGroup.setCoords();
+						canvas.requestRenderAll();
 					
 					// Update slab usage calculation and visualization
 					calculateSlabUsage();
@@ -8770,7 +8778,9 @@ foreach( $params as $param ) {
 						});
 
 						
-						// Customize controls to show only rotation handle
+						canvas.renderAll();
+						
+						// Customize controls to show only rotation handle (after rendering)
 						group.setControlsVisibility({
 							mt: false, // middle top
 							mb: false, // middle bottom
@@ -8782,9 +8792,15 @@ foreach( $params as $param ) {
 							tr: false, // top right
 							mtr: true  // middle top rotate - this is the rotation handle
 						});
-
-
-						canvas.renderAll();
+						
+						// Additional settings to completely disable resize
+						group.lockScalingX = true;
+						group.lockScalingY = true;
+						group.lockScalingFlip = true;
+						
+						// Force update of controls
+						group.setCoords();
+						canvas.requestRenderAll();
 
 
 
