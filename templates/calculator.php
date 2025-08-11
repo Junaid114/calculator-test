@@ -4775,9 +4775,13 @@ foreach( $params as $param ) {
 
 							addBox(boxBounds.left, boxBounds.top - boxHeight);
 
-						}
+						} else if (maxExtend === bottomExtend && bottomExtend > 0) {
 
-						// Note: We intentionally DON'T add boxes below (bottomExtend)
+							// Add one box to the bottom
+
+							addBox(boxBounds.left, boxBounds.bottom);
+
+						}
 
 					}
 
