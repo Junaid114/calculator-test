@@ -3097,7 +3097,7 @@ foreach( $params as $param ) {
 
 							top: centerY,
 
-							opacity: 0.3, // Increased opacity to make it more visible
+							opacity: 0.15, // Reduced opacity to make watermark lighter
 
 							selectable: false,
 
