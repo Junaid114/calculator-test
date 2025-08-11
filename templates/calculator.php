@@ -10723,9 +10723,7 @@ foreach( $params as $param ) {
 								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
 								jQuery('#auth').text('Logout');
 								
-								// Show success message and ensure modal is hidden after alert
-								alert('Login successful! Welcome ' + email);
-								// Force hide modal again after alert is dismissed
+								// Force hide modal after successful login
 								forceHideAuthModal();
 								
 								// Additional explicit hiding of auth modal with timeout to ensure it's hidden
@@ -10796,10 +10794,9 @@ foreach( $params as $param ) {
 								// jQuery('#verificationEmail').text(jQuery('#reg_email').val());
 								
 								// Update footer text
-								// jQuery('#authFooterText').html('Please check your email and click the verification link to activate your account.');
+								// jQuery('#authFooterMessage').html('Please check your email and click the verification link to activate your account.');
 								
-								// Show success message and enable calculator
-								alert('Registration successful! You can now use the calculator.');
+								// Enable calculator directly without alert
 								enableCalculator();
 							} else {
 								errorElement.html(result.message || 'Registration failed').show();
