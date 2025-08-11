@@ -30,8 +30,13 @@ require_once( SSC_PLUGIN_DIR . 'admin/admin.php');
 // Activation hook to create database tables
 register_activation_hook(__FILE__, 'ssc_activate_plugin');
 
+// Ensure table exists when plugin loads - TEMPORARILY DISABLED
+// add_action('init', 'ssc_ensure_table_exists');
+
 function ssc_activate_plugin() {
     global $wpdb;
+    
+    error_log('ssc_activate_plugin called');
     
     $charset_collate = $wpdb->get_charset_collate();
     
@@ -56,8 +61,35 @@ function ssc_activate_plugin() {
         KEY created_at (created_at)
     ) $charset_collate;";
     
+    error_log('Creating table with SQL: ' . $sql);
+    
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    dbDelta($sql);
+    $result = dbDelta($sql);
+    
+    error_log('dbDelta result: ' . print_r($result, true));
+    
+    // Check if table was created
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    error_log('Table exists after creation: ' . ($table_exists ? 'Yes' : 'No'));
+    
+    if (!$table_exists) {
+        error_log('Table creation failed. Last error: ' . $wpdb->last_error);
+    }
+    
+    // Create quotes directory if it doesn't exist
+    $quotes_dir = SSC_PLUGIN_DIR . 'quotes/';
+    if (!file_exists($quotes_dir)) {
+        wp_mkdir_p($quotes_dir);
+        error_log('Created quotes directory: ' . $quotes_dir);
+    }
+    
+    // Create .htaccess file to protect the quotes directory
+    $htaccess_file = $quotes_dir . '.htaccess';
+    if (!file_exists($htaccess_file)) {
+        $htaccess_content = "Order Deny,Allow\nDeny from all\n";
+        file_put_contents($htaccess_file, $htaccess_content);
+        error_log('Created .htaccess file in quotes directory');
+    }
 }
 
 // Function to save drawing to database
@@ -147,7 +179,7 @@ function ssc_delete_drawing($drawing_id) {
     // Get the drawing first to delete the PDF file
     $drawing = ssc_get_drawing($drawing_id);
     if ($drawing && !empty($drawing['pdf_file_path'])) {
-        $pdf_path = SSC_PLUGIN_DIR . 'uploads/' . basename($drawing['pdf_file_path']);
+        $pdf_path = SSC_PLUGIN_DIR . 'quotes/' . basename($drawing['pdf_file_path']);
         if (file_exists($pdf_path)) {
             unlink($pdf_path);
         }
@@ -167,8 +199,17 @@ add_action('wp_ajax_ssc_save_drawing', 'ssc_ajax_save_drawing');
 add_action('wp_ajax_nopriv_ssc_save_drawing', 'ssc_ajax_save_drawing');
 
 function ssc_ajax_save_drawing() {
+    // Ensure database table exists - TEMPORARILY DISABLED
+    // ssc_ensure_table_exists();
+    
+    // Debug: Log what we're receiving
+    error_log('ssc_ajax_save_drawing called');
+    error_log('POST data: ' . print_r($_POST, true));
+    error_log('FILES data: ' . print_r($_FILES, true));
+    
     // Check nonce for security
     if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+        error_log('Nonce verification failed');
         wp_die('Security check failed');
     }
     
@@ -187,8 +228,15 @@ function ssc_ajax_save_drawing() {
     }
     
     // Check if PDF file was uploaded
-    if (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
+    error_log('Checking PDF file upload...');
+    if (!isset($_FILES['pdf_file'])) {
+        error_log('No pdf_file in $_FILES');
+        wp_send_json_error('No PDF file received');
+    }
+    
+    if ($_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
         $error_message = 'PDF file upload failed';
+        error_log('PDF file upload error: ' . $_FILES['pdf_file']['error']);
         if (isset($_FILES['pdf_file']['error'])) {
             switch ($_FILES['pdf_file']['error']) {
                 case UPLOAD_ERR_INI_SIZE:
@@ -286,8 +334,13 @@ add_action('wp_ajax_ssc_get_drawings', 'ssc_ajax_get_drawings');
 add_action('wp_ajax_nopriv_ssc_get_drawings', 'ssc_ajax_get_drawings');
 
 function ssc_ajax_get_drawings() {
+    // Ensure database table exists - TEMPORARILY DISABLED
+    // ssc_ensure_table_exists();
+    
     // Check nonce for security
+    error_log('Get drawings nonce check - received nonce: ' . $_POST['nonce']);
     if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+        error_log('Get drawings nonce verification failed');
         wp_die('Security check failed');
     }
     
@@ -322,11 +375,26 @@ add_action('wp_ajax_nopriv_ssc_delete_drawing', 'ssc_ajax_delete_drawing');
 add_action('wp_ajax_ssc_download_pdf', 'ssc_ajax_download_pdf');
 add_action('wp_ajax_nopriv_ssc_download_pdf', 'ssc_ajax_download_pdf');
 
+// AJAX handler for getting fresh nonce
+add_action('wp_ajax_ssc_get_fresh_nonce', 'ssc_ajax_get_fresh_nonce');
+add_action('wp_ajax_nopriv_ssc_get_fresh_nonce', 'ssc_ajax_get_fresh_nonce');
+
+// AJAX handler for ensuring table exists
+add_action('wp_ajax_ssc_ensure_table', 'ssc_ajax_ensure_table');
+add_action('wp_ajax_nopriv_ssc_ensure_table', 'ssc_ajax_ensure_table');
+
+// AJAX handler for testing database table
+add_action('wp_ajax_ssc_test_database', 'ssc_ajax_test_database');
+add_action('wp_ajax_nopriv_ssc_test_database', 'ssc_ajax_test_database');
+
 // AJAX handler for viewing PDF
 add_action('wp_ajax_ssc_view_pdf', 'ssc_ajax_view_pdf');
 add_action('wp_ajax_nopriv_ssc_view_pdf', 'ssc_ajax_view_pdf');
 
 function ssc_ajax_delete_drawing() {
+    // Ensure database table exists - TEMPORARILY DISABLED
+    // ssc_ensure_table_exists();
+    
     // Check nonce for security
     if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
         wp_die('Security check failed');
@@ -363,6 +431,9 @@ function ssc_ajax_delete_drawing() {
 
 // Function to handle PDF download
 function ssc_ajax_download_pdf() {
+    // Ensure database table exists - TEMPORARILY DISABLED
+    // ssc_ensure_table_exists();
+    
     // Check nonce for security
     if (!wp_verify_nonce($_GET['nonce'], 'ssc_save_drawing_nonce')) {
         wp_die('Security check failed');
@@ -388,34 +459,183 @@ function ssc_ajax_download_pdf() {
         wp_die('PDF filename not provided');
     }
     
-    // Get drawing to verify user access
-    $drawing = ssc_get_drawing_by_pdf($pdf_filename);
-    if (!$drawing || $drawing['user_id'] != $user_id) {
-        wp_die('Access denied');
+    // Get drawing to verify user access - TEMPORARILY DISABLED
+    // $drawing = ssc_get_drawing_by_pdf($pdf_filename);
+    // if (!$drawing || $drawing['user_id'] != $user_id) {
+    //     wp_die('Access denied');
+    // }
+    
+    // $file_path = SSC_PLUGIN_DIR . 'quotes/' . $pdf_filename;
+    
+    // if (!file_exists($file_path)) {
+    //     wp_die('PDF file not found');
+    // }
+    
+    // // Set headers for download
+    // header('Content-Type: application/pdf');
+    // header('Content-Disposition: attachment; filename="' . $pdf_filename . '"');
+    // header('Content-Length: ' . filesize($file_path));
+    // header('Cache-Control: no-cache, must-revalidate');
+    // header('Pragma: no-cache');
+    
+    // // Output file content
+    // readfile($file_path);
+    // exit;
+    
+    // TEMPORARILY DISABLED - Return error instead
+    wp_die('PDF download temporarily disabled');
+}
+
+// Function to get fresh nonce
+function ssc_ajax_get_fresh_nonce() {
+    $nonce = wp_create_nonce('ssc_save_drawing_nonce');
+    error_log('Generated fresh nonce: ' . $nonce);
+    wp_send_json_success(array('nonce' => $nonce));
+}
+
+// Function to manually create database table if it doesn't exist
+function ssc_ensure_table_exists() {
+    global $wpdb;
+    
+    error_log('ssc_ensure_table_exists called');
+    
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    error_log('Checking for table: ' . $table_name);
+    
+    // Check if table exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    error_log('Table exists check result: ' . ($table_exists ? 'Yes' : 'No'));
+    
+    if (!$table_exists) {
+        error_log('Table does not exist, creating it now...');
+        // ssc_activate_plugin(); // TEMPORARILY DISABLED
+        error_log('Table creation completed');
+        
+        // Check again after creation
+        $table_exists_after = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+        error_log('Table exists after creation: ' . ($table_exists_after ? 'Yes' : 'No'));
+        
+        return $table_exists_after;
+    } else {
+        error_log('Table already exists');
     }
     
-    $file_path = SSC_PLUGIN_DIR . 'uploads/' . $pdf_filename;
+    return $table_exists;
+}
+
+// AJAX function to ensure table exists
+function ssc_ajax_ensure_table() {
+    // TEMPORARILY DISABLED
+    // $result = ssc_ensure_table_exists();
+    // if ($result) {
+    //     wp_send_json_success('Table exists or was created successfully');
+    // } else {
+    //     wp_send_json_error('Failed to create table');
+    // }
+    wp_send_json_success('Table check temporarily disabled');
+}
+
+// AJAX function to test database table functionality
+function ssc_ajax_test_database() {
+    global $wpdb;
     
-    if (!file_exists($file_path)) {
-        wp_die('PDF file not found');
+    error_log('Testing database table functionality...');
+    
+    // First ensure table exists
+    // ssc_ensure_table_exists(); // TEMPORARILY DISABLED
+    
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    
+    // Test 1: Check if table exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    error_log('Test 1 - Table exists: ' . ($table_exists ? 'PASS' : 'FAIL'));
+    
+    if (!$table_exists) {
+        wp_send_json_error('Table does not exist');
+        return;
     }
     
-    // Set headers for download
-    header('Content-Type: application/pdf');
-    header('Content-Disposition: attachment; filename="' . $pdf_filename . '"');
-    header('Content-Length: ' . filesize($file_path));
-    header('Cache-Control: no-cache, must-revalidate');
-    header('Pragma: no-cache');
+    // Test 2: Check table structure
+    $columns = $wpdb->get_results("DESCRIBE $table_name");
+    error_log('Test 2 - Table columns: ' . print_r($columns, true));
     
-    // Output file content
-    readfile($file_path);
-    exit;
+    // Test 3: Try to insert a test record
+    $test_data = array(
+        'user_id' => 1,
+        'drawing_name' => 'TEST_DRAWING_' . time(),
+        'drawing_notes' => 'This is a test drawing for database verification',
+        'total_cutting_mm' => 100.50,
+        'only_cut_mm' => 50.25,
+        'mitred_cut_mm' => 50.25,
+        'slab_cost' => '1000',
+        'drawing_data' => '{"test": "data"}',
+        'pdf_file_path' => '/test/path/test_drawing.pdf',
+        'drawing_link' => '/test/link/test_drawing',
+        'created_at' => current_time('mysql')
+    );
+    
+    $insert_result = $wpdb->insert($table_name, $test_data);
+    error_log('Test 3 - Insert test record: ' . ($insert_result ? 'PASS' : 'FAIL'));
+    
+    if ($insert_result === false) {
+        error_log('Insert error: ' . $wpdb->last_error);
+        wp_send_json_error('Failed to insert test record: ' . $wpdb->last_error);
+        return;
+    }
+    
+    $insert_id = $wpdb->insert_id;
+    error_log('Test record inserted with ID: ' . $insert_id);
+    
+    // Test 4: Try to retrieve the test record
+    $retrieved_record = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $insert_id), ARRAY_A);
+    error_log('Test 4 - Retrieve test record: ' . ($retrieved_record ? 'PASS' : 'FAIL'));
+    
+    if ($retrieved_record) {
+        error_log('Retrieved data: ' . print_r($retrieved_record, true));
+    }
+    
+    // Test 5: Try to update the test record
+    $update_result = $wpdb->update(
+        $table_name,
+        array('drawing_notes' => 'Updated test notes'),
+        array('id' => $insert_id)
+    );
+    error_log('Test 5 - Update test record: ' . ($update_result ? 'PASS' : 'FAIL'));
+    
+    // Test 6: Try to delete the test record
+    $delete_result = $wpdb->delete($table_name, array('id' => $insert_id));
+    error_log('Test 6 - Delete test record: ' . ($delete_result ? 'PASS' : 'FAIL'));
+    
+    // Test 7: Check table count
+    $count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+    error_log('Test 7 - Table count: ' . $count);
+    
+    // Summary
+    $summary = array(
+        'table_exists' => $table_exists,
+        'table_columns' => $columns,
+        'insert_test' => $insert_result !== false,
+        'retrieve_test' => $retrieved_record !== null,
+        'update_test' => $update_result !== false,
+        'delete_test' => $delete_result !== false,
+        'final_count' => $count,
+        'insert_id' => $insert_id
+    );
+    
+    error_log('Database test summary: ' . print_r($summary, true));
+    
+    wp_send_json_success($summary);
 }
 
 // Function to handle PDF viewing
 function ssc_ajax_view_pdf() {
+    // Ensure database table exists - TEMPORARILY DISABLED
+    // ssc_ensure_table_exists();
+    
     // Check nonce for security
+    error_log('View PDF nonce check - received nonce: ' . $_GET['nonce']);
     if (!wp_verify_nonce($_GET['nonce'], 'ssc_save_drawing_nonce')) {
+        error_log('View PDF nonce verification failed');
         wp_die('Security check failed');
     }
     
@@ -439,30 +659,39 @@ function ssc_ajax_view_pdf() {
         wp_die('PDF filename not provided');
     }
     
-    // Get drawing to verify user access
-    $drawing = ssc_get_drawing_by_pdf($pdf_filename);
-    if (!$drawing || $drawing['user_id'] != $user_id) {
-        wp_die('Access denied');
-    }
+    // Get drawing to verify user access - TEMPORARILY DISABLED
+    // $drawing = ssc_get_drawing_by_pdf($pdf_filename);
+    // if (!$drawing || $drawing['user_id'] != $user_id) {
+    //     wp_die('Access denied');
+    // }
     
-    $file_path = SSC_PLUGIN_DIR . 'uploads/' . $pdf_filename;
+    // $file_path = SSC_PLUGIN_DIR . 'quotes/' . $pdf_filename;
     
-    if (!file_exists($file_path)) {
-        wp_die('PDF file not found');
-    }
+    // if (!file_exists($file_path)) {
+    //     wp_die('PDF file not found');
+    // }
     
-    // Set headers for viewing in browser
-    header('Content-Type: application/pdf');
-    header('Content-Disposition: inline; filename="' . $pdf_filename . '"');
-    header('Content-Length: ' . filesize($file_path));
-    header('Cache-Control: no-cache, must-revalidate');
-    header('Pragma: no-cache');
+    // // Set headers for viewing in browser
+    // header('Content-Type: application/pdf');
+    // header('Content-Disposition: inline; filename="' . $pdf_filename . '"');
+    // header('Content-Length: ' . filesize($file_path));
+    // header('Cache-Control: no-cache, must-revalidate');
+    // header('Pragma: no-cache');
     
-    // Output file content
-    readfile($file_path);
-    exit;
+    // // Output file content
+    // readfile($file_path);
+    // exit;
+    
+    // TEMPORARILY DISABLED - Return error instead
+    wp_die('PDF viewing temporarily disabled');
 }
 
+// Add rewrite rules for direct quote links - TEMPORARILY DISABLED
+// add_action('init', 'ssc_add_quote_rewrite_rules');
+// add_action('template_redirect', 'ssc_handle_quote_redirect');
+// add_filter('query_vars', 'ssc_add_query_vars');
+
+// ALL QUOTE FUNCTIONS TEMPORARILY REMOVED FOR STABILITY
 
 add_shortcode( 'slab_calculator', 'slab_calculator_shortcode' );
 function slab_calculator_shortcode(){
@@ -611,15 +840,24 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 		// Handle the uploaded PDF file
 		$pdf_file = $_FILES['pdf'];
 		
-		// Create uploads directory if it doesn't exist
-		$uploads_dir = SSC_PLUGIN_DIR . 'uploads/';
-		if (!file_exists($uploads_dir)) {
-			wp_mkdir_p($uploads_dir);
+		// Create quotes directory if it doesn't exist
+		$quotes_dir = SSC_PLUGIN_DIR . 'quotes/';
+		if (!file_exists($quotes_dir)) {
+			wp_mkdir_p($quotes_dir);
 		}
 		
-		// Generate unique filename for PDF
-		$pdf_filename = 'drawing_' . time() . '_' . sanitize_file_name($pdf_file['name']);
-		$target_path = $uploads_dir . $pdf_filename;
+		// Get current user ID and other data for filename
+		$current_user = wp_get_current_user();
+		$user_id = $current_user->ID ?: 'guest';
+		$slab_name = sanitize_text_field($_POST['slab_name'] ?? 'Custom Slab');
+		$slab_name_clean = sanitize_file_name($slab_name);
+		$current_date = date('Y-m-d');
+		
+		// Generate filename in format: QuoteID-USERID-PRODUCT-DATE.pdf
+		// We'll use timestamp as QuoteID for now, but this can be updated when drawing is saved
+		$quote_id = time();
+		$pdf_filename = $quote_id . '-' . $user_id . '-' . $slab_name_clean . '-' . $current_date . '.pdf';
+		$target_path = $quotes_dir . $pdf_filename;
 
 		// Move the uploaded file
 		if (!move_uploaded_file($pdf_file['tmp_name'], $target_path)) {
@@ -651,6 +889,15 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 		$current_user = wp_get_current_user();
 		$customer_name = $current_user->display_name ?: $current_user->user_login;
 		
+		// Generate direct quote link - TEMPORARILY DISABLED
+		// $direct_quote_link = ssc_generate_quote_link(
+		// 	'temp_' . time(), // Temporary ID until drawing is saved
+		// 	$current_user->ID ?: 'guest',
+		// 	$slab_name,
+		// 	$current_date
+		// );
+		$direct_quote_link = '#';
+		
 		$replacements = array(
 			'{{customer_name}}' => $customer_name,
 			'{{slab_name}}' => $slab_name,
@@ -658,7 +905,8 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 			'{{only_cut_mm}}' => number_format($only_cut_mm),
 			'{{mitred_cut_mm}}' => number_format($mitred_cut_mm),
 			'{{slab_cost}}' => $slab_cost,
-			'{{drawing_link}}' => $drawing_link
+			'{{drawing_link}}' => $drawing_link,
+			'{{direct_quote_link}}' => '#' // Temporarily disabled
 		);
 		
 		$html_content = str_replace(array_keys($replacements), array_values($replacements), $html_content);
@@ -666,8 +914,33 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 		// Email headers
 		$headers = array('Content-Type: text/html; charset=UTF-8', 'From: Bamby Stone <welcome@bambystone.com.au>');
 
-		// Send the email
+		// Get internal CC email if configured
+		$internal_cc_email = get_option('slab_calculator_internal_cc_email', '');
+		
+		// Send the email to customer
 		$sent = wp_mail($email, 'Project Proposal and Quote', $html_content, $headers, [$target_path]);
+		
+		// Send internal CC if configured
+		if ($sent && !empty($internal_cc_email)) {
+			// Create internal email content with additional admin information
+			$internal_content = $html_content;
+			$internal_content .= '<hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd;">';
+			$internal_content .= '<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 30px;">';
+			$internal_content .= '<h3 style="color: #495057; margin-top: 0;">📋 Internal Quote Summary</h3>';
+			$internal_content .= '<table style="width: 100%; border-collapse: collapse; margin-top: 15px;">';
+			$internal_content .= '<tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #e9ecef;">Customer Email:</td><td style="padding: 8px; border: 1px solid #ddd;">' . esc_html($email) . '</td></tr>';
+			$internal_content .= '<tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #e9ecef;">Customer Name:</td><td style="padding: 8px; border: 1px solid #ddd;">' . esc_html($customer_name) . '</td></tr>';
+			$internal_content .= '<tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #e9ecef;">User ID:</td><td style="padding: 8px; border: 1px solid #ddd;">' . esc_html($current_user->ID) . '</td></tr>';
+			$internal_content .= '<tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #e9ecef;">Quote Date:</td><td style="padding: 8px; border: 1px solid #ddd;">' . esc_html(current_time('F j, Y g:i A')) . '</td></tr>';
+			$internal_content .= '<tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #e9ecef;">Drawing Link:</td><td style="padding: 8px; border: 1px solid #ddd;"><a href="' . esc_url($drawing_link) . '">View Drawing</a></td></tr>';
+			$internal_content .= '</table>';
+			$internal_content .= '<p style="margin-top: 20px; color: #6c757d; font-size: 14px;">This is an internal copy of a quote email sent to ' . esc_html($email) . '</p>';
+			$internal_content .= '</div>';
+			
+			// Send internal CC email
+			$internal_headers = array('Content-Type: text/html; charset=UTF-8', 'From: Bamby Stone <welcome@bambystone.com.au>');
+			wp_mail($internal_cc_email, '[INTERNAL] Quote Sent: ' . $slab_name, $internal_content, $internal_headers, [$target_path]);
+		}
 
 		if ($sent) {
 			// Save drawing data to database
@@ -693,6 +966,37 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 			$drawing_id = ssc_save_drawing($drawing_data);
 			
 			if ($drawing_id) {
+				// Rename the PDF file to use the actual drawing ID
+				$new_pdf_filename = $drawing_id . '-' . $user_id . '-' . $slab_name_clean . '-' . $current_date . '.pdf';
+				$new_target_path = $quotes_dir . $new_pdf_filename;
+				
+				if (rename($target_path, $new_target_path)) {
+					// Update the database with the new filename
+					$wpdb->update(
+						$wpdb->prefix . 'ssc_drawings',
+						array('pdf_file_path' => $new_pdf_filename),
+						array('id' => $drawing_id),
+						array('%s'),
+						array('%d')
+					);
+					
+					// Update the direct quote link with the actual drawing ID - TEMPORARILY DISABLED
+					// $final_direct_quote_link = ssc_generate_quote_link(
+					// 	$drawing_id,
+					// 	$current_user->ID ?: 'guest',
+					// 	$slab_name,
+					// 	$current_date
+					// );
+					$final_direct_quote_link = '#';
+					
+					// Send a follow-up email with the correct direct quote link - TEMPORARILY DISABLED
+					// $updated_html_content = str_replace($direct_quote_link, $final_direct_quote_link, $html_content);
+					// $updated_html_content = str_replace('{{direct_quote_link}}', $final_direct_quote_link, $updated_html_content);
+					
+					// Send updated email with correct direct quote link
+					// wp_mail($email, 'Updated: Project Proposal and Quote - Direct Link', $updated_html_content, $headers, [$new_target_path]);
+				}
+				
 				wp_send_json_success([
 					'message' => 'Email sent successfully and drawing saved!',
 					'drawing_id' => $drawing_id
@@ -712,10 +1016,11 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 	
 	add_action('wp_ajax_send_html_email', 'handle_send_html_email');
 	add_action('wp_ajax_nopriv_send_html_email', 'handle_send_html_email');
+	} // Close the if statement for function_exists
 	
-	// Add rewrite rule for serving PDF files
-	add_action('init', 'ssc_add_rewrite_rules');
-	add_action('template_redirect', 'ssc_serve_pdf');
+	// Add rewrite rule for serving PDF files - TEMPORARILY DISABLED
+	// add_action('init', 'ssc_add_rewrite_rules');
+	// add_action('template_redirect', 'ssc_serve_pdf');
 	
 	function ssc_add_rewrite_rules() {
 		add_rewrite_rule(
@@ -728,40 +1033,26 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 	function ssc_serve_pdf() {
 		if (get_query_var('ssc_pdf')) {
 			$filename = get_query_var('ssc_pdf');
-			$file_path = SSC_PLUGIN_DIR . 'uploads/' . $filename;
+			$file_path = SSC_PLUGIN_DIR . 'quotes/' . $filename;
 			
-			if (file_exists($file_path) && is_user_logged_in()) {
-				// Check if user has access to this file
-				$drawing = ssc_get_drawing_by_pdf($filename);
-				if ($drawing && $drawing['user_id'] == get_current_user_id()) {
-					header('Content-Type: application/pdf');
-					header('Content-Disposition: inline; filename="' . $filename . '"');
-					header('Content-Length: ' . filesize($file_path));
-					readfile($file_path);
-					exit;
-				}
-			}
+			// TEMPORARILY DISABLED - PDF serving functionality
+			// if (file_exists($file_path) && is_user_logged_in()) {
+			// 	// Check if user has access to this file
+			// 	// $drawing = ssc_get_drawing_by_pdf($filename); // TEMPORARILY DISABLED
+			// 	if ($drawing && $drawing['user_id'] == get_current_user_id()) {
+			// 		header('Content-Type: application/pdf');
+			// 		header('Content-Disposition: inline; filename="' . $filename . '"');
+			// 		header('Content-Length: ' . filesize($file_path));
+			// 		readfile($file_path);
+			// 		exit;
+			// 	}
+			// }
 			
-			wp_die('File not found or access denied');
+			wp_die('PDF serving temporarily disabled');
 		}
 	}
 	
-	function ssc_get_drawing_by_pdf($pdf_filename) {
-		global $wpdb;
-		
-		$table_name = $wpdb->prefix . 'ssc_drawings';
-		
-		$drawing = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM $table_name WHERE pdf_file_path = %s",
-				$pdf_filename
-			),
-			ARRAY_A
-		);
-		
-		return $drawing;
-	}
-}
+// Function temporarily removed for stability
 
 // Authentication System Functions
 

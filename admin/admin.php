@@ -58,7 +58,9 @@ if (!function_exists('slab_calculator_register_settings')) {
         register_setting('slab_calculator_settings_group', 'slab_calculator_drawing_pad_height');
         register_setting('slab_calculator_settings_group', 'slab_calculator_drawing_pad_width');
 		register_setting('slab_calculator_settings_group', 'slab_calculator_min_screen_size');
-		register_setting('slab_calculator_settings_group', 'slab_calculator_email_template');
+		        register_setting('slab_calculator_settings_group', 'slab_calculator_email_template');
+        register_setting('slab_calculator_settings_group', 'slab_calculator_internal_cc_email');
+        register_setting('slab_calculator_settings_group', 'ssc_public_quote_access');
 
         add_settings_section(
             'slab_calculator_settings_section',
@@ -130,6 +132,22 @@ if (!function_exists('slab_calculator_register_settings')) {
 		'slab_calculator_settings',
 		'slab_calculator_settings_section'
 	);
+        
+        add_settings_field(
+            'slab_calculator_internal_cc_email',
+            'Internal CC Email',
+            'slab_calculator_internal_cc_email_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_public_quote_access',
+            'Public Quote Access',
+            'ssc_public_quote_access_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
 
     }
     add_action('admin_init', 'slab_calculator_register_settings');
@@ -393,7 +411,38 @@ if (!function_exists('slab_calculator_email_template_callback')) {
     }
 }
 
+if (!function_exists('slab_calculator_internal_cc_email_callback')) {
+	function slab_calculator_internal_cc_email_callback() {
+		$cc_email = get_option('slab_calculator_internal_cc_email', '');
+		?>
+		<input type="email" 
+			   name="slab_calculator_internal_cc_email" 
+			   value="<?php echo esc_attr($cc_email); ?>" 
+			   class="regular-text" 
+			   placeholder="admin@example.com" />
+		<p class="description">
+			Enter an email address to receive copies of all quote emails sent to customers. 
+			Leave empty to disable internal CC notifications.
+		</p>
+		<?php
+	}
+}
 
+if (!function_exists('ssc_public_quote_access_callback')) {
+	function ssc_public_quote_access_callback() {
+		$public_access = get_option('ssc_public_quote_access', 'no');
+		?>
+		<select name="ssc_public_quote_access">
+			<option value="no" <?php selected($public_access, 'no'); ?>>No - Only logged-in users and admins</option>
+			<option value="yes" <?php selected($public_access, 'yes'); ?>>Yes - Allow public access to shared quotes</option>
+		</select>
+		<p class="description">
+			When enabled, anyone with a direct quote link can view the PDF without logging in. 
+			This is useful for sharing quotes with clients, but may expose quote information publicly.
+		</p>
+		<?php
+	}
+}
 
 if (!function_exists('slab_calculator_check_user_access')) {
 	function slab_calculator_check_user_access() {
@@ -434,7 +483,7 @@ function ssc_saved_drawings_page() {
 		$drawing_id = intval($_POST['drawing_id']);
 		if (wp_verify_nonce($_POST['_wpnonce'], 'delete_drawing_' . $drawing_id)) {
 			// Include the main plugin file to access the delete function
-			require_once(plugin_dir_path(__FILE__) . '../stone-slab-calculator.php');
+			// require_once(plugin_dir_path(__FILE__) . '../stone-slab-calculator.php'); // REMOVED - Circular dependency
 			if (ssc_delete_drawing($drawing_id)) {
 				echo '<div class="notice notice-success"><p>Drawing deleted successfully!</p></div>';
 			} else {
@@ -443,68 +492,439 @@ function ssc_saved_drawings_page() {
 		}
 	}
 	
-	// Get all drawings
-	global $wpdb;
-	$table_name = $wpdb->prefix . 'ssc_drawings';
-	$drawings = $wpdb->get_results("SELECT * FROM $table_name ORDER BY created_at DESC", ARRAY_A);
-	
 	echo '<div class="wrap">';
 	echo '<h1>Saved Drawings</h1>';
 	echo '<p>View and manage all saved drawings and PDFs from the calculator.</p>';
 	
-	if (empty($drawings)) {
-		echo '<div class="notice notice-info"><p>No drawings have been saved yet.</p></div>';
-	} else {
-		echo '<table class="wp-list-table widefat fixed striped">';
-		echo '<thead>';
-		echo '<tr>';
-		echo '<th>Customer</th>';
-		echo '<th>Slab Name</th>';
-		echo '<th>Total Cutting (mm)</th>';
-		echo '<th>Standard Cut (mm)</th>';
-		echo '<th>Mitred Cut (mm)</th>';
-		echo '<th>Slab Cost</th>';
-		echo '<th>Created</th>';
-		echo '<th>Actions</th>';
-		echo '</tr>';
-		echo '</thead>';
-		echo '<tbody>';
-		
-		foreach ($drawings as $drawing) {
-			$user = get_user_by('id', $drawing['user_id']);
-			$customer_name = $user ? $user->display_name : 'Unknown User';
-			
-			echo '<tr>';
-			echo '<td>' . esc_html($customer_name) . '</td>';
-			echo '<td>' . esc_html($drawing['slab_name']) . '</td>';
-			echo '<td>' . esc_html($drawing['total_cutting_mm']) . '</td>';
-			echo '<td>' . esc_html($drawing['only_cut_mm']) . '</td>';
-			echo '<td>' . esc_html($drawing['mitred_cut_mm']) . '</td>';
-			echo '<td>' . esc_html($drawing['slab_cost']) . '</td>';
-			echo '<td>' . esc_html(date('M j, Y g:i A', strtotime($drawing['created_at']))) . '</td>';
-			echo '<td>';
-			
-			// View PDF link
-			$pdf_url = home_url('/ssc-pdf/' . $drawing['pdf_file_path']);
-			echo '<a href="' . esc_url($pdf_url) . '" target="_blank" class="button button-small">View PDF</a> ';
-			
-			// Download PDF link
-			echo '<a href="' . esc_url($pdf_url) . '" download class="button button-small">Download</a> ';
-			
-			// Delete button
-			echo '<form method="post" style="display:inline;">';
-			echo wp_nonce_field('delete_drawing_' . $drawing['id'], '_wpnonce', true, false);
-			echo '<input type="hidden" name="drawing_id" value="' . $drawing['id'] . '">';
-			echo '<input type="submit" name="delete_drawing" value="Delete" class="button button-small button-link-delete" onclick="return confirm(\'Are you sure you want to delete this drawing?\')">';
-			echo '</form>';
-			
-			echo '</td>';
-			echo '</tr>';
-		}
-		
-		echo '</tbody>';
-		echo '</table>';
-	}
+	// Add filter controls
+	echo '<div class="ssc-admin-filters">';
+	echo '<h3>Filter Drawings</h3>';
+	echo '<div class="filter-grid">';
+	
+	// Quote ID filter
+	echo '<div class="filter-item">';
+	echo '<label for="filter_quote_id">Quote ID:</label>';
+	echo '<input type="text" id="filter_quote_id" placeholder="Enter Quote ID">';
+	echo '</div>';
+	
+	// User ID filter
+	echo '<div class="filter-item">';
+	echo '<label for="filter_user_id">User ID:</label>';
+	echo '<input type="text" id="filter_user_id" placeholder="Enter User ID">';
+	echo '</div>';
+	
+	// Full Name filter
+	echo '<div class="filter-item">';
+	echo '<label for="filter_full_name">Full Name:</label>';
+	echo '<input type="text" id="filter_full_name" placeholder="Enter Full Name">';
+	echo '</div>';
+	
+	// Email filter
+	echo '<div class="filter-item">';
+	echo '<label for="filter_email">Email:</label>';
+	echo '<input type="email" id="filter_email" placeholder="Enter Email">';
+	echo '</div>';
+	
+	// Product filter
+	echo '<div class="filter-item">';
+	echo '<label for="filter_product">Product/Slab Name:</label>';
+	echo '<input type="text" id="filter_product" placeholder="Enter Product Name">';
+	echo '</div>';
+	
+	// Date range filters
+	echo '<div class="filter-item">';
+	echo '<label for="filter_date_from">Date From:</label>';
+	echo '<input type="date" id="filter_date_from">';
+	echo '</div>';
+	
+	echo '<div class="filter-item">';
+	echo '<label for="filter_date_to">Date To:</label>';
+	echo '<input type="date" id="filter_date_to">';
+	echo '</div>';
 	
 	echo '</div>';
+	
+	// Filter buttons
+	echo '<div class="filter-buttons">';
+	echo '<button type="button" id="apply_filters" class="button button-primary">Apply Filters</button>';
+	echo '<button type="button" id="clear_filters" class="button">Clear Filters</button>';
+	echo '<button type="button" id="export_filtered" class="button button-secondary">Export Filtered Results</button>';
+	echo '</div>';
+	
+			// Add helpful hints
+		echo '<div class="filter-hints">';
+		echo '<strong>Tips:</strong> Use any combination of filters. Press Enter in any field to apply filters. Use Ctrl+F to focus on filters, Ctrl+E to export.';
+		echo '</div>';
+		
+		// Add CC email status
+		$cc_email = get_option('slab_calculator_internal_cc_email', '');
+		if (!empty($cc_email)) {
+			echo '<div class="filter-hints" style="background: #d4edda; border-left-color: #28a745; margin-top: 10px;">';
+			echo '<strong>📧 Internal CC Active:</strong> All quote emails will be copied to ' . esc_html($cc_email);
+			echo '</div>';
+		}
+	echo '</div>';
+	
+	// Results table container
+	echo '<div id="ssc-results-container">';
+	echo '<div id="ssc-loading">';
+	echo '<p>Loading...</p>';
+	echo '</div>';
+	echo '<div id="ssc-results-table"></div>';
+	echo '</div>';
+	
+	echo '</div>';
+	
+	// Add JavaScript for filtering
+	echo '<script type="text/javascript">
+	jQuery(document).ready(function($) {
+		// Load initial data
+		loadFilteredDrawings();
+		
+		// Apply filters button
+		$("#apply_filters").on("click", function() {
+			loadFilteredDrawings();
+		});
+		
+		// Clear filters button
+		$("#clear_filters").on("click", function() {
+			$("#filter_quote_id").val("");
+			$("#filter_user_id").val("");
+			$("#filter_full_name").val("");
+			$("#filter_email").val("");
+			$("#filter_product").val("");
+			$("#filter_date_from").val("");
+			$("#filter_date_to").val("");
+			loadFilteredDrawings();
+		});
+		
+		// Apply filters when Enter is pressed in any filter field
+		$(".filter-item input").on("keypress", function(e) {
+			if (e.which === 13) { // Enter key
+				loadFilteredDrawings();
+			}
+		});
+		
+		// Auto-apply filters after a short delay when typing (for better UX)
+		var filterTimeout;
+		$(".filter-item input").on("input", function() {
+			clearTimeout(filterTimeout);
+			filterTimeout = setTimeout(function() {
+				loadFilteredDrawings();
+			}, 500); // 500ms delay
+		});
+		
+		// Export filtered results
+		$("#export_filtered").on("click", function() {
+			exportFilteredResults();
+		});
+		
+		// Add keyboard shortcuts
+		$(document).on("keydown", function(e) {
+			// Ctrl/Cmd + F to focus on first filter
+			if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+				e.preventDefault();
+				$("#filter_quote_id").focus();
+			}
+			// Ctrl/Cmd + E to export
+			if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+				e.preventDefault();
+				exportFilteredResults();
+			}
+		});
+		
+		function loadFilteredDrawings() {
+			$("#ssc-loading").addClass("show");
+			$("#ssc-results-table").hide();
+			
+			var filterData = {
+				action: "ssc_admin_filter_drawings",
+				_wpnonce: "' . wp_create_nonce('ssc_admin_filter_nonce') . '",
+				quote_id: $("#filter_quote_id").val(),
+				user_id: $("#filter_user_id").val(),
+				full_name: $("#filter_full_name").val(),
+				email: $("#filter_email").val(),
+				product: $("#filter_product").val(),
+				date_from: $("#filter_date_from").val(),
+				date_to: $("#filter_date_to").val()
+			};
+			
+			$.post(ajaxurl, filterData, function(response) {
+				$("#ssc-loading").removeClass("show");
+				if (response.success) {
+					displayFilteredResults(response.data);
+				} else {
+					$("#ssc-results-table").html("<div class=\"notice notice-error\"><p>Error loading drawings: " + response.data + "</p></div>");
+					$("#ssc-results-table").show();
+				}
+			}).fail(function() {
+				$("#ssc-loading").removeClass("show");
+				$("#ssc-results-table").html("<div class=\"notice notice-error\"><p>Failed to load drawings. Please try again.</p></div>");
+				$("#ssc-results-table").show();
+			});
+		}
+		
+		function displayFilteredResults(drawings) {
+			if (drawings.length === 0) {
+				$("#ssc-results-table").html("<div class=\"notice notice-info\"><p>No drawings found matching the selected filters.</p></div>");
+				$("#ssc-results-table").show();
+				return;
+			}
+			
+			// Calculate summary statistics
+			var totalCutting = 0;
+			var totalCost = 0;
+			var validDrawings = 0;
+			
+			drawings.forEach(function(drawing) {
+				if (drawing.total_cutting_mm && !isNaN(parseFloat(drawing.total_cutting_mm))) {
+					totalCutting += parseFloat(drawing.total_cutting_mm);
+					validDrawings++;
+				}
+				if (drawing.slab_cost && drawing.slab_cost !== "N/A") {
+					var cost = parseFloat(drawing.slab_cost.replace(/[^0-9.-]+/g, ""));
+					if (!isNaN(cost)) {
+						totalCost += cost;
+					}
+				}
+			});
+			
+			var avgCutting = validDrawings > 0 ? (totalCutting / validDrawings).toFixed(2) : 0;
+			
+			// Display summary statistics
+			var summaryHtml = "<div class=\"ssc-summary-stats\">";
+			summaryHtml += "<h4>Summary Statistics</h4>";
+			summaryHtml += "<div class=\"stats-grid\">";
+			summaryHtml += "<div class=\"stat-item\"><strong>Total Drawings</strong><div class=\"stat-value\">" + drawings.length + "</div></div>";
+			summaryHtml += "<div class=\"stat-item\"><strong>Total Cutting</strong><div class=\"stat-value\">" + totalCutting.toFixed(2) + " mm</div></div>";
+			summaryHtml += "<div class=\"stat-item\"><strong>Average Cutting</strong><div class=\"stat-value\">" + avgCutting + " mm</div></div>";
+			summaryHtml += "<div class=\"stat-item\"><strong>Total Cost</strong><div class=\"stat-value\">$" + totalCost.toFixed(2) + "</div></div>";
+			summaryHtml += "</div></div>";
+			
+			var tableHtml = summaryHtml + "<table class=\"wp-list-table widefat fixed striped\">";
+			tableHtml += "<thead><tr>";
+			tableHtml += "<th>Quote ID</th>";
+			tableHtml += "<th>Customer</th>";
+			tableHtml += "<th>Email</th>";
+			tableHtml += "<th>Slab Name</th>";
+			tableHtml += "<th>Total Cutting (mm)</th>";
+			tableHtml += "<th>Standard Cut (mm)</th>";
+			tableHtml += "<th>Mitred Cut (mm)</th>";
+			tableHtml += "<th>Slab Cost</th>";
+			tableHtml += "<th>Created</th>";
+			tableHtml += "<th>Actions</th>";
+			tableHtml += "</tr></thead><tbody>";
+			
+			drawings.forEach(function(drawing) {
+				var customerName = drawing.display_name || "Unknown User";
+				var email = drawing.user_email || "N/A";
+				
+				tableHtml += "<tr>";
+				tableHtml += "<td>" + drawing.id + "</td>";
+				tableHtml += "<td>" + customerName + "</td>";
+				tableHtml += "<td>" + email + "</td>";
+				tableHtml += "<td>" + (drawing.drawing_name || drawing.slab_name || "N/A") + "</td>";
+				tableHtml += "<td>" + (drawing.total_cutting_mm || "N/A") + "</td>";
+				tableHtml += "<td>" + (drawing.only_cut_mm || "N/A") + "</td>";
+				tableHtml += "<td>" + (drawing.mitred_cut_mm || "N/A") + "</td>";
+				tableHtml += "<td>" + (drawing.slab_cost || "N/A") + "</td>";
+				tableHtml += "<td>" + formatDate(drawing.created_at) + "</td>";
+				tableHtml += "<td>";
+				
+				// Generate direct quote link
+				var directQuoteUrl = "' . home_url('/slab-calculator/quote/') . '" + drawing.id + "-" + drawing.user_id + "-" + (drawing.drawing_name || drawing.slab_name || "product").replace(/[^a-zA-Z0-9]/g, "-") + "-" + new Date(drawing.created_at).toISOString().split(\"T\")[0] + ".pdf";
+				
+				// View PDF link
+				var pdfUrl = "<?php echo home_url('/ssc-pdf/'); ?>" + drawing.pdf_file_path;
+				tableHtml += "<a href=\"" + pdfUrl + "\" target=\"_blank\" class=\"button button-small\">View PDF</a> ";
+				
+				// Download PDF link
+				tableHtml += "<a href=\"" + pdfUrl + "\" download class=\"button button-small\">Download</a> ";
+				
+				// Direct Quote Link
+				tableHtml += "<a href=\"" + directQuoteUrl + "\" target=\"_blank\" class=\"button button-small\" style=\"background: #007cba; color: white;\">Direct Link</a> ";
+				
+				// Delete button
+				tableHtml += "<form method=\"post\" style=\"display:inline;\">";
+				tableHtml += "' . wp_nonce_field('delete_drawing_', '_wpnonce', true, false) . '";
+				tableHtml += "<input type=\"hidden\" name=\"drawing_id\" value=\"" + drawing.id + "\">";
+				tableHtml += "<input type=\"submit\" name=\"delete_drawing\" value=\"Delete\" class=\"button button-small button-link-delete\" onclick=\"return confirm(\\\"Are you sure you want to delete this drawing?\\\")\">";
+				tableHtml += "</form>";
+				
+				tableHtml += "</td>";
+				tableHtml += "</tr>";
+			});
+			
+			tableHtml += "</tbody></table>";
+			tableHtml += "<p><strong>Total Results: " + drawings.length + "</strong></p>";
+			
+			$("#ssc-results-table").html(tableHtml);
+			$("#ssc-results-table").show();
+		}
+		
+		function formatDate(dateString) {
+			if (!dateString) return "N/A";
+			var date = new Date(dateString);
+			return date.toLocaleDateString("en-US", {
+				year: "numeric",
+				month: "short",
+				day: "numeric",
+				hour: "2-digit",
+				minute: "2-digit"
+			});
+		}
+		
+		function exportFilteredResults() {
+			// Get current filter values
+			var filterData = {
+				action: "ssc_admin_filter_drawings",
+				_wpnonce: "' . wp_create_nonce('ssc_admin_filter_nonce') . '",
+				quote_id: $("#filter_quote_id").val(),
+				user_id: $("#filter_user_id").val(),
+				full_name: $("#filter_full_name").val(),
+				email: $("#filter_email").val(),
+				product: $("#filter_product").val(),
+				date_from: $("#filter_date_from").val(),
+				date_to: $("#filter_date_to").val()
+			};
+			
+			$.post(ajaxurl, filterData, function(response) {
+				if (response.success && response.data.length > 0) {
+					exportToCSV(response.data);
+				} else {
+					alert("No data to export.");
+				}
+			});
+		}
+		
+		function exportToCSV(drawings) {
+			var csvContent = "data:text/csv;charset=utf-8,";
+			csvContent += "Quote ID,Customer,Email,Slab Name,Total Cutting (mm),Standard Cut (mm),Mitred Cut (mm),Slab Cost,Created\n";
+			
+			drawings.forEach(function(drawing) {
+				var row = [
+					drawing.id,
+					(drawing.display_name || "Unknown User").replace(/"/g, \'""\'),
+					(drawing.user_email || "N/A").replace(/"/g, \'""\'),
+					(drawing.drawing_name || drawing.slab_name || "N/A").replace(/"/g, \'""\'),
+					drawing.total_cutting_mm || "N/A",
+					drawing.only_cut_mm || "N/A",
+					drawing.mitred_cut_mm || "N/A",
+					drawing.slab_cost || "N/A",
+					drawing.created_at || "N/A"
+				];
+				csvContent += row.join(",") + "\\n";
+			});
+			
+			var encodedUri = encodeURI(csvContent);
+			var link = document.createElement("a");
+			link.setAttribute("href", encodedUri);
+			link.setAttribute("download", "stone_slab_calculator_drawings_" + new Date().toISOString().split("T")[0] + ".csv");
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		}
+	});
+	</script>';
+}
+
+// AJAX handler for admin filtering
+add_action('wp_ajax_ssc_admin_filter_drawings', 'ssc_admin_filter_drawings');
+
+// Enqueue admin styles
+add_action('admin_enqueue_scripts', 'ssc_admin_enqueue_styles');
+
+function ssc_admin_enqueue_styles($hook) {
+    if (strpos($hook, 'ssc_saved_drawings') !== false) {
+        wp_enqueue_style('ssc-admin-styles', plugin_dir_url(__FILE__) . 'css/admin-styles.css', array(), '1.0.0');
+    }
+}
+
+function ssc_admin_filter_drawings() {
+    // Check if user has permission
+    if (!current_user_can('manage_options')) {
+        wp_die(__('You do not have sufficient permissions to access this page.'));
+    }
+    
+    // Verify nonce for security
+    if (!wp_verify_nonce($_POST['_wpnonce'], 'ssc_admin_filter_nonce')) {
+        wp_die(__('Security check failed.'));
+    }
+    
+    // Get filter parameters
+    $quote_id = isset($_POST['quote_id']) ? sanitize_text_field($_POST['quote_id']) : '';
+    $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : '';
+    $full_name = isset($_POST['full_name']) ? sanitize_text_field($_POST['full_name']) : '';
+    $email = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
+    $product = isset($_POST['product']) ? sanitize_text_field($_POST['product']) : '';
+    $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+    $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+    
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    $users_table = $wpdb->prefix . 'users';
+    
+    // Build the query with filters
+    $where_conditions = array();
+    $query_params = array();
+    
+    if (!empty($quote_id)) {
+        $where_conditions[] = "d.id = %d";
+        $query_params[] = intval($quote_id);
+    }
+    
+    if (!empty($user_id)) {
+        $where_conditions[] = "d.user_id = %d";
+        $query_params[] = $user_id;
+    }
+    
+    if (!empty($full_name)) {
+        $where_conditions[] = "u.display_name LIKE %s";
+        $query_params[] = '%' . $wpdb->esc_like($full_name) . '%';
+    }
+    
+    if (!empty($email)) {
+        $where_conditions[] = "u.user_email LIKE %s";
+        $query_params[] = '%' . $wpdb->esc_like($email) . '%';
+    }
+    
+    if (!empty($product)) {
+        $where_conditions[] = "d.drawing_name LIKE %s";
+        $query_params[] = '%' . $wpdb->esc_like($product) . '%';
+    }
+    
+    if (!empty($date_from)) {
+        $where_conditions[] = "DATE(d.created_at) >= %s";
+        $query_params[] = $date_from;
+    }
+    
+    if (!empty($date_to)) {
+        $where_conditions[] = "DATE(d.created_at) <= %s";
+        $query_params[] = $date_to;
+    }
+    
+    // Build the WHERE clause
+    $where_clause = '';
+    if (!empty($where_conditions)) {
+        $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
+    }
+    
+    // Prepare the query
+    $query = "SELECT d.*, u.display_name, u.user_email 
+              FROM $table_name d 
+              LEFT JOIN $users_table u ON d.user_id = u.ID 
+              $where_clause 
+              ORDER BY d.created_at DESC";
+    
+    if (!empty($query_params)) {
+        $query = $wpdb->prepare($query, $query_params);
+    }
+    
+    $drawings = $wpdb->get_results($query, ARRAY_A);
+    
+    if ($drawings !== false) {
+        wp_send_json_success($drawings);
+    } else {
+        wp_send_json_error('Failed to get filtered drawings: ' . $wpdb->last_error);
+    }
 }
