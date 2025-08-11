@@ -2795,37 +2795,27 @@ foreach( $params as $param ) {
 
 			jQuery(document).ready(function() {
 				// Debug: Check if auth button exists
-				console.log('Document ready - checking auth button');
-				console.log('Auth button element:', jQuery('#auth'));
-				console.log('Auth button in toolbar .btns:', jQuery('#toolbar .btns #auth'));
-				console.log('Toolbar disabled state:', jQuery('#toolbar').hasClass('disabled'));
 
 				// Test button for Slab Usage Feature
 				jQuery('#testSlabUsage').click(function() {
-					console.log('Test Slab Usage button clicked!');
+				
 					
 					// Test the calculateSlabUsage function
 					if (typeof calculateSlabUsage === 'function') {
-						console.log('calculateSlabUsage function exists');
+						
 						calculateSlabUsage();
 					} else {
-						console.log('calculateSlabUsage function NOT found');
+						
 					}
 					
 					// Test the updateSlabVisualization function
 					if (typeof updateSlabUsage === 'function') {
-						console.log('updateSlabVisualization function exists');
+						
 						updateSlabVisualization();
 					} else {
-						console.log('updateSlabVisualization function NOT found');
+						
 					}
 					
-					// Show current totalMM value
-					console.log('Current totalMM:', totalMM);
-					
-					// Show current slab dimensions
-					console.log('Slab width (mm):', <?=$_GET['slab_width']?>);
-					console.log('Slab height (mm):', <?=$_GET['slab_height']?>);
 					
 					alert('Check browser console for test results!');
 				});
@@ -2844,7 +2834,7 @@ foreach( $params as $param ) {
 					jQuery('.only_cut_mm').html('0');
 					jQuery('.mitred_edge_mm').html('0');
 					
-					console.log('Display values initialized');
+					
 				}
 				
 				// Call initialization function
@@ -2855,7 +2845,7 @@ foreach( $params as $param ) {
 
 				// Global function to force hide auth modal
 				function forceHideAuthModal() {
-					console.log('Force hiding auth modal');
+					
 					jQuery('#authSection').removeClass('show');
 					jQuery('#authSection').hide();
 					jQuery('#authSection').css('display', 'none');
@@ -2870,21 +2860,20 @@ foreach( $params as $param ) {
 
 				// Functions to enable/disable toolbar and canvas
 				function enableCalculator() {
-					console.log('enableCalculator() called, isAuthenticated:', isAuthenticated);
+				
 					// Check if user is authenticated before enabling
 					if (isAuthenticated) {
-						console.log('User is authenticated, enabling calculator');
+					
 						jQuery('#toolbar').removeClass('disabled');
 						jQuery('#canvas').removeClass('disabled');
-						console.log('Hiding auth modal in enableCalculator');
+						
 						// Use the global function to force hide the auth modal
 						forceHideAuthModal();
 						// Show toolbar logout button
 						jQuery('#toolbarLogoutBtn').show();
-						console.log('Calculator enabled for authenticated user');
+						
 					} else {
 						// User not authenticated, show auth modal
-						console.log('User not authenticated, showing auth modal');
 						jQuery('#authSection').addClass('show').css('display', 'flex');
 					}
 				}
@@ -3146,7 +3135,7 @@ foreach( $params as $param ) {
 
 						
 
-						console.log('Watermark loaded for box at:', centerX, centerY);
+						
 
 					}, function(err) {
 
@@ -3316,13 +3305,8 @@ foreach( $params as $param ) {
 
 				function debugCanvasObjects() {
 
-					console.log('Canvas objects:');
 
-					canvas.getObjects().forEach((obj, index) => {
-
-						console.log(`${index}: Type: ${obj.type}, isWatermark: ${obj.isWatermark}, opacity: ${obj.opacity}, visible: ${obj.visible}`);
-
-					});
+					canvas.getObjects().forEach((obj, index) => {});
 
 				}
 
@@ -7341,11 +7325,11 @@ foreach( $params as $param ) {
 
 				// Event listener for shapes dropdown button
 
-				console.log('Setting up shapes dropdown button');
+			
 
 				var shapesButton = jQuery('#toolbar .shapes .shapes-dropdown-btn');
 
-				console.log('Shapes button found:', shapesButton.length);
+			
 
 				
 
@@ -7355,19 +7339,9 @@ foreach( $params as $param ) {
 
 					e.stopPropagation();
 
-					console.log('Shapes dropdown clicked');
 
 					var dropdown = jQuery(this).next('.shapes-dropdown');
-
-					console.log('Dropdown element:', dropdown.length);
-
-					console.log('Dropdown display before:', dropdown.css('display'));
-
-					console.log('Dropdown position:', dropdown.position());
-
-					console.log('Dropdown offset:', dropdown.offset());
-
-					
+				
 
 					// Toggle dropdown
 
@@ -7380,8 +7354,6 @@ foreach( $params as $param ) {
 					jQuery(this).toggleClass('active');
 
 					
-
-					console.log('Dropdown display after:', dropdown.css('display'));
 
 				});
 
@@ -10577,7 +10549,6 @@ foreach( $params as $param ) {
 				jQuery('#auth').click(function(e) {
 					e.preventDefault();
 					e.stopPropagation();
-					console.log('Auth button clicked! Event:', e);
 					
 					if (isAuthenticated) {
 						// User is logged in, show logout confirmation
@@ -10614,16 +10585,11 @@ foreach( $params as $param ) {
 							});
 						}
 					} else {
-						// User is not logged in, show login modal
-						console.log('User not authenticated, showing login modal');
-						console.log('Auth section element:', jQuery('#authSection'));
-						console.log('Auth section current display:', jQuery('#authSection').css('display'));
+
 						
 						jQuery('#authSection').addClass('show');
 						jQuery('#authSection').css('display', 'flex');
-						
-						console.log('Auth section after show:', jQuery('#authSection').css('display'));
-						console.log('Auth section classes:', jQuery('#authSection').attr('class'));
+
 					}
 				});
 
@@ -10631,10 +10597,10 @@ foreach( $params as $param ) {
 				jQuery(document).on('click', '#auth', function(e) {
 					e.preventDefault();
 					e.stopPropagation();
-					console.log('Auth button clicked via document.on!');
+	
 					
 					if (!isAuthenticated) {
-						console.log('Showing auth modal via alternative handler');
+					
 						jQuery('#authSection').addClass('show').css('display', 'flex');
 					}
 				});
@@ -10643,7 +10609,6 @@ foreach( $params as $param ) {
 				jQuery('#auth').on('click', function(e) {
 					e.preventDefault();
 					e.stopPropagation();
-					console.log('Auth button clicked via direct handler!');
 					alert('Auth button is working!');
 					
 					if (!isAuthenticated) {
@@ -10705,17 +10670,14 @@ foreach( $params as $param ) {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
 							
 							if (result.success) {
-								console.log('Login successful, setting isAuthenticated to true');
 								isAuthenticated = true;
 								
 								// Store the user ID for future AJAX requests
 								if (result.user && result.user.id) {
 									currentUserId = result.user.id;
-									console.log('Stored user ID:', currentUserId);
 								}
 								
 								// Enable calculator functionality
-								console.log('Calling enableCalculator()');
 								enableCalculator();
 								
 								// Update UI to show logged in state
@@ -10727,10 +10689,10 @@ foreach( $params as $param ) {
 								forceHideAuthModal();
 								
 								// Additional explicit hiding of auth modal with timeout to ensure it's hidden
-								console.log('Hiding auth modal explicitly');
+						
 								setTimeout(function() {
 									forceHideAuthModal();
-									console.log('Auth modal hidden after timeout');
+
 								}, 100);
 							} else {
 								errorElement.html(result.message || 'Login failed').show();
@@ -10999,17 +10961,14 @@ foreach( $params as $param ) {
 							} else {
 								// User not authenticated, show auth modal automatically
 								isAuthenticated = false;
-								console.log('User not authenticated, showing auth modal automatically');
 								jQuery('#authSection').addClass('show').css('display', 'flex');
 							}
 						} catch (e) {
-							console.log('Error checking auth status:', e);
 							// On error, show auth modal
 							isAuthenticated = false;
 							jQuery('#authSection').addClass('show').css('display', 'flex');
 						}
 					}).fail(function() {
-						console.log('Failed to check auth status');
 						// On failure, show auth modal
 						isAuthenticated = false;
 						jQuery('#authSection').addClass('show').css('display', 'flex');
@@ -11022,7 +10981,6 @@ foreach( $params as $param ) {
 				// Auto-show auth modal if user is not authenticated after a short delay
 				setTimeout(function() {
 					if (!isAuthenticated) {
-						console.log('Auto-showing auth modal for unauthenticated user');
 						jQuery('#authSection').addClass('show').css('display', 'flex');
 					}
 				}, 1000); // 1 second delay to ensure page is fully loaded
@@ -11053,16 +11011,7 @@ foreach( $params as $param ) {
 					jQuery('#totalCuttingDisplay').html(Math.round(totalCutting) + ' mm');
 					
 					// Calculate costs
-					calculateCosts();
-					
-					console.log('Slab Usage Updated:', {
-						totalAreaMM: totalAreaMM,
-						slabAreaMM: slabAreaMM,
-						slabsNeeded: slabsNeeded,
-						slabsNeededRounded: slabsNeededRounded,
-						totalCutting: totalCutting
-					});
-					
+					calculateCosts();				
 					return slabsNeededRounded;
 				}
 				
@@ -11087,21 +11036,11 @@ foreach( $params as $param ) {
 					jQuery('#productionCostDisplay').html('$' + productionCost.toFixed(2));
 					jQuery('#installationCostDisplay').html('$' + installationCost.toFixed(2));
 					jQuery('#totalProjectCostDisplay').html('$' + totalProjectCost.toFixed(2));
-					
-					console.log('Costs Calculated:', {
-						slabCost: slabCost,
-						onlyCutCost: onlyCutCost,
-						mitredCutCost: mitredCutCost,
-						productionCost: productionCost,
-						installationCost: installationCost,
-						totalProjectCost: totalProjectCost
-					});
 				}
 
 				// Function to update Total MM² display
 				function updateTotalMMDisplay() {
 					jQuery('#totalMMDisplay').html(totalMM.toLocaleString() + ' mm²');
-					console.log('Total MM Updated:', totalMM);
 				}
 
 				// Function to visually shade used slabs based on shape placement
