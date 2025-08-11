@@ -3119,6 +3119,17 @@ foreach( $params as $param ) {
 
 						
 
+						// Store reference to the watermark in the green box
+
+						greenBox.watermark = img;
+
+						
+						// Store reference to the green box in the watermark
+
+						img.greenBox = greenBox;
+
+						
+
 						// Add watermark to canvas
 
 						canvas.add(img);
@@ -3188,6 +3199,50 @@ foreach( $params as $param ) {
 						if (objects[i].isWatermark) {
 
 							canvas.remove(objects[i]);
+
+						}
+
+					}
+
+				}
+
+				
+
+				// Function to remove watermarks for specific green boxes
+
+				function removeWatermarksForBoxes(boxesToRemove) {
+
+					boxesToRemove.forEach(box => {
+
+						if (box.watermark) {
+
+							canvas.remove(box.watermark);
+
+							box.watermark = null;
+
+						}
+
+					});
+
+				}
+
+				
+
+				// Function to clean up orphaned watermarks
+
+				function cleanupOrphanedWatermarks() {
+
+					const objects = canvas.getObjects();
+
+					for (let i = objects.length - 1; i >= 0; i--) {
+
+						const obj = objects[i];
+
+						if (obj.isWatermark && (!obj.greenBox || !canvas.contains(obj.greenBox))) {
+
+							// Remove watermark if it doesn't have a green box or the green box is not on canvas
+
+							canvas.remove(obj);
 
 						}
 
@@ -4709,6 +4764,18 @@ foreach( $params as $param ) {
 
 						if (isBoxEmpty(box)) {
 
+							// Remove associated watermark if it exists
+
+							if (box.watermark) {
+
+								canvas.remove(box.watermark);
+
+								box.watermark = null;
+
+							}
+
+							
+
 							canvas.remove(box);
 
 							const index = infoBoxes.indexOf(box);
@@ -4722,6 +4789,12 @@ foreach( $params as $param ) {
 						}
 
 					});
+
+					
+
+					// Clean up any orphaned watermarks
+
+					cleanupOrphanedWatermarks();
 
 
 
@@ -5036,6 +5109,9 @@ foreach( $params as $param ) {
 				canvas.on('object:modified', function(e) {
 
 					cleanupEmptyInfoBoxes();
+					
+					// Clean up orphaned watermarks when objects are modified
+					cleanupOrphanedWatermarks();
 					
 					// Update slab usage calculation and visualization when objects are moved
 					calculateSlabUsage();
@@ -9287,6 +9363,14 @@ foreach( $params as $param ) {
 
 						cleanupEmptyInfoBoxes();
 
+						// Force cleanup of all empty boxes after shape deletion
+
+						setTimeout(function() {
+
+							cleanupEmptyInfoBoxes();
+
+						}, 100);
+
 											getTotalMM();
 					updateTotalMMDisplay();
 
@@ -9872,6 +9956,10 @@ foreach( $params as $param ) {
 						isObjectMoving = false;
 
 						cleanupEmptyInfoBoxes();
+
+						// Clean up orphaned watermarks when dragging stops
+
+						cleanupOrphanedWatermarks();
 
 						saveState();
 
