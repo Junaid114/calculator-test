@@ -1134,11 +1134,11 @@ if (!function_exists('stone_slab_login_handler')) {
 			wp_send_json_error(['message' => 'Invalid email or password']);
 		}
 
-		// Check if email is verified
-		$email_verified = get_user_meta($user->ID, 'email_verified', true);
-		if (!$email_verified) {
-			wp_send_json_error(['message' => 'Please verify your email address before logging in. Check your inbox for the verification link.']);
-		}
+		// Email verification temporarily disabled - skip verification check
+		// $email_verified = get_user_meta($user->ID, 'email_verified', true);
+		// if (!$email_verified) {
+		// 	wp_send_json_error(['message' => 'Please verify your email address before logging in. Check your inbox for the verification link.']);
+		// }
 
 		// Log in the user
 		wp_set_current_user($user->ID);
@@ -1162,9 +1162,18 @@ if (!function_exists('stone_slab_login_handler')) {
 // Handle user registration
 if (!function_exists('stone_slab_register_handler')) {
 	function stone_slab_register_handler() {
+		// Debug logging
+		error_log('=== Registration Handler Called ===');
+		error_log('POST data: ' . print_r($_POST, true));
+		error_log('Nonce received: ' . ($_POST['nonce'] ?? 'none'));
+		error_log('Nonce verification results:');
+		error_log('- stone_slab_auth_nonce: ' . (wp_verify_nonce($_POST['nonce'] ?? '', 'stone_slab_auth_nonce') ? 'PASS' : 'FAIL'));
+		error_log('- ssc_save_drawing_nonce: ' . (wp_verify_nonce($_POST['nonce'] ?? '', 'ssc_save_drawing_nonce') ? 'PASS' : 'FAIL'));
+		
 		// Verify nonce for security - accept both auth nonce and drawing nonce temporarily
 		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce') && 
 			!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+			error_log('Nonce verification failed');
 			wp_send_json_error(['message' => 'Security check failed']);
 		}
 
@@ -1206,11 +1215,15 @@ if (!function_exists('stone_slab_register_handler')) {
 		}
 
 		// Create the user
+		error_log('Creating user with username: ' . $username . ', email: ' . $email);
 		$user_id = wp_create_user($username, $password, $email);
 
 		if (is_wp_error($user_id)) {
+			error_log('User creation failed: ' . $user_id->get_error_message());
 			wp_send_json_error(['message' => 'Failed to create user account']);
 		}
+		
+		error_log('User created successfully with ID: ' . $user_id);
 
 		// Update user meta
 		wp_update_user([
@@ -1218,20 +1231,23 @@ if (!function_exists('stone_slab_register_handler')) {
 			'display_name' => $username
 		]);
 
-		// Send verification email
-		$verification_result = stone_slab_send_verification_email($user_id, $email, $username);
+		// Email verification temporarily disabled - log user in directly
+		// $verification_result = stone_slab_send_verification_email($user_id, $email, $username);
 		
-		if (!$verification_result['success']) {
-			// If email verification fails, delete the user and return error
-			wp_delete_user($user_id);
-			wp_send_json_error(['message' => 'Account created but verification email failed to send. Please contact support.']);
-		}
+		// if (!$verification_result['success']) {
+		// 	// If email verification fails, delete the user and return error
+		// 	wp_delete_user($user_id);
+		// 	wp_send_json_error(['message' => 'Account created but verification email failed to send. Please contact support.']);
+		// }
 		
-		// Don't log in the user automatically - they need to verify email first
+		// Log the user in automatically since email verification is disabled
+		wp_set_current_user($user_id);
+		wp_set_auth_cookie($user_id);
 
 		// Return success response
+		error_log('Sending success response for user ID: ' . $user_id);
 		wp_send_json_success([
-			'message' => 'Account created successfully! You can now login to your account.',
+			'message' => 'Account created and logged in successfully! Welcome to Stone Slab Calculator.',
 			'user' => [
 				'id' => $user_id,
 				'username' => $username,

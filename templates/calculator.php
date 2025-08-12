@@ -930,22 +930,26 @@ foreach( $params as $param ) {
 			}
 
 			/* Auth Modal Styles */
+			/* Note: Modal cannot be closed by clicking outside - user must use close button */
 			#authSection {
 				display: none;
 				position: fixed;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%, -50%);
-				z-index: 10000;
+				top: 0;
+				left: 0;
 				width: 100%;
 				height: 100%;
-				background: rgba(0, 0, 0, 0.5);
+				z-index: 99999;
+				background: rgba(0, 0, 0, 0.8);
 				align-items: center;
 				justify-content: center;
+				/* Prevent accidental closing */
+				pointer-events: auto;
 			}
 
 			#authSection.show {
-				display: flex;
+				display: flex !important;
+				visibility: visible !important;
+				opacity: 1 !important;
 			}
 
 			.auth-container {
@@ -2468,6 +2472,7 @@ foreach( $params as $param ) {
 								<button class="close-btn" id="closeAuthModal">&times;</button>
 							</h2>
 							<p>Please login or register to access the calculator</p>
+							<p style="font-size: 10px; opacity: 0.8; margin-top: 5px;">Use the × button to close this modal</p>
 						</div>
 						
 						<div class="auth-tabs">
@@ -2802,9 +2807,9 @@ foreach( $params as $param ) {
 				};
 			}
 			
-			// For now, use the drawing nonce for authentication as well
-			// In production, this should be properly secured with a valid auth nonce
-			stone_slab_ajax.nonce = drawingNonce;
+			// Keep the authentication nonce separate from drawing nonce
+			// stone_slab_ajax.nonce should remain as the auth nonce
+			// drawingNonce is used only for drawing-related operations
 
 
 			
@@ -2852,20 +2857,27 @@ foreach( $params as $param ) {
 				// Initialize toolbar logout button as hidden
 				jQuery('#toolbarLogoutBtn').hide();
 
-				// Global function to force hide auth modal
+				// Global function to force hide auth modal - only call when user is authenticated
 				function forceHideAuthModal() {
-					
-					jQuery('#authSection').removeClass('show');
-					jQuery('#authSection').hide();
-					jQuery('#authSection').css('display', 'none');
-					jQuery('#authSection').attr('style', 'display: none !important');
+					// Only hide if user is authenticated
+					if (isAuthenticated) {
+						console.log('Hiding auth modal - user is authenticated');
+						jQuery('#authSection').removeClass('show');
+						jQuery('#authSection').hide();
+						jQuery('#authSection').css('display', 'none');
+						jQuery('#authSection').attr('style', 'display: none !important');
+					} else {
+						console.log('Attempted to hide auth modal but user is not authenticated - keeping modal visible');
+						// Ensure modal is visible
+						jQuery('#authSection').addClass('show').css('display', 'flex');
+					}
 				}
 
 				// Ensure shape-specific toolbar icons are hidden initially
 				hideShapeToolbarIcons();
 
-				// Ensure auth modal is hidden initially
-				forceHideAuthModal();
+				// Don't hide auth modal initially - let it show if user is not authenticated
+				// forceHideAuthModal();
 
 				// Functions to enable/disable toolbar and canvas
 				function enableCalculator() {
@@ -2883,6 +2895,7 @@ foreach( $params as $param ) {
 						
 					} else {
 						// User not authenticated, show auth modal
+						console.log('User not authenticated - showing auth modal');
 						jQuery('#authSection').addClass('show').css('display', 'flex');
 					}
 				}
@@ -10620,11 +10633,11 @@ foreach( $params as $param ) {
 					jQuery('.auth-form').removeClass('active');
 					jQuery(this).addClass('active');
 					jQuery('#registerForm').addClass('active');
-					jQuery('#authFooterText').html('Already have an account? <a href="#" id="switchToRegister">Login now.</a>');
+					jQuery('#authFooterText').html('Already have an account? <a href="#" id="switchToLogin">Login now.</a>');
 				});
 
 				// Switch between login and register
-				jQuery('body').on('click', '#switchToRegister', function(e) {
+				jQuery('body').on('click', '#switchToRegister, #switchToLogin', function(e) {
 					e.preventDefault();
 					if (jQuery('#loginForm').hasClass('active')) {
 						jQuery('#registerTab').click();
@@ -10702,11 +10715,17 @@ foreach( $params as $param ) {
 				// Register form submission
 				jQuery('#registerForm').submit(function(e) {
 					e.preventDefault();
+					console.log('Registration form submitted');
+					
 					const username = jQuery('#reg_username').val();
 					const email = jQuery('#reg_email').val();
 					const password = jQuery('#reg_password').val();
 					const confirmPassword = jQuery('#reg_confirm_password').val();
 					const errorElement = jQuery('#registerError');
+					
+					console.log('Form data:', { username, email, password: '***', confirmPassword: '***' });
+					console.log('Nonce:', stone_slab_ajax.nonce);
+					console.log('AJAX URL:', ajaxurl);
 
 					if (!username || !email || !password || !confirmPassword) {
 						errorElement.html('All fields are required').show();
@@ -10728,6 +10747,16 @@ foreach( $params as $param ) {
 					errorElement.hide();
 
 					// Make AJAX request to WordPress registration
+					console.log('Sending AJAX request to:', ajaxurl);
+					console.log('Request data:', {
+						action: 'stone_slab_register',
+						username: username,
+						email: email,
+						password: '***',
+						confirm_password: '***',
+						nonce: stone_slab_ajax.nonce
+					});
+					
 					jQuery.post(ajaxurl, {
 						action: 'stone_slab_register',
 						username: username,
@@ -10736,27 +10765,44 @@ foreach( $params as $param ) {
 						confirm_password: confirmPassword,
 						nonce: stone_slab_ajax.nonce
 					}, function(response) {
+						console.log('AJAX response received:', response);
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
 							
 							if (result.success) {
-								// VERIFICATION EMAIL TEMPORARILY DISABLED - Enable calculator directly
-								// jQuery('#registerForm').hide();
-								// jQuery('#emailVerificationMessage').show();
-								// jQuery('#verificationEmail').text(jQuery('#reg_email').val());
+								console.log('Registration successful:', result);
+								// Set authentication state
+								isAuthenticated = true;
 								
-								// Update footer text
-								// jQuery('#authFooterMessage').html('Please check your email and click the verification link to activate your account.');
+								// Store the user ID for future AJAX requests
+								if (result.user && result.user.id) {
+									currentUserId = result.user.id;
+								}
 								
-								// Enable calculator directly without alert
+								// Update UI to show logged in state
+								jQuery('#auth').css('opacity', '0.7');
+								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
+								jQuery('#auth').text('Logout');
+								
+								// Enable calculator functionality
 								enableCalculator();
+								
+								// Force hide modal after successful registration
+								forceHideAuthModal();
+								
+								// Additional explicit hiding of auth modal with timeout to ensure it's hidden
+								setTimeout(function() {
+									forceHideAuthModal();
+								}, 100);
 							} else {
+								console.log('Registration failed:', result);
 								errorElement.html(result.message || 'Registration failed').show();
 								errorElement.css('background', '#f8d7da');
 								errorElement.css('color', '#721c24');
 								errorElement.css('border-color', '#f5c6cb');
 							}
 						} catch (e) {
+							console.error('Error parsing response:', e);
 							errorElement.html('An error occurred. Please try again.').show();
 							errorElement.css('background', '#f8d7da');
 							errorElement.css('color', '#721c24');
@@ -10765,7 +10811,8 @@ foreach( $params as $param ) {
 						
 						// Reset button state
 						jQuery('#registerForm .auth-btn').text('Register').prop('disabled', false);
-					}).fail(function() {
+					}).fail(function(xhr, status, error) {
+						console.error('AJAX request failed:', { xhr, status, error });
 						errorElement.html('Network error. Please try again.').show();
 						errorElement.css('background', '#f8d7da');
 						errorElement.css('color', '#721c24');
@@ -10774,16 +10821,22 @@ foreach( $params as $param ) {
 					});
 				});
 
-				// Close modal when clicking outside
-				jQuery('#authSection').click(function(e) {
-					if (e.target === this) {
-						jQuery(this).removeClass('show').css('display', 'none');
-					}
-				});
+				// Prevent modal from closing when clicking outside - user must explicitly close it
+				// jQuery('#authSection').click(function(e) {
+				// 	if (e.target === this) {
+				// 		jQuery(this).removeClass('show').css('display', 'none');
+				// 	}
+				// });
 
-				// Close modal with close button
+				// Close modal with close button - only allow if user is not in the middle of authentication
 				jQuery('#closeAuthModal').click(function() {
-					jQuery('#authSection').removeClass('show').css('display', 'none');
+					// Only allow closing if user is not currently authenticating
+					if (!jQuery('#loginForm .auth-btn').prop('disabled') && !jQuery('#registerForm .auth-btn').prop('disabled')) {
+						jQuery('#authSection').removeClass('show').css('display', 'none');
+					} else {
+						// Show message that authentication is in progress
+						alert('Please wait for authentication to complete before closing.');
+					}
 				});
 
 				// Logout button functionality
@@ -11017,12 +11070,72 @@ foreach( $params as $param ) {
 				// Check auth status when page loads
 				checkAuthStatus();
 				
+				// Immediately show auth modal if user is not authenticated
+				if (!isAuthenticated) {
+					console.log('User not authenticated on page load - showing auth modal immediately');
+					showAuthModal();
+				}
+				
+				// Function to show auth modal
+				function showAuthModal() {
+					console.log('Showing auth modal');
+					jQuery('#authSection').addClass('show').css('display', 'flex');
+					jQuery('#authSection').attr('style', 'display: flex !important');
+					
+					// Debug: log the current state
+					console.log('Modal display style:', jQuery('#authSection').css('display'));
+					console.log('Modal has show class:', jQuery('#authSection').hasClass('show'));
+					console.log('Modal is visible:', jQuery('#authSection').is(':visible'));
+				}
+				
+				// Global debug function - can be called from browser console
+				window.debugAuthModal = function() {
+					console.log('=== Auth Modal Debug ===');
+					console.log('isAuthenticated:', isAuthenticated);
+					console.log('Modal element:', jQuery('#authSection')[0]);
+					console.log('Modal display:', jQuery('#authSection').css('display'));
+					console.log('Modal visibility:', jQuery('#authSection').css('visibility'));
+					console.log('Modal opacity:', jQuery('#authSection').css('opacity'));
+					console.log('Modal has show class:', jQuery('#authSection').hasClass('show'));
+					console.log('Modal is visible:', jQuery('#authSection').is(':visible'));
+					console.log('Modal z-index:', jQuery('#authSection').css('z-index'));
+					console.log('Modal position:', jQuery('#authSection').css('position'));
+					console.log('Modal top:', jQuery('#authSection').css('top'));
+					console.log('Modal left:', jQuery('#authSection').css('left'));
+					console.log('Modal width:', jQuery('#authSection').css('width'));
+					console.log('Modal height:', jQuery('#authSection').css('height'));
+					console.log('======================');
+					
+					// Try to show the modal
+					showAuthModal();
+				};
+				
 				// Auto-show auth modal if user is not authenticated after a short delay
 				setTimeout(function() {
 					if (!isAuthenticated) {
-						jQuery('#authSection').addClass('show').css('display', 'flex');
+						console.log('Auto-showing auth modal - user not authenticated');
+						showAuthModal();
 					}
 				}, 1000); // 1 second delay to ensure page is fully loaded
+				
+				// Additional protection: ensure auth modal stays visible when user is not authenticated
+				setInterval(function() {
+					if (!isAuthenticated && jQuery('#authSection').css('display') === 'none') {
+						console.log('Auth modal was hidden but should be visible - restoring it');
+						showAuthModal();
+					}
+					
+					// Also check if modal has the show class but is not visible
+					if (!isAuthenticated && jQuery('#authSection').hasClass('show') && jQuery('#authSection').css('display') === 'none') {
+						console.log('Auth modal has show class but is not visible - fixing display');
+						showAuthModal();
+					}
+					
+					// Force modal to be visible if user is not authenticated
+					if (!isAuthenticated) {
+						jQuery('#authSection').addClass('show').css('display', 'flex').attr('style', 'display: flex !important');
+					}
+				}, 1000); // Check every 1 second for more responsiveness
 
 				// Function to calculate actual slab usage based on shape coverage
 				function calculateSlabUsage() {
