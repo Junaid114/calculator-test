@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authentication Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Stone Slab Calculator - Authentication Test</h1>
+    
+    <div id="status"></div>
+    
+    <form id="loginForm">
+        <h2>Login Test</h2>
+        <input type="email" id="email" placeholder="Email" required><br><br>
+        <input type="password" id="password" placeholder="Password" required><br><br>
+        <button type="submit">Login</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        jQuery(document).ready(function() {
+            // Get the site URL from the current page
+            var siteUrl = window.location.protocol + '//' + window.location.hostname;
+            var ajaxurl = siteUrl + '/wp-admin/admin-ajax.php';
+            
+            // Check if stone_slab_ajax is available
+            if (typeof stone_slab_ajax !== 'undefined') {
+                jQuery('#status').html('<p style="color: green;">✅ stone_slab_ajax object found</p>');
+                jQuery('#status').append('<p>Nonce: ' + stone_slab_ajax.nonce + '</p>');
+                jQuery('#status').append('<p>AJAX URL: ' + stone_slab_ajax.ajaxurl + '</p>');
+            } else {
+                jQuery('#status').html('<p style="color: red;">❌ stone_slab_ajax object NOT found</p>');
+                jQuery('#status').append('<p>This means the main plugin localization is not working in the iframe.</p>');
+            }
+            
+            jQuery('#loginForm').submit(function(e) {
+                e.preventDefault();
+                
+                var email = jQuery('#email').val();
+                var password = jQuery('#password').val();
+                
+                if (!email || !password) {
+                    jQuery('#result').html('<p style="color: red;">Please enter both email and password</p>');
+                    return;
+                }
+                
+                // Try to use stone_slab_ajax.nonce if available, otherwise use a fallback
+                var nonce = (typeof stone_slab_ajax !== 'undefined' && stone_slab_ajax.nonce) ? 
+                           stone_slab_ajax.nonce : 'test_nonce';
+                
+                jQuery('#result').html('<p>Attempting login with nonce: ' + nonce + '</p>');
+                
+                jQuery.post(ajaxurl, {
+                    action: 'stone_slab_login',
+                    email: email,
+                    password: password,
+                    nonce: nonce
+                }, function(response) {
+                    try {
+                        var result = typeof response === 'string' ? JSON.parse(response) : response;
+                        jQuery('#result').html('<pre>' + JSON.stringify(result, null, 2) + '</pre>');
+                    } catch (e) {
+                        jQuery('#result').html('<p style="color: red;">Error parsing response: ' + e.message + '</p>');
+                        jQuery('#result').append('<pre>' + response + '</pre>');
+                    }
+                }).fail(function(xhr, status, error) {
+                    jQuery('#result').html('<p style="color: red;">AJAX failed: ' + status + ' - ' + error + '</p>');
+                    jQuery('#result').append('<p>Status: ' + xhr.status + '</p>');
+                    jQuery('#result').append('<pre>' + xhr.responseText + '</pre>');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

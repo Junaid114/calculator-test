@@ -3,7 +3,7 @@
 Plugin Name:  Stone Slab Calculator
 Plugin URI:   #
 Description:  A calculator to calculate the number of stone slabs required for projects based on input dimensions.
-Version:      1.0
+Version:      1.1
 License:      GPL2
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:  stone-slab-domain
@@ -23,15 +23,15 @@ define('SSC_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 
 require_once( SSC_PLUGIN_DIR . 'admin/admin.php');
-	// EMAIL VERIFICATION TEMPORARILY DISABLED
-	// require_once( SSC_PLUGIN_DIR . 'includes/email-verification.php');
+	// Email verification enabled for production
+	require_once( SSC_PLUGIN_DIR . 'includes/email-verification.php');
 
 
 // Activation hook to create database tables
 register_activation_hook(__FILE__, 'ssc_activate_plugin');
 
-// Ensure table exists when plugin loads - TEMPORARILY DISABLED
-// add_action('init', 'ssc_ensure_table_exists');
+// Ensure table exists when plugin loads
+add_action('init', 'ssc_ensure_table_exists');
 
 function ssc_activate_plugin() {
     global $wpdb;
@@ -66,7 +66,7 @@ function ssc_activate_plugin() {
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     $result = dbDelta($sql);
     
-    error_log('dbDelta result: ' . print_r($result, true));
+            
     
     // Check if table was created
     $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
@@ -170,6 +170,23 @@ function ssc_get_drawing($drawing_id) {
     return $drawing;
 }
 
+// Function to get drawing by PDF filename
+function ssc_get_drawing_by_pdf($pdf_filename) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    
+    $drawing = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM $table_name WHERE pdf_file_path = %s",
+            $pdf_filename
+        ),
+        ARRAY_A
+    );
+    
+    return $drawing;
+}
+
 // Function to delete a drawing
 function ssc_delete_drawing($drawing_id) {
     global $wpdb;
@@ -199,13 +216,10 @@ add_action('wp_ajax_ssc_save_drawing', 'ssc_ajax_save_drawing');
 add_action('wp_ajax_nopriv_ssc_save_drawing', 'ssc_ajax_save_drawing');
 
 function ssc_ajax_save_drawing() {
-    // Ensure database table exists - TEMPORARILY DISABLED
-    // ssc_ensure_table_exists();
+    // Ensure database table exists
+    ssc_ensure_table_exists();
     
-    // Debug: Log what we're receiving
-    error_log('ssc_ajax_save_drawing called');
-    error_log('POST data: ' . print_r($_POST, true));
-    error_log('FILES data: ' . print_r($_FILES, true));
+    
     
     // Check nonce for security
     if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
@@ -376,8 +390,7 @@ add_action('wp_ajax_ssc_download_pdf', 'ssc_ajax_download_pdf');
 add_action('wp_ajax_nopriv_ssc_download_pdf', 'ssc_ajax_download_pdf');
 
 // AJAX handler for getting fresh nonce
-add_action('wp_ajax_ssc_get_fresh_nonce', 'ssc_ajax_get_fresh_nonce');
-add_action('wp_ajax_nopriv_ssc_get_fresh_nonce', 'ssc_ajax_get_fresh_nonce');
+
 
 // AJAX handler for ensuring table exists
 add_action('wp_ajax_ssc_ensure_table', 'ssc_ajax_ensure_table');
@@ -482,16 +495,31 @@ function ssc_ajax_download_pdf() {
     // readfile($file_path);
     // exit;
     
-    // TEMPORARILY DISABLED - Return error instead
-    wp_die('PDF download temporarily disabled');
+    // Get drawing to verify user access
+    $drawing = ssc_get_drawing_by_pdf($pdf_filename);
+    if (!$drawing || $drawing['user_id'] != $user_id) {
+        wp_die('Access denied');
+    }
+    
+    $file_path = SSC_PLUGIN_DIR . 'quotes/' . $pdf_filename;
+    
+    if (!file_exists($file_path)) {
+        wp_die('PDF file not found');
+    }
+    
+    // Set headers for download
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $pdf_filename . '"');
+    header('Content-Length: ' . filesize($file_path));
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    
+    // Output file content
+    readfile($file_path);
+    exit;
 }
 
-// Function to get fresh nonce
-function ssc_ajax_get_fresh_nonce() {
-    $nonce = wp_create_nonce('ssc_save_drawing_nonce');
-    error_log('Generated fresh nonce: ' . $nonce);
-    wp_send_json_success(array('nonce' => $nonce));
-}
+
 
 // Function to manually create database table if it doesn't exist
 function ssc_ensure_table_exists() {
@@ -557,7 +585,7 @@ function ssc_ajax_test_database() {
     
     // Test 2: Check table structure
     $columns = $wpdb->get_results("DESCRIBE $table_name");
-    error_log('Test 2 - Table columns: ' . print_r($columns, true));
+            
     
     // Test 3: Try to insert a test record
     $test_data = array(
@@ -591,7 +619,7 @@ function ssc_ajax_test_database() {
     error_log('Test 4 - Retrieve test record: ' . ($retrieved_record ? 'PASS' : 'FAIL'));
     
     if ($retrieved_record) {
-        error_log('Retrieved data: ' . print_r($retrieved_record, true));
+        
     }
     
     // Test 5: Try to update the test record
@@ -622,7 +650,7 @@ function ssc_ajax_test_database() {
         'insert_id' => $insert_id
     );
     
-    error_log('Database test summary: ' . print_r($summary, true));
+            
     
     wp_send_json_success($summary);
 }
@@ -682,8 +710,28 @@ function ssc_ajax_view_pdf() {
     // readfile($file_path);
     // exit;
     
-    // TEMPORARILY DISABLED - Return error instead
-    wp_die('PDF viewing temporarily disabled');
+    // Get drawing to verify user access
+    $drawing = ssc_get_drawing_by_pdf($pdf_filename);
+    if (!$drawing || $drawing['user_id'] != $user_id) {
+        wp_die('Access denied');
+    }
+    
+    $file_path = SSC_PLUGIN_DIR . 'quotes/' . $pdf_filename;
+    
+    if (!file_exists($file_path)) {
+        wp_die('PDF file not found');
+    }
+    
+    // Set headers for viewing in browser
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: inline; filename="' . $pdf_filename . '"');
+    header('Content-Length: ' . filesize($file_path));
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    
+    // Output file content
+    readfile($file_path);
+    exit;
 }
 
 // Add rewrite rules for direct quote links - TEMPORARILY DISABLED
@@ -1059,10 +1107,11 @@ if ( ! function_exists( 'handle_send_html_email' ) ) {
 // Handle user login
 if (!function_exists('stone_slab_login_handler')) {
 	function stone_slab_login_handler() {
-		// Verify nonce for security - TEMPORARILY DISABLED FOR TESTING
-		// if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce')) {
-		// 	wp_send_json_error(['message' => 'Security check failed']);
-		// }
+		// Verify nonce for security - accept both auth nonce and drawing nonce temporarily
+		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce') && 
+			!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+			wp_send_json_error(['message' => 'Security check failed']);
+		}
 
 		$email = sanitize_email($_POST['email']);
 		$password = $_POST['password'];
@@ -1085,12 +1134,11 @@ if (!function_exists('stone_slab_login_handler')) {
 			wp_send_json_error(['message' => 'Invalid email or password']);
 		}
 
-		// EMAIL VERIFICATION TEMPORARILY DISABLED
 		// Check if email is verified
-		// $email_verified = get_user_meta($user->ID, 'email_verified', true);
-		// if (!$email_verified) {
-		// 	wp_send_json_error(['message' => 'Please verify your email address before logging in. Check your inbox for the verification link.']);
-		// }
+		$email_verified = get_user_meta($user->ID, 'email_verified', true);
+		if (!$email_verified) {
+			wp_send_json_error(['message' => 'Please verify your email address before logging in. Check your inbox for the verification link.']);
+		}
 
 		// Log in the user
 		wp_set_current_user($user->ID);
@@ -1114,10 +1162,11 @@ if (!function_exists('stone_slab_login_handler')) {
 // Handle user registration
 if (!function_exists('stone_slab_register_handler')) {
 	function stone_slab_register_handler() {
-		// Verify nonce for security - TEMPORARILY DISABLED FOR TESTING
-		// if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce')) {
-		// 	wp_send_json_error(['message' => 'Security check failed']);
-		// }
+		// Verify nonce for security - accept both auth nonce and drawing nonce temporarily
+		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce') && 
+			!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+			wp_send_json_error(['message' => 'Security check failed']);
+		}
 
 			$username = sanitize_text_field($_POST['username']);
 	$email = sanitize_email($_POST['email']);
@@ -1169,9 +1218,16 @@ if (!function_exists('stone_slab_register_handler')) {
 			'display_name' => $username
 		]);
 
-		// EMAIL VERIFICATION TEMPORARILY DISABLED
+		// Send verification email
+		$verification_result = stone_slab_send_verification_email($user_id, $email, $username);
+		
+		if (!$verification_result['success']) {
+			// If email verification fails, delete the user and return error
+			wp_delete_user($user_id);
+			wp_send_json_error(['message' => 'Account created but verification email failed to send. Please contact support.']);
+		}
+		
 		// Don't log in the user automatically - they need to verify email first
-		// The email verification will be handled by the email-verification.php file
 
 		// Return success response
 		wp_send_json_success([
@@ -1191,14 +1247,28 @@ if (!function_exists('stone_slab_register_handler')) {
 // Handle user logout
 if (!function_exists('stone_slab_logout_handler')) {
 	function stone_slab_logout_handler() {
-		// Verify nonce for security - TEMPORARILY DISABLED FOR TESTING
-		// if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce')) {
-		// 	wp_send_json_error(['message' => 'Security check failed']);
-		// }
+		// Debug: Log what we received
+		error_log('=== Logout Handler Debug ===');
+		error_log('POST data: ' . print_r($_POST, true));
+		error_log('Nonce received: ' . ($_POST['nonce'] ?? 'none'));
+		error_log('Nonce verification results:');
+		error_log('- stone_slab_auth_nonce: ' . (wp_verify_nonce($_POST['nonce'] ?? '', 'stone_slab_auth_nonce') ? 'PASS' : 'FAIL'));
+		error_log('- ssc_save_drawing_nonce: ' . (wp_verify_nonce($_POST['nonce'] ?? '', 'ssc_save_drawing_nonce') ? 'PASS' : 'FAIL'));
+		error_log('==========================');
+		
+		// TEMPORARILY DISABLE NONCE VERIFICATION FOR TESTING
+		// Verify nonce for security - accept both auth nonce and drawing nonce
+		/*
+		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce') && 
+			!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+			wp_send_json_error(['message' => 'Security check failed']);
+		}
+		*/
 
 		// Check if user is logged in
 		if (!is_user_logged_in()) {
-			wp_send_json_error(['message' => 'No user is currently logged in']);
+			// If no user is logged in, just return success (already logged out)
+			wp_send_json_success(['message' => 'Already logged out']);
 		}
 
 		// Log out the user
@@ -1208,15 +1278,19 @@ if (!function_exists('stone_slab_logout_handler')) {
 		wp_send_json_success(['message' => 'Logged out successfully']);
 	}
 	add_action('wp_ajax_stone_slab_logout', 'stone_slab_logout_handler');
+	add_action('wp_ajax_nopriv_stone_slab_logout', 'stone_slab_logout_handler');
 }
+
+
 
 // Check authentication status
 if (!function_exists('stone_slab_check_auth_handler')) {
 	function stone_slab_check_auth_handler() {
-		// Verify nonce for security - TEMPORARILY DISABLED FOR TESTING
-		// if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce')) {
-		// 	wp_send_json_error(['message' => 'Security check failed']);
-		// }
+		// Verify nonce for security - accept both auth nonce and drawing nonce temporarily
+		if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce') && 
+			!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+			wp_send_json_error(['message' => 'Security check failed']);
+		}
 
 		if (is_user_logged_in()) {
 			$user = wp_get_current_user();

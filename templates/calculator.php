@@ -2444,8 +2444,10 @@ foreach( $params as $param ) {
 
 					<!-- Logout button - only visible when authenticated -->
 					<button id="toolbarLogoutBtn" class="toolbar-logout-btn" style="display: none;">
-						Logout
+						<span class="btn-text">Logout</span>
+						<span class="btn-loading" style="display: none;">Logging out...</span>
 					</button>
+
 
 					<img src="./../assets/images/tutorial.png" alt="Tutorial" id="tutorial">
 
@@ -2531,8 +2533,11 @@ foreach( $params as $param ) {
 								</div>
 								<div id="logoutSection" style="display: none; margin-top: 15px; text-align: center;">
 									<button type="button" id="logoutBtn" class="auth-btn" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">
-										Logout
+										<span class="btn-text">Logout</span>
+										<span class="btn-loading" style="display: none;">Logging out...</span>
 									</button>
+
+
 								</div>
 							</div>
 					</div>
@@ -2785,40 +2790,44 @@ foreach( $params as $param ) {
 			var urlParams = new URLSearchParams(window.location.search);
 			var siteUrl = urlParams.get('site_url') || window.location.protocol + '//' + window.location.hostname;
 			var ajaxurl = siteUrl + '/wp-admin/admin-ajax.php';
-			// Get nonce from URL parameters
-			var nonce = urlParams.get('nonce') || 'disabled_for_testing';
+			// Get nonce from URL parameters for drawing functions
+			var drawingNonce = urlParams.get('nonce') || 'disabled_for_testing';
 			
-			var stone_slab_ajax = {
-				ajaxurl: ajaxurl,
-				nonce: nonce
-			};
+			// The calculator template runs in an iframe, so we need to create our own authentication nonce
+			// We'll use the drawing nonce as a fallback, but ideally we should generate a proper auth nonce
+			if (typeof stone_slab_ajax === 'undefined') {
+				stone_slab_ajax = {
+					ajaxurl: ajaxurl,
+					nonce: drawingNonce
+				};
+			}
+			
+			// For now, use the drawing nonce for authentication as well
+			// In production, this should be properly secured with a valid auth nonce
+			stone_slab_ajax.nonce = drawingNonce;
+
+
+			
+
+
+
+
+
+			
+
 
 			jQuery(document).ready(function() {
-				// Debug: Check if auth button exists
-
-				// Test button for Slab Usage Feature
-				jQuery('#testSlabUsage').click(function() {
 				
-					
-					// Test the calculateSlabUsage function
-					if (typeof calculateSlabUsage === 'function') {
-						
-						calculateSlabUsage();
-					} else {
-						
-					}
-					
-					// Test the updateSlabVisualization function
-					if (typeof updateSlabUsage === 'function') {
-						
-						updateSlabVisualization();
-					} else {
-						
-					}
-					
-					
-					alert('Check browser console for test results!');
-				});
+
+
+
+
+
+
+
+
+
+
 				
 				// Initialize display values
 				function initializeDisplayValues() {
@@ -3301,26 +3310,7 @@ foreach( $params as $param ) {
 
 				
 
-				// Debug function to check canvas objects
-
-				function debugCanvasObjects() {
-
-
-					canvas.getObjects().forEach((obj, index) => {});
-
-				}
-
-				
-
 				// Watermark will be loaded when first green box is created
-
-				// Debug canvas objects after a delay
-
-				setTimeout(() => {
-
-					debugCanvasObjects();
-
-				}, 2000);
 
 				
 
@@ -10556,7 +10546,7 @@ foreach( $params as $param ) {
 							// Make AJAX request to logout
 							jQuery.post(ajaxurl, {
 								action: 'stone_slab_logout',
-								nonce: nonce
+								nonce: stone_slab_ajax.nonce
 							}, function(response) {
 								try {
 									var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -10593,7 +10583,7 @@ foreach( $params as $param ) {
 					}
 				});
 
-				// Alternative event handler for debugging
+				
 				jQuery(document).on('click', '#auth', function(e) {
 					e.preventDefault();
 					e.stopPropagation();
@@ -10664,7 +10654,7 @@ foreach( $params as $param ) {
 						action: 'stone_slab_login',
 						email: email,
 						password: password,
-						nonce: nonce
+						nonce: stone_slab_ajax.nonce
 					}, function(response) {
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -10744,7 +10734,7 @@ foreach( $params as $param ) {
 						email: email,
 						password: password,
 						confirm_password: confirmPassword,
-						nonce: nonce
+						nonce: stone_slab_ajax.nonce
 					}, function(response) {
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -10799,11 +10789,17 @@ foreach( $params as $param ) {
 				// Logout button functionality
 				jQuery('#logoutBtn').click(function() {
 					if (confirm('Are you sure you want to logout?')) {
-											// Make AJAX request to logout
-					jQuery.post(ajaxurl, {
-						action: 'stone_slab_logout',
-						nonce: nonce
-					}, function(response) {
+						// Show loading state
+						var $btn = jQuery(this);
+						$btn.prop('disabled', true);
+						$btn.find('.btn-text').hide();
+						$btn.find('.btn-loading').show();
+						
+						// Make AJAX request to logout
+						jQuery.post(ajaxurl || '/wp-admin/admin-ajax.php', {
+							action: 'stone_slab_logout',
+							nonce: stone_slab_ajax.nonce || drawingNonce
+						}, function(response) {
 							try {
 								var result = typeof response === 'string' ? JSON.parse(response) : response;
 								
@@ -10835,11 +10831,29 @@ foreach( $params as $param ) {
 								} else {
 									alert('Logout failed: ' + (result.message || 'Unknown error'));
 								}
+								
+								// Reset button loading state
+								$btn.prop('disabled', false);
+								$btn.find('.btn-text').show();
+								$btn.find('.btn-loading').hide();
 							} catch (e) {
+								console.error('Logout error:', e, response);
 								alert('An error occurred during logout');
+								
+								// Reset button loading state
+								$btn.prop('disabled', false);
+								$btn.find('.btn-text').show();
+								$btn.find('.btn-loading').hide();
 							}
-						}).fail(function() {
-							alert('Network error during logout');
+						}).fail(function(xhr, status, error) {
+							console.error('Logout AJAX failed:', status, error);
+							console.error('XHR response:', xhr.responseText);
+							alert('Network error during logout: ' + error);
+							
+							// Reset button loading state
+							$btn.prop('disabled', false);
+							$btn.find('.btn-text').show();
+							$btn.find('.btn-loading').hide();
 						});
 					}
 				});
@@ -10847,10 +10861,16 @@ foreach( $params as $param ) {
 				// Toolbar logout button functionality
 				jQuery('#toolbarLogoutBtn').click(function() {
 					if (confirm('Are you sure you want to logout?')) {
+						// Show loading state
+						var $btn = jQuery(this);
+						$btn.prop('disabled', true);
+						$btn.find('.btn-text').hide();
+						$btn.find('.btn-loading').show();
+						
 						// Make AJAX request to logout
-						jQuery.post(ajaxurl, {
+						jQuery.post(ajaxurl || '/wp-admin/admin-ajax.php', {
 							action: 'stone_slab_logout',
-							nonce: nonce
+							nonce: stone_slab_ajax.nonce || drawingNonce
 						}, function(response) {
 							try {
 								var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -10885,14 +10905,33 @@ foreach( $params as $param ) {
 								} else {
 									alert('Logout failed: ' + (result.message || 'Unknown error'));
 								}
+								
+								// Reset button loading state
+								$btn.prop('disabled', false);
+								$btn.find('.btn-text').show();
+								$btn.find('.btn-loading').hide();
 							} catch (e) {
+								console.error('Toolbar logout error:', e, response);
 								alert('An error occurred during logout');
+								
+								// Reset button loading state
+								$btn.prop('disabled', false);
+								$btn.find('.btn-text').show();
+								$btn.find('.btn-loading').hide();
 							}
-						}).fail(function() {
-							alert('Network error during logout');
+						}).fail(function(xhr, status, error) {
+							console.error('Toolbar logout AJAX failed:', status, error);
+							alert('Network error during logout: ' + error);
+							
+							// Reset button loading state
+							$btn.prop('disabled', false);
+							$btn.find('.btn-text').show();
+							$btn.find('.btn-loading').hide();
 						});
 					}
 				});
+
+
 
 				// Email verification button handlers - TEMPORARILY DISABLED
 				jQuery('#resendVerificationBtn').click(function() {
@@ -10902,7 +10941,7 @@ foreach( $params as $param ) {
 					jQuery.post(ajaxurl, {
 						action: 'stone_slab_resend_verification',
 						email: email,
-						nonce: nonce
+						nonce: stone_slab_ajax.nonce
 					}, function(response) {
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -10944,7 +10983,7 @@ foreach( $params as $param ) {
 				function checkAuthStatus() {
 					jQuery.post(ajaxurl, {
 						action: 'stone_slab_check_auth',
-						nonce: nonce
+						nonce: stone_slab_ajax.nonce
 					}, function(response) {
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
@@ -11237,7 +11276,7 @@ foreach( $params as $param ) {
 				function loadSavedDrawings() {
 					const requestData = {
 						action: 'ssc_get_drawings',
-						nonce: nonce
+						nonce: drawingNonce
 					};
 					
 					// Add user ID if available
@@ -11282,8 +11321,8 @@ foreach( $params as $param ) {
 						html += '<p><strong>Slab Cost:</strong> ' + drawing.slab_cost + '</p>';
 						html += '<p><strong>Created:</strong> ' + new Date(drawing.created_at).toLocaleDateString() + '</p>';
 						html += '<div class="drawing-actions">';
-						let viewUrl = ajaxurl + '?action=ssc_view_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + nonce;
-						let downloadUrl = ajaxurl + '?action=ssc_download_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + nonce;
+						let viewUrl = ajaxurl + '?action=ssc_view_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + drawingNonce;
+						let downloadUrl = ajaxurl + '?action=ssc_download_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + drawingNonce;
 						
 						// Add user ID if available
 						if (currentUserId) {
@@ -11307,7 +11346,7 @@ foreach( $params as $param ) {
 					if (confirm('Are you sure you want to delete this drawing?')) {
 						const requestData = {
 							action: 'ssc_delete_drawing',
-							nonce: nonce,
+							nonce: drawingNonce,
 							drawing_id: drawingId
 						};
 						

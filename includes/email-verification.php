@@ -59,22 +59,12 @@ function stone_slab_send_verification_email($user_id, $email, $username) {
         'From: Stone Slab Calculator <noreply@' . $_SERVER['HTTP_HOST'] . '>'
     );
     
-    // Debug logging before sending
-    error_log('Stone Slab Calculator: Attempting to send verification email to ' . $email);
-    error_log('Stone Slab Calculator: Verification URL: ' . $verification_url);
+    
     
     // Send email
     $sent = wp_mail($email, $subject, $message, $headers);
     
-    // Debug logging after sending
-    if (!$sent) {
-        error_log('Stone Slab Calculator: Failed to send verification email to ' . $email);
-        if (isset($GLOBALS['phpmailer']) && is_object($GLOBALS['phpmailer'])) {
-            error_log('Stone Slab Calculator: wp_mail error details - ' . print_r($GLOBALS['phpmailer']->ErrorInfo, true));
-        }
-    } else {
-        error_log('Stone Slab Calculator: Verification email sent successfully to ' . $email);
-    }
+    
     
     if ($sent) {
         return array('success' => true, 'message' => 'Verification email sent successfully');
@@ -149,10 +139,11 @@ add_action('init', 'stone_slab_verify_email');
  * AJAX handler for resending verification email
  */
 function stone_slab_resend_verification_ajax() {
-    // Verify nonce - TEMPORARILY DISABLED FOR TESTING
-    // if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_nonce')) {
-    //     wp_die(json_encode(array('success' => false, 'message' => 'Security check failed')));
-    // }
+    // Verify nonce - accept both auth nonce and drawing nonce temporarily
+    if (!wp_verify_nonce($_POST['nonce'], 'stone_slab_auth_nonce') && 
+        !wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
+        wp_die(json_encode(array('success' => false, 'message' => 'Security check failed')));
+    }
     
     $email = sanitize_email($_POST['email']);
     
@@ -175,15 +166,13 @@ function stone_slab_resend_verification_ajax() {
     // Send verification email
     $result = stone_slab_send_verification_email($user->ID, $email, $user->user_login);
     
-    // Debug logging
-    error_log('Stone Slab Calculator: Resend verification attempt for user ' . $user->ID . ' with email ' . $email);
-    error_log('Stone Slab Calculator: Resend result - ' . print_r($result, true));
+    
     
     wp_die(json_encode($result));
 }
-// VERIFICATION EMAIL TEMPORARILY DISABLED
-// add_action('wp_ajax_stone_slab_resend_verification', 'stone_slab_resend_verification_ajax');
-// add_action('wp_ajax_nopriv_stone_slab_resend_verification', 'stone_slab_resend_verification_ajax');
+// Enable resend verification for production
+add_action('wp_ajax_stone_slab_resend_verification', 'stone_slab_resend_verification_ajax');
+add_action('wp_ajax_nopriv_stone_slab_resend_verification', 'stone_slab_resend_verification_ajax');
 
 /**
  * Modify login to check email verification
@@ -241,177 +230,15 @@ function stone_slab_is_email_verified($user_id) {
 /**
  * Test email functionality with detailed debugging
  */
-function stone_slab_test_email_detailed() {
-    if (current_user_can('manage_options')) {
-        $test_email = get_option('admin_email');
-        $subject = 'Test Email - Stone Slab Calculator - ' . date('Y-m-d H:i:s');
-        $message = '<p>This is a test email to verify that the email system is working properly.</p>';
-        $message .= '<p>Sent at: ' . date('Y-m-d H:i:s') . '</p>';
-        $message .= '<p>Site URL: ' . get_option('siteurl') . '</p>';
-        $message .= '<p>Admin Email: ' . $test_email . '</p>';
-        
-        $headers = array(
-            'Content-Type: text/html; charset=UTF-8',
-            'From: Stone Slab Calculator <noreply@' . $_SERVER['HTTP_HOST'] . '>'
-        );
-        
-        // Check WordPress email configuration
-        $wp_mail_errors = array();
-        
-        // Test 1: Basic wp_mail
-        $sent = wp_mail($test_email, $subject, $message, $headers);
-        
-        // Test 2: Check for PHPMailer errors
-        if (isset($GLOBALS['phpmailer']) && is_object($GLOBALS['phpmailer'])) {
-            $phpmailer = $GLOBALS['phpmailer'];
-            if (isset($phpmailer->ErrorInfo)) {
-                $wp_mail_errors[] = 'PHPMailer Error: ' . $phpmailer->ErrorInfo;
-            }
-        }
-        
-        // Test 3: Check WordPress email settings
-        $wp_mail_errors[] = 'WordPress Admin Email: ' . get_option('admin_email');
-        $wp_mail_errors[] = 'Site URL: ' . get_option('siteurl');
-        $wp_mail_errors[] = 'WordPress Version: ' . get_bloginfo('version');
-        
-        // Test 4: Check if SMTP is configured
-        if (defined('SMTP_HOST')) {
-            $wp_mail_errors[] = 'SMTP Host: ' . SMTP_HOST;
-            $wp_mail_errors[] = 'SMTP Port: ' . (defined('SMTP_PORT') ? SMTP_PORT : 'Not set');
-            $wp_mail_errors[] = 'SMTP Username: ' . (defined('SMTP_USER') ? 'Set' : 'Not set');
-            $wp_mail_errors[] = 'SMTP Password: ' . (defined('SMTP_PASS') ? 'Set' : 'Not set');
-        } else {
-            $wp_mail_errors[] = 'SMTP: Not configured (using default WordPress mail)';
-        }
-        
-        // Test 5: Check server mail configuration
-        $wp_mail_errors[] = 'PHP mail() function: ' . (function_exists('mail') ? 'Available' : 'Not available');
-        $wp_mail_errors[] = 'Server Software: ' . $_SERVER['SERVER_SOFTWARE'];
-        
-        if ($sent) {
-            echo '<div class="notice notice-success"><p><strong>✅ Test email sent successfully to:</strong> ' . $test_email . '</p></div>';
-            echo '<div class="notice notice-info"><p><strong>📧 Email Details:</strong></p><ul>';
-            foreach ($wp_mail_errors as $error) {
-                echo '<li>' . esc_html($error) . '</li>';
-            }
-            echo '</ul></div>';
-        } else {
-            echo '<div class="notice notice-error"><p><strong>❌ Failed to send test email to:</strong> ' . $test_email . '</p></div>';
-            echo '<div class="notice notice-error"><p><strong>🔍 Debug Information:</strong></p><ul>';
-            foreach ($wp_mail_errors as $error) {
-                echo '<li>' . esc_html($error) . '</li>';
-            }
-            echo '</ul></div>';
-            
-            // Additional debugging
-            echo '<div class="notice notice-warning"><p><strong>💡 Troubleshooting Tips:</strong></p>';
-            echo '<ul>';
-            echo '<li>Check if your hosting provider allows sending emails</li>';
-            echo '<li>Verify SMTP settings if using SMTP</li>';
-            echo '<li>Check WordPress email plugins (like WP Mail SMTP)</li>';
-            echo '<li>Contact your hosting provider about email restrictions</li>';
-            echo '</ul></div>';
-        }
-    }
-}
+// Debug test function removed for production
 
-/**
- * Add admin menu for email testing
- */
-function stone_slab_add_admin_menu() {
-    add_submenu_page(
-        'tools.php',
-        'Email Verification Test',
-        'Email Test',
-        'manage_options',
-        'stone-slab-email-test',
-        'stone_slab_email_test_page'
-    );
-}
-add_action('admin_menu', 'stone_slab_add_admin_menu');
+// Admin menu for email testing removed for production
 
-/**
- * Email test page content
- */
-function stone_slab_email_test_page() {
-    if (!current_user_can('manage_options')) {
-        wp_die('Insufficient permissions');
-    }
-    
-    echo '<div class="wrap">';
-    echo '<h1>Stone Slab Calculator - Email Verification Test</h1>';
-    
-    // Show email configuration
-    stone_slab_check_email_config();
-    
-    // Test email functionality
-    if (isset($_POST['test_email'])) {
-        stone_slab_test_email_detailed();
-    }
-    
-    // Manual verification email
-    if (isset($_POST['send_verification']) && isset($_POST['user_email'])) {
-        $user_email = sanitize_email($_POST['user_email']);
-        $user = get_user_by('email', $user_email);
-        
-        if ($user) {
-            $result = stone_slab_manual_verification_email($user->ID);
-            if ($result['success']) {
-                echo '<div class="notice notice-success"><p>Verification email sent successfully to: ' . $user_email . '</p></div>';
-            } else {
-                echo '<div class="notice notice-error"><p>Failed to send verification email: ' . $result['message'] . '</p></div>';
-            }
-        } else {
-            echo '<div class="notice notice-error"><p>User with email ' . $user_email . ' not found.</p></div>';
-        }
-    }
-    
-    echo '<form method="post" style="margin: 20px 0;">';
-    echo '<h3>Test Email System</h3>';
-    echo '<p>Click the button below to send a test email to the admin email address:</p>';
-    echo '<input type="submit" name="test_email" value="Send Test Email" class="button button-primary">';
-    echo '</form>';
-    
-    echo '<form method="post" style="margin: 20px 0;">';
-    echo '<h3>Send Manual Verification Email</h3>';
-    echo '<p>Enter a user email address to manually send a verification email:</p>';
-    echo '<input type="email" name="user_email" placeholder="user@example.com" required style="width: 300px; margin-right: 10px;">';
-    echo '<input type="submit" name="send_verification" value="Send Verification Email" class="button button-secondary">';
-    echo '</form>';
-    
-    echo '</div>';
-}
+// Email test page function removed for production
 
-/**
- * Add email configuration check
- */
-function stone_slab_check_email_config() {
-    if (current_user_can('manage_options')) {
-        $admin_email = get_option('admin_email');
-        $site_url = get_option('siteurl');
-        
-        echo '<div class="notice notice-info"><p><strong>Email Configuration:</strong></p>';
-        echo '<p>Admin Email: ' . $admin_email . '</p>';
-        echo '<p>Site URL: ' . $site_url . '</p>';
-        echo '<p>SMTP Status: ' . (defined('SMTP_HOST') ? 'Configured' : 'Not configured') . '</p>';
-        echo '</div>';
-    }
-}
+// Email configuration check function removed for production
 
-/**
- * Manually send verification email for existing user
- */
-function stone_slab_manual_verification_email($user_id) {
-    if (current_user_can('manage_options')) {
-        $user = get_user_by('id', $user_id);
-        if ($user) {
-            $result = stone_slab_send_verification_email($user_id, $user->user_email, $user->user_login);
-            return $result;
-        }
-        return array('success' => false, 'message' => 'User not found');
-    }
-    return array('success' => false, 'message' => 'Insufficient permissions');
-}
+// Manual verification function removed for production
 
 /**
  * Add admin notice for email verification status
