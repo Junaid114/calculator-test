@@ -61,6 +61,19 @@ if (!function_exists('slab_calculator_register_settings')) {
 		        register_setting('slab_calculator_settings_group', 'slab_calculator_email_template');
         register_setting('slab_calculator_settings_group', 'slab_calculator_internal_cc_email');
         register_setting('slab_calculator_settings_group', 'ssc_public_quote_access');
+        
+        // New PDF Template Settings
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_template_cover');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_template_body');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_template_footer');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_company_logo');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_company_name');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_company_address');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_company_phone');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_company_email');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_company_website');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_export_quality');
+        register_setting('slab_calculator_settings_group', 'ssc_pdf_page_size');
 
         add_settings_section(
             'slab_calculator_settings_section',
@@ -132,6 +145,49 @@ if (!function_exists('slab_calculator_register_settings')) {
 		'slab_calculator_settings',
 		'slab_calculator_settings_section'
 	);
+        
+        // PDF Template Settings Section
+        add_settings_field(
+            'ssc_pdf_template_cover',
+            'PDF Cover Template',
+            'ssc_pdf_template_cover_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_pdf_template_body',
+            'PDF Body Template',
+            'ssc_pdf_template_body_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_pdf_template_footer',
+            'PDF Footer Template',
+            'ssc_pdf_template_footer_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        // Company Information Settings
+        add_settings_field(
+            'ssc_pdf_company_info',
+            'Company Information',
+            'ssc_pdf_company_info_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        // PDF Export Settings
+        add_settings_field(
+            'ssc_pdf_export_settings',
+            'PDF Export Settings',
+            'ssc_pdf_export_settings_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
         
         add_settings_field(
             'slab_calculator_internal_cc_email',
@@ -411,6 +467,204 @@ if (!function_exists('slab_calculator_email_template_callback')) {
     }
 }
 
+// PDF Template Callback Functions
+if (!function_exists('ssc_pdf_template_cover_callback')) {
+    function ssc_pdf_template_cover_callback() {
+        $cover_template = get_option('ssc_pdf_template_cover', '');
+        if (empty($cover_template)) {
+            $cover_template = '{{company_logo}}
+{{company_name}}
+{{company_address}}
+{{company_phone}}
+{{company_email}}
+{{company_website}}
+
+PROJECT QUOTE
+{{drawing_name}}
+
+Date: {{current_date}}
+Quote ID: {{quote_id}}';
+        }
+        
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<p><strong>Available Dynamic Fields for Cover:</strong></p>';
+        echo '<ul style="margin-left: 20px;">';
+        echo '<li><code>{{company_logo}}</code> - Company logo image</li>';
+        echo '<li><code>{{company_name}}</code> - Company name</li>';
+        echo '<li><code>{{company_address}}</code> - Company address</li>';
+        echo '<li><code>{{company_phone}}</code> - Company phone</li>';
+        echo '<li><code>{{company_email}}</code> - Company email</li>';
+        echo '<li><code>{{company_website}}</code> - Company website</li>';
+        echo '<li><code>{{drawing_name}}</code> - Drawing/project name</li>';
+        echo '<li><code>{{current_date}}</code> - Current date</li>';
+        echo '<li><code>{{quote_id}}</code> - Unique quote ID</li>';
+        echo '</ul>';
+        echo '</div>';
+        
+        echo '<textarea name="ssc_pdf_template_cover" rows="10" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea($cover_template) . '</textarea>';
+        echo '<p class="description">Template for the PDF cover page. Use the dynamic fields above to customize the content.</p>';
+    }
+}
+
+if (!function_exists('ssc_pdf_template_body_callback')) {
+    function ssc_pdf_template_body_callback() {
+        $body_template = get_option('ssc_pdf_template_body', '');
+        if (empty($body_template)) {
+            $body_template = 'PROJECT DETAILS
+
+Drawing Name: {{drawing_name}}
+Total Cutting Area: {{total_cutting_mm}} mm
+Standard Cutting Area: {{only_cut_mm}} mm
+Mitred Cutting Area: {{mitred_cut_mm}} mm
+Slab Cost: {{slab_cost}}
+
+{{drawing_image}}
+
+NOTES
+{{drawing_notes}}
+
+CALCULATIONS
+Total Cutting Required: {{total_cutting_mm}} mm
+Standard Cuts: {{only_cut_mm}} mm
+Mitred Cuts: {{mitred_cut_mm}} mm
+Total Cost: {{slab_cost}}';
+        }
+        
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<p><strong>Available Dynamic Fields for Body:</strong></p>';
+        echo '<ul style="margin-left: 20px;">';
+        echo '<li><code>{{drawing_name}}</code> - Drawing/project name</li>';
+        echo '<li><code>{{total_cutting_mm}}</code> - Total cutting area in mm</li>';
+        echo '<li><code>{{only_cut_mm}}</code> - Standard cutting area in mm</li>';
+        echo '<li><code>{{mitred_cut_mm}}</code> - Mitred cutting area in mm</li>';
+        echo '<li><code>{{slab_cost}}</code> - Cost of the slab</li>';
+        echo '<li><code>{{drawing_image}}</code> - The actual drawing image</li>';
+        echo '<li><code>{{drawing_notes}}</code> - User notes about the drawing</li>';
+        echo '<li><code>{{current_date}}</code> - Current date</li>';
+        echo '<li><code>{{quote_id}}</code> - Unique quote ID</li>';
+        echo '</ul>';
+        echo '</div>';
+        
+        echo '<textarea name="ssc_pdf_template_body" rows="15" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea($body_template) . '</textarea>';
+        echo '<p class="description">Template for the main body of the PDF. The drawing image will be automatically inserted where {{drawing_image}} is placed.</p>';
+    }
+}
+
+if (!function_exists('ssc_pdf_template_footer_callback')) {
+    function ssc_pdf_template_footer_callback() {
+        $footer_template = get_option('ssc_pdf_template_footer', '');
+        if (empty($footer_template)) {
+            $footer_template = 'Thank you for choosing {{company_name}}!
+
+For questions or to proceed with this quote, please contact us:
+Phone: {{company_phone}}
+Email: {{company_email}}
+Website: {{company_website}}
+
+{{company_address}}
+
+Quote ID: {{quote_id}} | Generated on: {{current_date}}';
+        }
+        
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<p><strong>Available Dynamic Fields for Footer:</strong></p>';
+        echo '<ul style="margin-left: 20px;">';
+        echo '<li><code>{{company_name}}</code> - Company name</li>';
+        echo '<li><code>{{company_phone}}</code> - Company phone</li>';
+        echo '<li><code>{{company_email}}</code> - Company email</li>';
+        echo '<li><code>{{company_website}}</code> - Company website</li>';
+        echo '<li><code>{{company_address}}</code> - Company address</li>';
+        echo '<li><code>{{quote_id}}</code> - Unique quote ID</li>';
+        echo '<li><code>{{current_date}}</code> - Current date</li>';
+        echo '</ul>';
+        echo '</div>';
+        
+        echo '<textarea name="ssc_pdf_template_footer" rows="5" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea($footer_template) . '</textarea>';
+        echo '<p class="description">Template for the PDF footer. This will appear at the bottom of each page.</p>';
+    }
+}
+
+if (!function_exists('ssc_pdf_company_info_callback')) {
+    function ssc_pdf_company_info_callback() {
+        $company_logo = get_option('ssc_pdf_company_logo', '');
+        $company_name = get_option('ssc_pdf_company_name', 'Bamby Stone');
+        $company_address = get_option('ssc_pdf_company_address', 'Unit 6, 8 Technology Drive, Arundel QLD, Australia 4214');
+        $company_phone = get_option('ssc_pdf_company_phone', '1300 536 120');
+        $company_email = get_option('ssc_pdf_company_email', 'welcome@bambystone.com.au');
+        $company_website = get_option('ssc_pdf_company_website', 'https://www.bambystone.com.au');
+
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<h4>Company Information for PDF Templates</h4>';
+        echo '<p class="description">This information will be used in the PDF templates above. Leave empty to use default values.</p>';
+        
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_pdf_company_logo" style="margin-right:10px;font-weight:500;min-width:150px;">Company Logo (URL):</label>';
+        echo '<input type="url" id="ssc_pdf_company_logo" name="ssc_pdf_company_logo" value="' . esc_attr($company_logo) . '" style="width: 300px;" placeholder="https://example.com/logo.png" />';
+        echo '</div>';
+        
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_pdf_company_name" style="margin-right:10px;font-weight:500;min-width:150px;">Company Name:</label>';
+        echo '<input type="text" id="ssc_pdf_company_name" name="ssc_pdf_company_name" value="' . esc_attr($company_name) . '" style="width: 300px;" />';
+        echo '</div>';
+        
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_pdf_company_address" style="margin-right:10px;font-weight:500;min-width:150px;">Company Address:</label>';
+        echo '<textarea id="ssc_pdf_company_address" name="ssc_pdf_company_address" rows="2" style="width: 300px;">' . esc_textarea($company_address) . '</textarea>';
+        echo '</div>';
+        
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_pdf_company_phone" style="margin-right:10px;font-weight:500;min-width:150px;">Company Phone:</label>';
+        echo '<input type="text" id="ssc_pdf_company_phone" name="ssc_pdf_company_phone" value="' . esc_attr($company_phone) . '" style="width: 300px;" />';
+        echo '</div>';
+        
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_pdf_company_email" style="margin-right:10px;font-weight:500;min-width:150px;">Company Email:</label>';
+        echo '<input type="email" id="ssc_pdf_company_email" name="ssc_pdf_company_email" value="' . esc_attr($company_email) . '" style="width: 300px;" />';
+        echo '</div>';
+        
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_pdf_company_website" style="margin-right:10px;font-weight:500;min-width:150px;">Company Website:</label>';
+        echo '<input type="url" id="ssc_pdf_company_website" name="ssc_pdf_company_website" value="' . esc_attr($company_website) . '" style="width: 300px;" />';
+        echo '</div>';
+        echo '</div>';
+    }
+}
+
+if (!function_exists('ssc_pdf_export_settings_callback')) {
+    function ssc_pdf_export_settings_callback() {
+        $export_quality = get_option('ssc_pdf_export_quality', 'high');
+        $page_size = get_option('ssc_pdf_page_size', 'A3');
+
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<h4>PDF Export Settings</h4>';
+        echo '<p class="description">Configure the quality and size of exported PDFs.</p>';
+        
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_pdf_export_quality" style="margin-right:10px;font-weight:500;min-width:150px;">Export Quality:</label>';
+        echo '<select id="ssc_pdf_export_quality" name="ssc_pdf_export_quality">';
+        echo '<option value="low" ' . selected($export_quality, 'low', false) . '>Low (Smaller file, faster generation)</option>';
+        echo '<option value="medium" ' . selected($export_quality, 'medium', false) . '>Medium (Balanced quality and size)</option>';
+        echo '<option value="high" ' . selected($export_quality, 'high', false) . '>High (Best quality, larger file)</option>';
+        echo '</select>';
+        echo '</div>';
+        
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_pdf_page_size" style="margin-right:10px;font-weight:500;min-width:150px;">Page Size:</label>';
+        echo '<select id="ssc_pdf_page_size" name="ssc_pdf_page_size">';
+        echo '<option value="A4" ' . selected($page_size, 'A4', false) . '>A4 (210×297mm) - Standard</option>';
+        echo '<option value="A3" ' . selected($page_size, 'A3', false) . '>A3 (297×420mm) - Large format</option>';
+        echo '<option value="Letter" ' . selected($page_size, 'Letter', false) . '>Letter (216×279mm) - US Standard</option>';
+        echo '<option value="Legal" ' . selected($page_size, 'Legal', false) . '>Legal (216×356mm) - US Legal</option>';
+        echo '</select>';
+        echo '</div>';
+        
+        echo '<div style="background: #e7f3fa; border-left: 4px solid #00a0d2; padding: 10px; margin-top: 15px;">';
+        echo '<strong>💡 Tip:</strong> A3 size is recommended for detailed drawings and professional presentations.';
+        echo '</div>';
+        echo '</div>';
+    }
+}
+
 if (!function_exists('slab_calculator_internal_cc_email_callback')) {
 	function slab_calculator_internal_cc_email_callback() {
 		$cc_email = get_option('slab_calculator_internal_cc_email', '');
@@ -548,12 +802,11 @@ function ssc_saved_drawings_page() {
 	echo '<div class="filter-buttons">';
 	echo '<button type="button" id="apply_filters" class="button button-primary">Apply Filters</button>';
 	echo '<button type="button" id="clear_filters" class="button">Clear Filters</button>';
-	echo '<button type="button" id="export_filtered" class="button button-secondary">Export Filtered Results</button>';
 	echo '</div>';
 	
 			// Add helpful hints
 		echo '<div class="filter-hints">';
-		echo '<strong>Tips:</strong> Use any combination of filters. Press Enter in any field to apply filters. Use Ctrl+F to focus on filters, Ctrl+E to export.';
+		echo '<strong>Tips:</strong> Use any combination of filters. Press Enter in any field to apply filters. Use Ctrl+F to focus on filters.';
 		echo '</div>';
 		
 		// Add CC email status
@@ -614,10 +867,7 @@ function ssc_saved_drawings_page() {
 			}, 500); // 500ms delay
 		});
 		
-		// Export filtered results
-		$("#export_filtered").on("click", function() {
-			exportFilteredResults();
-		});
+
 		
 		// Add keyboard shortcuts
 		$(document).on("keydown", function(e) {
@@ -625,11 +875,6 @@ function ssc_saved_drawings_page() {
 			if ((e.ctrlKey || e.metaKey) && e.key === "f") {
 				e.preventDefault();
 				$("#filter_quote_id").focus();
-			}
-			// Ctrl/Cmd + E to export
-			if ((e.ctrlKey || e.metaKey) && e.key === "e") {
-				e.preventDefault();
-				exportFilteredResults();
 			}
 		});
 		
@@ -774,56 +1019,9 @@ function ssc_saved_drawings_page() {
 			});
 		}
 		
-		function exportFilteredResults() {
-			// Get current filter values
-			var filterData = {
-				action: "ssc_admin_filter_drawings",
-				_wpnonce: "' . wp_create_nonce('ssc_admin_filter_nonce') . '",
-				quote_id: $("#filter_quote_id").val(),
-				user_id: $("#filter_user_id").val(),
-				full_name: $("#filter_full_name").val(),
-				email: $("#filter_email").val(),
-				product: $("#filter_product").val(),
-				date_from: $("#filter_date_from").val(),
-				date_to: $("#filter_date_to").val()
-			};
-			
-			$.post(ajaxurl, filterData, function(response) {
-				if (response.success && response.data.length > 0) {
-					exportToCSV(response.data);
-				} else {
-					alert("No data to export.");
-				}
-			});
-		}
+
 		
-		function exportToCSV(drawings) {
-			var csvContent = "data:text/csv;charset=utf-8,";
-			csvContent += "Quote ID,Customer,Email,Slab Name,Total Cutting (mm),Standard Cut (mm),Mitred Cut (mm),Slab Cost,Created\n";
-			
-			drawings.forEach(function(drawing) {
-				var row = [
-					drawing.id,
-					(drawing.display_name || "Unknown User").replace(/"/g, \'""\'),
-					(drawing.user_email || "N/A").replace(/"/g, \'""\'),
-					(drawing.drawing_name || drawing.slab_name || "N/A").replace(/"/g, \'""\'),
-					drawing.total_cutting_mm || "N/A",
-					drawing.only_cut_mm || "N/A",
-					drawing.mitred_cut_mm || "N/A",
-					drawing.slab_cost || "N/A",
-					drawing.created_at || "N/A"
-				];
-				csvContent += row.join(",") + "\\n";
-			});
-			
-			var encodedUri = encodeURI(csvContent);
-			var link = document.createElement("a");
-			link.setAttribute("href", encodedUri);
-			link.setAttribute("download", "stone_slab_calculator_drawings_" + new Date().toISOString().split("T")[0] + ".csv");
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-		}
+
 	});
 	</script>';
 }

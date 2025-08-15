@@ -25,6 +25,8 @@ define('SSC_PLUGIN_URL', plugin_dir_url(__FILE__));
 require_once( SSC_PLUGIN_DIR . 'admin/admin.php');
 	// Email verification enabled for production
 	require_once( SSC_PLUGIN_DIR . 'includes/email-verification.php');
+	// Enhanced PDF generator
+	require_once( SSC_PLUGIN_DIR . 'includes/enhanced-pdf-generator.php');
 
 
 // Activation hook to create database tables

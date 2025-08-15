@@ -174,6 +174,27 @@ foreach( $params as $param ) {
 				border-color: #ffd9b3;
 
 			}
+			
+			/* PDF Quality Selector Styles */
+			#pdf-quality {
+				width: 100%;
+				padding: 8px 12px;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				font-size: 14px;
+				background-color: #fff;
+				color: #333;
+			}
+			
+			#pdf-quality:focus {
+				outline: none;
+				border-color: #0073aa;
+				box-shadow: 0 0 0 1px #0073aa;
+			}
+			
+			#pdf-quality option {
+				padding: 8px;
+			}
 
 			
 
@@ -2764,6 +2785,16 @@ foreach( $params as $param ) {
 					<div class="form-group">
 						<label for="drawing-notes">Notes (Optional):</label>
 						<textarea id="drawing-notes" name="drawing-notes" placeholder="Add any notes about this drawing"></textarea>
+					</div>
+					<div class="form-group">
+						<label for="pdf-quality">PDF Quality:</label>
+						<select id="pdf-quality" name="pdf-quality">
+							<option value="enhanced">Enhanced PDF (A3, High Quality, Branded)</option>
+							<option value="basic">Basic PDF (A4, Standard Quality)</option>
+						</select>
+						<small style="color: #666; display: block; margin-top: 5px;">
+							Enhanced PDF includes company branding, cover page, and professional layout
+						</small>
 					</div>
 					<div class="error-message" style="color:red;margin: 10px 0;display:none;"></div>
 					<button type="submit">Save Drawing</button>
@@ -11488,23 +11519,16 @@ foreach( $params as $param ) {
 					updateSlabVisualization();
 				}
 				
-				// Function to save drawing
+				// Function to save drawing with PDF generation
 				function saveDrawing() {
 					const drawingName = jQuery('#drawing-name').val();
 					const drawingNotes = jQuery('#drawing-notes').val();
+					const pdfQuality = jQuery('#pdf-quality').val();
 					
 					if (!drawingName) {
 						alert('Please enter a drawing name');
 						return;
 					}
-					
-					// Generate PDF
-					const { jsPDF } = window.jspdf;
-					const pdf = new jsPDF({
-						orientation: 'l',
-						unit: 'mm',
-						format: 'a4'
-					});
 					
 					// Get canvas data
 					const canvasData = canvas.toDataURL({
@@ -11513,26 +11537,78 @@ foreach( $params as $param ) {
 						multiplier: 2
 					});
 					
-					// Add image to PDF
-					pdf.addImage(canvasData, 'JPEG', 10, 10, 190, 140);
-					
-					// Add drawing details
-					pdf.setFontSize(12);
-					pdf.text('Drawing Name: ' + drawingName, 10, 160);
-					pdf.text('Total Cutting MM: ' + totalCuttingMM, 10, 170);
-					pdf.text('Standard Cut MM: ' + onlyCutAreaMM, 10, 180);
-					pdf.text('Mitred Cut MM: ' + mitredEdgeAreaMM, 10, 190);
-					pdf.text('Slab Cost: $' + slabCost, 10, 200);
-					
-					if (drawingNotes) {
-						pdf.text('Notes: ' + drawingNotes, 10, 210);
+					if (pdfQuality === 'enhanced') {
+						// Generate enhanced PDF
+						generateEnhancedPDF(drawingName, drawingNotes, canvasData);
+					} else {
+						// Generate basic PDF
+						generateBasicPDF(drawingName, drawingNotes, canvasData);
 					}
+				}
+				
+				// Function to generate enhanced PDF
+				function generateEnhancedPDF(drawingName, drawingNotes, canvasData) {
+					// Create FormData for enhanced PDF generation
+					const formData = new FormData();
+					formData.append('action', 'ssc_generate_enhanced_pdf');
+					formData.append('nonce', nonce);
 					
-					// Convert to blob and create file
-					const pdfBlob = pdf.output('blob');
-					const pdfFile = new File([pdfBlob], 'drawing_' + Date.now() + '.pdf', { type: 'application/pdf' });
+					// Add user ID if available
+					if (currentUserId) {
+						formData.append('user_id', currentUserId);
+					}
+					formData.append('drawing_name', drawingName);
+					formData.append('drawing_notes', drawingNotes);
+					formData.append('total_cutting_mm', totalCuttingMM);
+					formData.append('only_cut_mm', onlyCutAreaMM);
+					formData.append('mitred_cut_mm', mitredEdgeAreaMM);
+					formData.append('slab_cost', '$' + slabCost);
+					formData.append('canvas_data', canvasData);
+					formData.append('drawing_data', JSON.stringify({
+						name: drawingName,
+						notes: drawingNotes,
+						total_cutting_mm: totalCuttingMM,
+						only_cut_mm: onlyCutAreaMM,
+						mitred_cut_mm: mitredEdgeAreaMM,
+						slab_cost: slabCost,
+						created_at: new Date().toISOString()
+					}));
+					formData.append('drawing_link', window.location.href);
 					
-					// Create FormData
+					// Show loading message
+					jQuery('#saveDrawingModal .modal-content').append('<div id="pdf-loading" style="text-align: center; padding: 20px; color: #666;">Generating enhanced PDF...</div>');
+					
+					// Send AJAX request for enhanced PDF
+					jQuery.ajax({
+						url: ajaxurl,
+						type: 'POST',
+						data: formData,
+						processData: false,
+						contentType: false,
+						success: function(response) {
+							jQuery('#pdf-loading').remove();
+							
+							if (response.success) {
+								// Now save the drawing with the enhanced PDF
+								saveDrawingWithPDF(response.data.pdf_file, drawingName, drawingNotes);
+							} else {
+								alert('Failed to generate enhanced PDF: ' + response.data);
+								// Fallback to basic PDF generation
+								generateBasicPDF(drawingName, drawingNotes, canvasData);
+							}
+						},
+						error: function() {
+							jQuery('#pdf-loading').remove();
+							alert('Failed to generate enhanced PDF. Using basic PDF instead.');
+							// Fallback to basic PDF generation
+							generateBasicPDF(drawingName, drawingNotes, canvasData);
+						}
+					});
+				}
+				
+				// Function to save drawing with the generated PDF
+				function saveDrawingWithPDF(pdfFile, drawingName, drawingNotes) {
+					// Create FormData for saving drawing
 					const formData = new FormData();
 					formData.append('action', 'ssc_save_drawing');
 					formData.append('nonce', nonce);
@@ -11568,7 +11644,7 @@ foreach( $params as $param ) {
 						contentType: false,
 						success: function(response) {
 							if (response.success) {
-								alert('Drawing and PDF saved successfully!');
+								alert('Drawing and enhanced PDF saved successfully!');
 								jQuery('#saveDrawingModal').css('display', 'none');
 								jQuery('#drawing-name').val('');
 								jQuery('#drawing-notes').val('');
@@ -11584,7 +11660,7 @@ foreach( $params as $param ) {
 										downloadLink += '&user_id=' + currentUserId;
 									}
 									
-									const choice = confirm('Drawing saved! Click OK to view the PDF in browser, or Cancel to download it.');
+									const choice = confirm('Enhanced PDF generated! Click OK to view the PDF in browser, or Cancel to download it.');
 									if (choice) {
 										// View in browser
 										window.open(viewLink, '_blank');
@@ -11601,6 +11677,39 @@ foreach( $params as $param ) {
 							alert('Error saving drawing');
 						}
 					});
+				}
+				
+				// Fallback function for basic PDF generation
+				function generateBasicPDF(drawingName, drawingNotes, canvasData) {
+					// Generate basic PDF using jsPDF
+					const { jsPDF } = window.jspdf;
+					const pdf = new jsPDF({
+						orientation: 'l',
+						unit: 'mm',
+						format: 'a4'
+					});
+					
+					// Add image to PDF
+					pdf.addImage(canvasData, 'JPEG', 10, 10, 190, 140);
+					
+					// Add drawing details
+					pdf.setFontSize(12);
+					pdf.text('Drawing Name: ' + drawingName, 10, 160);
+					pdf.text('Total Cutting MM: ' + totalCuttingMM, 10, 170);
+					pdf.text('Standard Cut MM: ' + onlyCutAreaMM, 10, 180);
+					pdf.text('Mitred Cut MM: ' + mitredEdgeAreaMM, 10, 190);
+					pdf.text('Slab Cost: $' + slabCost, 10, 200);
+					
+					if (drawingNotes) {
+						pdf.text('Notes: ' + drawingNotes, 10, 210);
+					}
+					
+					// Convert to blob and create file
+					const pdfBlob = pdf.output('blob');
+					const pdfFile = new File([pdfBlob], 'drawing_' + Date.now() + '.pdf', { type: 'application/pdf' });
+					
+					// Now save the drawing with the basic PDF
+					saveDrawingWithPDF(pdfFile, drawingName, drawingNotes);
 				}
 				
 				// Function to load saved drawings
