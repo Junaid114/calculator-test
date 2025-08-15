@@ -2746,7 +2746,7 @@ foreach( $params as $param ) {
 
 				
 
-				<button type="button" id="cancel">Close</button>
+				<button type="button" id="cancel-email">Close</button>
 
 			</div>
 
@@ -2795,17 +2795,33 @@ foreach( $params as $param ) {
 			var urlParams = new URLSearchParams(window.location.search);
 			var siteUrl = urlParams.get('site_url') || window.location.protocol + '//' + window.location.hostname;
 			var ajaxurl = siteUrl + '/wp-admin/admin-ajax.php';
-			// Get nonce from URL parameters for drawing functions
+			// Get nonces from URL parameters
 			var drawingNonce = urlParams.get('nonce') || 'disabled_for_testing';
+			var authNonce = urlParams.get('auth_nonce') || drawingNonce; // Use auth nonce if available, fallback to drawing nonce
+			
+			// Debug: Log all URL parameters
+			console.log('URL Parameters received:');
+			for (let [key, value] of urlParams.entries()) {
+				console.log('- ' + key + ':', value);
+			}
 			
 			// The calculator template runs in an iframe, so we need to create our own authentication nonce
-			// We'll use the drawing nonce as a fallback, but ideally we should generate a proper auth nonce
+			// We'll use the auth nonce from URL parameters for authentication
 			if (typeof stone_slab_ajax === 'undefined') {
 				stone_slab_ajax = {
 					ajaxurl: ajaxurl,
-					nonce: drawingNonce
+					nonce: authNonce
 				};
 			}
+			
+			// Debug: Log the nonces being used
+			console.log('Nonces loaded:');
+			console.log('- Drawing nonce:', drawingNonce);
+			console.log('- Auth nonce:', authNonce);
+			console.log('- Using for authentication:', stone_slab_ajax.nonce);
+			
+			// Store current user information
+			let currentUserEmail = null; // Store the current user email
 			
 			// Keep the authentication nonce separate from drawing nonce
 			// stone_slab_ajax.nonce should remain as the auth nonce
@@ -10199,6 +10215,108 @@ foreach( $params as $param ) {
 
 						
 
+						// Always check authentication and auto-fill email when modal opens
+						setTimeout(function() {
+
+							console.log('=== Email Modal Auto-fill Debug ===');
+							console.log('Email modal opened, currentUserEmail:', currentUserEmail);
+							console.log('isAuthenticated:', isAuthenticated);
+							console.log('currentUserId:', currentUserId);
+							console.log('stone_slab_ajax:', stone_slab_ajax);
+
+							// Test if we can find the email field
+							var emailField = jQuery('#emailModal #email');
+							console.log('Email field found:', emailField.length > 0);
+							console.log('Email field element:', emailField[0]);
+							
+							// Ensure email field is ready and visible
+							if (emailField.length === 0) {
+								console.log('Email field not found, waiting for it to be ready...');
+								// Wait a bit more and try again
+								setTimeout(function() {
+									emailField = jQuery('#emailModal #email');
+									console.log('Email field found after retry:', emailField.length > 0);
+									if (emailField.length > 0) {
+										// Now proceed with email auto-fill
+										autoFillEmailField(emailField);
+									}
+								}, 100);
+								return;
+							}
+							
+							// Function to handle email auto-fill
+							function autoFillEmailField(emailField) {
+								// First, try to use stored email immediately if available
+								if (currentUserEmail) {
+									console.log('Using stored email immediately:', currentUserEmail);
+									emailField.val(currentUserEmail);
+									console.log('Email field value after immediate set:', emailField.val());
+									// Force the email field to update visually
+									emailField.trigger('input').trigger('change');
+								}
+
+								// Always try to get fresh authentication status and email
+								console.log('Making fresh auth check request to:', ajaxurl);
+								
+								// Use the nonce from URL parameters if stone_slab_ajax.nonce is not available
+								var nonceToUse = stone_slab_ajax.nonce || urlParams.get('auth_nonce') || urlParams.get('nonce');
+								console.log('Using nonce for auth check:', nonceToUse);
+								
+								jQuery.post(ajaxurl, {
+									action: 'stone_slab_check_auth',
+									nonce: nonceToUse
+								}, function(response) {
+									console.log('Auth check response received:', response);
+									try {
+										var result = typeof response === 'string' ? JSON.parse(response) : response;
+										console.log('Parsed auth result:', result);
+										
+										if (result.success && result.data && result.data.authenticated && result.data.user && result.data.user.email) {
+											console.log('Retrieved email from auth check:', result.data.user.email);
+											emailField.val(result.data.user.email);
+											currentUserEmail = result.data.user.email; // Store it for future use
+											console.log('Email field value after setting:', emailField.val());
+											
+											// Force the email field to update visually
+											emailField.trigger('input').trigger('change');
+											
+											// Additional verification that the email was set
+											setTimeout(function() {
+												var finalEmailValue = emailField.val();
+												console.log('Final email field value after timeout:', finalEmailValue);
+												if (finalEmailValue !== result.data.user.email) {
+													console.log('Email field value mismatch! Setting again...');
+													emailField.val(result.data.user.email);
+													emailField.trigger('input').trigger('change');
+												}
+											}, 25);
+										} else {
+											console.log('Auth check failed or no email available');
+											console.log('Result structure:', result);
+										}
+									} catch (e) {
+										console.log('Error parsing auth response:', e);
+									}
+								}).fail(function(xhr, status, error) {
+									console.log('Auth check AJAX failed:', {xhr, status, error});
+									console.log('Trying to use stored email as fallback...');
+									
+									// Fallback: try to use stored email if available
+									if (currentUserEmail) {
+										console.log('Using stored email as fallback:', currentUserEmail);
+										emailField.val(currentUserEmail);
+										emailField.trigger('input').trigger('change');
+									}
+								});
+							}
+							
+							// Call the auto-fill function
+							autoFillEmailField(emailField);
+
+						}, 50); // Reduced delay for faster response
+
+						
+
 						// Maintain fullscreen when modal opens
 
 						if (isFullscreen) {
@@ -10567,6 +10685,7 @@ foreach( $params as $param ) {
 									if (result.success) {
 										isAuthenticated = false;
 										currentUserId = null; // Clear user ID on logout
+										currentUserEmail = null; // Clear user email on logout
 										jQuery('#auth').css('opacity', '1');
 										jQuery('#auth').attr('title', 'Click to login');
 										jQuery('#auth').text('Login');
@@ -10676,8 +10795,14 @@ foreach( $params as $param ) {
 								isAuthenticated = true;
 								
 								// Store the user ID for future AJAX requests
-								if (result.user && result.user.id) {
-									currentUserId = result.user.id;
+								if (result.data && result.data.user && result.data.user.id) {
+									currentUserId = result.data.user.id;
+								}
+								
+								// Store the user email for auto-filling email modal
+								if (result.data && result.data.user && result.data.user.email) {
+									currentUserEmail = result.data.user.email;
+									console.log('Stored user email from login:', currentUserEmail);
 								}
 								
 								// Enable calculator functionality
@@ -10775,8 +10900,14 @@ foreach( $params as $param ) {
 								isAuthenticated = true;
 								
 								// Store the user ID for future AJAX requests
-								if (result.user && result.user.id) {
-									currentUserId = result.user.id;
+								if (result.data && result.data.user && result.data.user.id) {
+									currentUserId = result.data.user.id;
+								}
+								
+								// Store the user email for auto-filling email modal
+								if (result.data && result.data.user && result.data.user.email) {
+									currentUserEmail = result.data.user.email;
+									console.log('Stored user email from registration:', currentUserEmail);
 								}
 								
 								// Update UI to show logged in state
@@ -10858,6 +10989,8 @@ foreach( $params as $param ) {
 								
 								if (result.success) {
 									isAuthenticated = false;
+									currentUserId = null; // Clear user ID on logout
+									currentUserEmail = null; // Clear user email on logout
 									jQuery('#auth').css('opacity', '1');
 									jQuery('#auth').attr('title', 'Click to login');
 									jQuery('#auth').text('Login');
@@ -10930,6 +11063,8 @@ foreach( $params as $param ) {
 								
 								if (result.success) {
 									isAuthenticated = false;
+									currentUserId = null; // Clear user ID on logout
+									currentUserEmail = null; // Clear user email on logout
 									
 									// Update auth button state
 									jQuery('#auth').css('opacity', '1');
@@ -11041,8 +11176,15 @@ foreach( $params as $param ) {
 						try {
 							var result = typeof response === 'string' ? JSON.parse(response) : response;
 							
-							if (result.success && result.authenticated) {
+							if (result.success && result.data && result.data.authenticated) {
 								isAuthenticated = true;
+								
+								// Store the user email for auto-filling email modal
+								if (result.data.user && result.data.user.email) {
+									currentUserEmail = result.data.user.email;
+									console.log('Stored user email from checkAuthStatus:', currentUserEmail);
+								}
+								
 								jQuery('#auth').css('opacity', '0.7');
 								jQuery('#auth').attr('title', 'Authenticated - Click to logout');
 								jQuery('#auth').attr('src', './../assets/images/info.png');
@@ -11108,6 +11250,82 @@ foreach( $params as $param ) {
 					
 					// Try to show the modal
 					showAuthModal();
+				};
+				
+				// Global debug function for email auto-fill - can be called from browser console
+				window.debugEmailAutoFill = function() {
+					console.log('=== Email Auto-fill Debug ===');
+					console.log('currentUserEmail:', currentUserEmail);
+					console.log('isAuthenticated:', isAuthenticated);
+					console.log('currentUserId:', currentUserId);
+					console.log('Email modal element:', jQuery('#emailModal')[0]);
+					console.log('Email input element:', jQuery('#emailModal #email')[0]);
+					console.log('Email input value:', jQuery('#emailModal #email').val());
+					console.log('======================');
+				};
+				
+				// Test function to manually test email auto-fill
+				window.testEmailAutoFill = function() {
+					console.log('=== Testing Email Auto-fill ===');
+					
+					// Open the email modal
+					jQuery('#emailModal').css('display', 'flex');
+					
+					// Wait a bit and then try to auto-fill
+					setTimeout(function() {
+						var emailField = jQuery('#emailModal #email');
+						console.log('Email field found:', emailField.length > 0);
+						
+						if (emailField.length > 0) {
+							// Test setting a value
+							emailField.val('test@example.com');
+							console.log('Test email set, current value:', emailField.val());
+							
+							// Try to set the actual user email if available
+							if (currentUserEmail) {
+								emailField.val(currentUserEmail);
+								console.log('User email set:', emailField.val());
+							}
+						} else {
+							console.log('Email field not found!');
+						}
+					}, 200);
+				};
+				
+				// Test function to check authentication status
+				window.testAuthStatus = function() {
+					console.log('=== Testing Authentication Status ===');
+					console.log('AJAX URL:', ajaxurl);
+					console.log('Nonce being sent:', stone_slab_ajax.nonce);
+					console.log('Nonce type:', typeof stone_slab_ajax.nonce);
+					console.log('Nonce length:', stone_slab_ajax.nonce ? stone_slab_ajax.nonce.length : 'undefined');
+					
+					jQuery.post(ajaxurl, {
+						action: 'stone_slab_check_auth',
+						nonce: stone_slab_ajax.nonce
+					}, function(response) {
+						console.log('Auth check response:', response);
+						try {
+							var result = typeof response === 'string' ? JSON.parse(response) : response;
+							console.log('Parsed result:', result);
+							
+							if (result.success && result.data && result.data.authenticated) {
+								console.log('User is authenticated');
+								console.log('User data:', result.data.user);
+								if (result.data.user && result.data.user.email) {
+									console.log('User email:', result.data.user.email);
+									currentUserEmail = result.data.user.email;
+									console.log('Stored email:', currentUserEmail);
+								}
+							} else {
+								console.log('User is not authenticated');
+							}
+						} catch (e) {
+							console.log('Error parsing response:', e);
+						}
+					}).fail(function(xhr, status, error) {
+						console.log('Auth check failed:', {xhr, status, error});
+					});
 				};
 				
 				// Auto-show auth modal if user is not authenticated after a short delay
@@ -11496,6 +11714,11 @@ foreach( $params as $param ) {
 					});
 					
 					// Modal close buttons
+					jQuery('#cancel-email').click(function() {
+						jQuery('#emailModal').css('display', 'none');
+						jQuery('#emailModal #email').val(''); // Clear email field when closing
+					});
+					
 					jQuery('#cancel-save').click(function() {
 						jQuery('#saveDrawingModal').css('display', 'none');
 					});
