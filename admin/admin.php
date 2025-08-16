@@ -74,6 +74,11 @@ if (!function_exists('slab_calculator_register_settings')) {
         register_setting('slab_calculator_settings_group', 'ssc_pdf_company_website');
         register_setting('slab_calculator_settings_group', 'ssc_pdf_export_quality');
         register_setting('slab_calculator_settings_group', 'ssc_pdf_page_size');
+        
+        // Production and Installation Cost Settings
+        register_setting('slab_calculator_settings_group', 'ssc_production_cost_standard');
+        register_setting('slab_calculator_settings_group', 'ssc_production_cost_mitred');
+        register_setting('slab_calculator_settings_group', 'ssc_installation_cost');
 
         add_settings_section(
             'slab_calculator_settings_section',
@@ -185,6 +190,31 @@ if (!function_exists('slab_calculator_register_settings')) {
             'ssc_pdf_export_settings',
             'PDF Export Settings',
             'ssc_pdf_export_settings_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        // Production and Installation Cost Settings
+        add_settings_field(
+            'ssc_production_cost_standard',
+            'Production Cost - Standard Cut',
+            'ssc_production_cost_standard_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_production_cost_mitred',
+            'Production Cost - Mitred Cut',
+            'ssc_production_cost_mitred_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_installation_cost',
+            'Installation Cost',
+            'ssc_installation_cost_callback',
             'slab_calculator_settings',
             'slab_calculator_settings_section'
         );
@@ -665,6 +695,36 @@ if (!function_exists('ssc_pdf_export_settings_callback')) {
     }
 }
 
+if (!function_exists('ssc_production_cost_standard_callback')) {
+    function ssc_production_cost_standard_callback() {
+        $standard_cost = get_option('ssc_production_cost_standard', '0.00');
+        ?>
+        <input type="number" name="ssc_production_cost_standard" value="<?php echo esc_attr($standard_cost); ?>" step="0.01" min="0" />
+        <p class="description">Cost per square meter for standard cutting.</p>
+        <?php
+    }
+}
+
+if (!function_exists('ssc_production_cost_mitred_callback')) {
+    function ssc_production_cost_mitred_callback() {
+        $mitred_cost = get_option('ssc_production_cost_mitred', '0.00');
+        ?>
+        <input type="number" name="ssc_production_cost_mitred" value="<?php echo esc_attr($mitred_cost); ?>" step="0.01" min="0" />
+        <p class="description">Cost per square meter for mitred cutting.</p>
+        <?php
+    }
+}
+
+if (!function_exists('ssc_installation_cost_callback')) {
+    function ssc_installation_cost_callback() {
+        $installation_cost = get_option('ssc_installation_cost', '0.00');
+        ?>
+        <input type="number" name="ssc_installation_cost" value="<?php echo esc_attr($installation_cost); ?>" step="0.01" min="0" />
+        <p class="description">Cost of installation per square meter.</p>
+        <?php
+    }
+}
+
 if (!function_exists('slab_calculator_internal_cc_email_callback')) {
 	function slab_calculator_internal_cc_email_callback() {
 		$cc_email = get_option('slab_calculator_internal_cc_email', '');
@@ -867,8 +927,6 @@ function ssc_saved_drawings_page() {
 			}, 500); // 500ms delay
 		});
 		
-
-		
 		// Add keyboard shortcuts
 		$(document).on("keydown", function(e) {
 			// Ctrl/Cmd + F to focus on first filter
@@ -1019,9 +1077,6 @@ function ssc_saved_drawings_page() {
 			});
 		}
 		
-
-		
-
 	});
 	</script>';
 }
