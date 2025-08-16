@@ -2069,9 +2069,48 @@ foreach( $params as $param ) {
 			/* Prevent fullscreen exit when modals open */
 
 			.modal {
-
+				display: none;
+				position: fixed;
+				z-index: 1000;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				overflow: auto;
+				background-color: rgba(0,0,0,0.4);
 				pointer-events: auto !important;
+			}
 
+			.modal-content {
+				background-color: #fefefe;
+				margin: 5% auto;
+				padding: 20px;
+				border: 1px solid #888;
+				width: 80%;
+				max-width: 800px;
+				border-radius: 8px;
+				box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+			}
+
+			.modal-title {
+				margin-top: 0;
+				color: #333;
+				border-bottom: 2px solid #007cba;
+				padding-bottom: 10px;
+			}
+
+			.modal button {
+				background-color: #007cba;
+				color: white;
+				padding: 10px 20px;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+				margin: 5px;
+			}
+
+			.modal button:hover {
+				background-color: #005a87;
 			}
 
 			
@@ -2167,8 +2206,35 @@ foreach( $params as $param ) {
 				margin-right: 10px;
 				margin-bottom: 5px;
 				padding: 8px 12px;
-				text-decoration: none;
+				border: none;
 				border-radius: 4px;
+				cursor: pointer;
+				text-decoration: none;
+				display: inline-block;
+				font-size: 12px;
+				transition: all 0.3s ease;
+			}
+			
+			/* DISABLED: Canvas recreation button styling commented out
+			.drawing-actions .button-recreate {
+				background-color: #28a745;
+				color: white;
+			}
+			
+			.drawing-actions .button-recreate:hover {
+				background-color: #218838;
+				transform: translateY(-1px);
+			}
+			*/
+			
+			.drawing-actions .button-delete {
+				background-color: #dc3545;
+				color: white;
+			}
+			
+			.drawing-actions .button-delete:hover {
+				background-color: #c82333;
+			}
 				font-size: 12px;
 			}
 			
@@ -2835,12 +2901,35 @@ foreach( $params as $param ) {
 		<div id="viewDrawingsModal" class="modal">
 			<div class="modal-content">
 				<h2 class="modal-title">Saved Drawings</h2>
+				
+				<!-- Canvas Recreation Instructions -->
+				<!-- DISABLED: Canvas recreation functionality commented out -->
+				<!--
+				<div class="canvas-instructions" style="background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 5px; padding: 15px; margin-bottom: 20px;">
+					<h4 style="margin: 0 0 10px 0; color: #0066cc;">🎨 Canvas Recreation Feature</h4>
+					<p style="margin: 5px 0; color: 333;">
+						<strong>New!</strong> You can now recreate your saved drawings as interactive canvases:
+					</p>
+					<ul style="margin: 10px 0; padding-left: 20px; color: #555;">
+						<li><strong>🎨 Recreate Canvas:</strong> Loads the original drawing layout for viewing and editing</li>
+						<li><strong>📄 View PDF:</strong> Opens the generated PDF in a new tab</li>
+						<li><strong>⬇️ Download PDF:</strong> Downloads the PDF to your device</li>
+					</ul>
+					<p style="margin: 5px 0; font-size: 12px; color: #666;">
+						<em>Note: Canvas recreation is only available for drawings saved with canvas data.</em>
+					</p>
+				</div>
+				-->
+				
 				<div id="saved-drawings-list">
 					<p>Loading your saved drawings...</p>
 				</div>
 				<button type="button" id="cancel-view">Close</button>
 			</div>
 		</div>
+		
+		<!-- Test Button for Modal -->
+		<button id="test-modal" style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: #ff6b6b; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">🧪 Test Modal</button>
 
 		<script src="./../assets/js/jquery-3.6.0.min.js"></script>
 
@@ -10519,9 +10608,22 @@ foreach( $params as $param ) {
 						
 					} else if (downloadType === 'VIEW') {
 						// Open view drawings modal
+						console.log('🎯 Opening view drawings modal...');
 						jQuery('#viewDrawingsModal').css('display', 'flex');
 						
+						// Debug modal visibility
+						const modal = jQuery('#viewDrawingsModal');
+						console.log('🔍 Modal display style:', modal.css('display'));
+						console.log('🔍 Modal visibility:', modal.is(':visible'));
+						console.log('🔍 Modal CSS properties:', {
+							display: modal.css('display'),
+							visibility: modal.css('visibility'),
+							opacity: modal.css('opacity'),
+							zIndex: modal.css('z-index')
+						});
+						
 						// Load saved drawings
+						console.log('📊 Loading saved drawings...');
 						loadSavedDrawings();
 						
 						// Maintain fullscreen when modal opens
@@ -12091,6 +12193,64 @@ foreach( $params as $param ) {
 					formData.append('slab_cost', '$' + slabCost);
 					formData.append('pdf_file', generatedFile);
 					
+					// Get canvas objects for recreation
+					// DISABLED: Canvas objects capture commented out
+					/*
+					let canvasObjects = [];
+					if (typeof canvas !== 'undefined' && canvas && canvas.getObjects) {
+						canvasObjects = canvas.getObjects().map(function(obj) {
+							let objData = {
+								type: obj.type,
+								left: obj.left,
+								top: obj.top,
+								width: obj.width,
+								height: obj.height,
+								radius: obj.radius,
+								text: obj.text,
+								path: obj.path,
+								fill: obj.fill,
+								stroke: obj.stroke,
+								strokeWidth: obj.strokeWidth,
+								fontSize: obj.fontSize,
+								fontFamily: obj.fontFamily,
+								selectable: obj.selectable,
+								evented: obj.evented,
+								angle: obj.angle,
+								scaleX: obj.scaleX,
+								scaleY: obj.scaleY
+							};
+							
+							// Add type-specific properties for exact recreation
+							if (obj.type === 'image') {
+								objData.src = obj.src || obj._element?.src;
+								objData.crossOrigin = obj.crossOrigin;
+							}
+							
+							if (obj.type === 'group' && obj._objects) {
+								// Capture group objects for exact recreation
+								objData.objects = obj._objects.map(function(groupObj) {
+									return {
+										type: groupObj.type,
+										left: groupObj.left,
+										top: groupObj.top,
+										width: groupObj.width,
+										height: groupObj.height,
+										text: groupObj.text,
+										fill: groupObj.fill,
+										stroke: groupObj.stroke,
+										strokeWidth: groupObj.strokeWidth,
+										fontSize: groupObj.fontSize,
+										fontFamily: groupObj.fontFamily
+									};
+								});
+							}
+							
+							return objData;
+						});
+						console.log('🎨 Canvas objects captured:', canvasObjects.length);
+					}
+					*/
+					
 					const drawingDataObj = {
 						name: drawingName,
 						notes: drawingNotes,
@@ -12099,6 +12259,10 @@ foreach( $params as $param ) {
 						mitred_cut_mm: mitredEdgeAreaMM,
 						slab_cost: slabCost,
 						created_at: new Date().toISOString()
+						// DISABLED: Canvas data commented out
+						// canvas_objects: canvasObjects,
+						// canvas_width: canvas ? canvas.getWidth() : 0,
+						// canvas_height: canvas ? canvas.getHeight() : 0
 					};
 					formData.append('drawing_data', JSON.stringify(drawingDataObj));
 					formData.append('drawing_link', window.location.href);
@@ -12290,6 +12454,12 @@ foreach( $params as $param ) {
 				
 				// Function to load saved drawings
 				function loadSavedDrawings() {
+					console.log('🎯 loadSavedDrawings() function called');
+					console.log('📊 Current state:');
+					console.log('- drawingNonce:', drawingNonce);
+					console.log('- currentUserId:', currentUserId);
+					console.log('- stone_slab_ajax.ajaxurl:', stone_slab_ajax.ajaxurl);
+					
 					const requestData = {
 						action: 'ssc_get_drawings',
 						nonce: drawingNonce
@@ -12298,28 +12468,69 @@ foreach( $params as $param ) {
 					// Add user ID if available
 					if (currentUserId) {
 						requestData.user_id = currentUserId;
+						console.log('✅ Added user_id to request:', currentUserId);
+					} else {
+						console.log('⚠️ No currentUserId available - will try to get all drawings');
+						// Don't add user_id - let the backend handle it
 					}
+					
+					console.log('📋 Request data:', requestData);
+					console.log('🌐 Making AJAX call to:', stone_slab_ajax.ajaxurl);
 					
 					jQuery.ajax({
 						url: stone_slab_ajax.ajaxurl,
 						type: 'POST',
 						data: requestData,
+						beforeSend: function() {
+							console.log('🔄 AJAX request starting...');
+							jQuery('#saved-drawings-list').html('<p>Loading your drawings...</p>');
+						},
 						success: function(response) {
+							console.log('✅ AJAX success response received:', response);
+							console.log('- Response type:', typeof response);
+							console.log('- Response success:', response.success);
+							console.log('- Response data:', response.data);
+							
 							if (response.success) {
+								console.log('🎉 Success! Displaying drawings...');
 								displaySavedDrawings(response.data);
 							} else {
+								console.error('❌ Server returned error:', response.data);
 								jQuery('#saved-drawings-list').html('<p>Error loading drawings: ' + response.data + '</p>');
 							}
 						},
-						error: function() {
-							jQuery('#saved-drawings-list').html('<p>Error loading drawings</p>');
+						error: function(xhr, status, error) {
+							console.error('❌ AJAX error occurred:');
+							console.error('- Status:', status);
+							console.error('- Error:', error);
+							console.error('- Response text:', xhr.responseText);
+							console.error('- Status code:', xhr.status);
+							
+							jQuery('#saved-drawings-list').html('<p>Error loading drawings. Check console for details.</p>');
+						},
+						complete: function(xhr, status) {
+							console.log('🔄 AJAX request completed with status:', status);
+							console.log('- Response code:', xhr.status);
 						}
 					});
 				}
 				
 				// Function to display saved drawings
 				function displaySavedDrawings(drawings) {
+					console.log('🎨 displaySavedDrawings() function called');
+					console.log('📊 Drawings data received:', drawings);
+					console.log('- Type:', typeof drawings);
+					console.log('- Length:', drawings ? drawings.length : 'undefined');
+					console.log('- Is array:', Array.isArray(drawings));
+					
+					if (!drawings || !Array.isArray(drawings)) {
+						console.error('❌ Invalid drawings data received');
+						jQuery('#saved-drawings-list').html('<p>Error: Invalid data received from server.</p>');
+						return;
+					}
+					
 					if (drawings.length === 0) {
+						console.log('📭 No drawings found, showing empty message');
 						jQuery('#saved-drawings-list').html('<p>No saved drawings found.</p>');
 						return;
 					}
@@ -12328,6 +12539,26 @@ foreach( $params as $param ) {
 					drawings.forEach(function(drawing) {
 						html += '<div class="drawing-item">';
 						html += '<h4>' + (drawing.drawing_name || 'Untitled Drawing') + '</h4>';
+						
+						// Show canvas data availability
+						// DISABLED: Canvas data availability indicator commented out
+						/*
+						if (drawing.drawing_data) {
+							try {
+								const data = JSON.parse(drawing.drawing_data);
+								if (data.canvas_objects && data.canvas_objects.length > 0) {
+									html += '<p><span style="color: #28a745; font-weight: bold;">🎨 Canvas Data Available (' + data.canvas_objects.length + ' objects)</span></p>';
+								} else {
+									html += '<p><span style="color: #6c757d; font-style: italic;">📄 PDF Only (No Canvas Data)</span></p>';
+								}
+							} catch (e) {
+								html += '<p><span style="color: #6c757d; font-style: italic;">📄 PDF Only (Data Error)</span></p>';
+							}
+						} else {
+							html += '<p><span style="color: #6c757d; font-style: italic;">📄 PDF Only (No Canvas Data)</span></p>';
+						}
+						*/
+						
 						if (drawing.drawing_notes) {
 							html += '<p><strong>Notes:</strong> ' + drawing.drawing_notes + '</p>';
 						}
@@ -12348,17 +12579,33 @@ foreach( $params as $param ) {
 						
 						html += '<a href="' + viewUrl + '" target="_blank" class="button">View PDF</a> ';
 						html += '<a href="' + downloadUrl + '" class="button">Download PDF</a> ';
-						html += '<button onclick="deleteDrawing(' + drawing.id + ')" class="button button-delete">Delete</button>';
+						
+						// Add Recreate Canvas button if drawing data is available
+						// DISABLED: Canvas recreation functionality commented out
+						/*
+						if (drawing.drawing_data) {
+							// Use data attributes instead of inline onclick for better security
+							html += '<button class="button button-recreate recreate-canvas-btn" data-drawing=\'' + JSON.stringify(drawing) + '\'>🎨 Recreate Canvas</button> ';
+						}
+						*/
+						
+						html += '<button class="button button-delete delete-drawing-btn" data-drawing-id="' + drawing.id + '">Delete</button>';
 						html += '</div>';
 						html += '</div>';
 					});
 					html += '</div>';
 					
 					jQuery('#saved-drawings-list').html(html);
+					
+					// Debug: Check if content was set
+					console.log('🎨 HTML content set to saved-drawings-list');
+					console.log('🔍 Content length:', html.length);
+					console.log('🔍 Modal content element:', jQuery('#saved-drawings-list').length);
+					console.log('🔍 Modal content HTML:', jQuery('#saved-drawings-list').html().substring(0, 200) + '...');
 				}
 				
-				// Function to delete drawing
-				function deleteDrawing(drawingId) {
+								// Function to delete drawing
+				window.deleteDrawing = function(drawingId) {
 					if (confirm('Are you sure you want to delete this drawing?')) {
 						const requestData = {
 							action: 'ssc_delete_drawing',
@@ -12386,9 +12633,315 @@ foreach( $params as $param ) {
 							error: function() {
 								alert('Error deleting drawing');
 							}
-											});
+						});
 					}
 				}
+				
+				// Function to recreate canvas from saved drawing data
+				// DISABLED: Canvas recreation function commented out
+				/*
+				window.recreateCanvasFromDrawing = function(drawing) {
+					console.log('🎨 Recreating canvas from saved drawing:', drawing);
+					
+					// Clear existing canvas
+					if (typeof canvas !== 'undefined' && canvas) {
+						canvas.clear();
+						canvas.renderAll();
+						console.log('✅ Canvas cleared');
+					}
+					
+					// Parse drawing data
+					let drawingData = null;
+					console.log('🔍 Raw drawing data:', drawing.drawing_data);
+					console.log('🔍 Drawing data type:', typeof drawing.drawing_data);
+					
+					try {
+						if (drawing.drawing_data && typeof drawing.drawing_data === 'string') {
+							// Try to clean the string before parsing
+							let cleanData = drawing.drawing_data.trim();
+							console.log('🔍 Cleaned data string:', cleanData);
+							console.log('🔍 First 100 chars:', cleanData.substring(0, 100));
+							
+							// Check if it looks like valid JSON
+							if (cleanData.startsWith('{') || cleanData.startsWith('[')) {
+								// Try to parse the clean data first
+								try {
+									drawingData = JSON.parse(cleanData);
+								} catch (parseError) {
+									console.log('⚠️ First parse attempt failed, trying to fix escaped quotes...');
+									
+									// Try to fix escaped quotes (\" -> ")
+									let fixedData = cleanData.replace(/\\"/g, '"');
+									console.log('🔧 Fixed escaped quotes, trying to parse again...');
+									
+									try {
+										drawingData = JSON.parse(fixedData);
+										console.log('✅ Successfully parsed after fixing escaped quotes');
+									} catch (secondError) {
+										console.log('⚠️ Second parse attempt failed, trying HTML decode...');
+										
+										// Try HTML decoding
+										const tempDiv = document.createElement('div');
+										tempDiv.innerHTML = cleanData;
+										const decodedData = tempDiv.textContent || tempDiv.innerText || '';
+										
+										try {
+											drawingData = JSON.parse(decodedData);
+											console.log('✅ Successfully parsed after HTML decode');
+										} catch (thirdError) {
+											console.error('❌ All parsing attempts failed');
+											throw new Error('Could not parse drawing data after multiple attempts');
+										}
+									}
+								}
+							} else {
+								console.error('❌ Data does not look like valid JSON');
+								alert('Drawing data is not in the expected format. This drawing may not have canvas data.');
+								return;
+							}
+						} else if (drawing.drawing_data && typeof drawing.drawing_data === 'object') {
+							drawingData = drawing.drawing_data;
+						}
+					} catch (error) {
+						console.error('❌ Error parsing drawing data:', error);
+						console.error('❌ Raw data that failed:', drawing.drawing_data);
+						alert('Error parsing drawing data. The data may be corrupted. Please try saving the drawing again.');
+						return;
+					}
+					
+					if (!drawingData) {
+						console.error('❌ No valid drawing data found');
+						alert('No drawing data available for this saved drawing.');
+						return;
+					}
+					
+					console.log('📊 Drawing data parsed:', drawingData);
+					
+					// Recreate canvas objects from saved data
+					if (drawingData.canvas_objects && Array.isArray(drawingData.canvas_objects)) {
+						console.log('🔄 Recreating canvas objects...');
+						
+						drawingData.canvas_objects.forEach(function(objData, index) {
+							try {
+								let fabricObject = null;
+								
+								// Handle different object types
+								switch (objData.type) {
+									case 'rect':
+										fabricObject = new fabric.Rect({
+											left: objData.left || 0,
+											top: objData.top || 0,
+											width: objData.width || 100,
+											height: objData.height || 100,
+											fill: objData.fill || '#000000',
+											stroke: objData.stroke || '',
+											strokeWidth: objData.strokeWidth || 0,
+											selectable: objData.selectable !== false,
+											evented: objData.evented !== false
+										});
+										break;
+										
+									case 'circle':
+										fabricObject = new fabric.Circle({
+											left: objData.left || 0,
+											top: objData.top || 0,
+											radius: objData.radius || 50,
+											fill: objData.fill || '#000000',
+											stroke: objData.stroke || '',
+											strokeWidth: objData.strokeWidth || 0,
+											selectable: objData.selectable !== false,
+											evented: objData.evented !== false
+										});
+										break;
+										
+									case 'text':
+										fabricObject = new fabric.Text(objData.text || 'Text', {
+											left: objData.left || 0,
+											top: objData.top || 0,
+											fontSize: objData.fontSize || 16,
+											fill: objData.fill || '#000000',
+											fontFamily: objData.fontFamily || 'Arial',
+											selectable: objData.selectable !== false,
+											evented: objData.evented !== false
+										});
+										break;
+										
+									case 'image':
+										// Try to recreate the exact image if possible
+										console.log('🖼️ Image object found, attempting to recreate exact image');
+										
+										// Check if we have image data or src
+										if (objData.src) {
+											// Create image from src
+											fabric.Image.fromURL(objData.src, function(img) {
+												img.set({
+													left: objData.left || 0,
+													top: objData.top || 0,
+													width: objData.width || 100,
+													height: objData.height || 100,
+													fill: objData.fill || 'rgb(0,0,0)',
+													stroke: objData.stroke || null,
+													strokeWidth: objData.strokeWidth || 0,
+													selectable: objData.selectable !== false,
+													evented: objData.evented !== false,
+													angle: objData.angle || 0,
+													scaleX: objData.scaleX || 1,
+													scaleY: objData.scaleY || 1
+												});
+												canvas.add(img);
+												canvas.renderAll();
+												console.log('✅ Image recreated from src:', objData.src);
+											});
+										} else {
+											// Create exact rectangle with same properties as the original image
+											fabricObject = new fabric.Rect({
+												left: objData.left || 0,
+												top: objData.top || 0,
+												width: objData.width || 100,
+												height: objData.height || 100,
+												fill: objData.fill || 'rgb(0,0,0)',
+												stroke: objData.stroke || null,
+												strokeWidth: objData.strokeWidth || 0,
+												selectable: objData.selectable !== false,
+												evented: objData.evented !== false,
+												angle: objData.angle || 0,
+												scaleX: objData.scaleX || 1,
+												scaleY: objData.scaleY || 1
+											});
+											console.log('✅ Image recreated as exact rectangle with original properties');
+										}
+										break;
+										
+									case 'group':
+										// Try to recreate the exact group if possible
+										console.log('👥 Group object found, attempting to recreate exact group');
+										
+										// Check if we have group objects data
+										if (objData.objects && Array.isArray(objData.objects)) {
+											// Create a new group with the same properties
+											const groupObjects = [];
+											
+											objData.objects.forEach(function(groupObj) {
+												try {
+													let fabricGroupObj = null;
+													
+													// Recreate each object in the group
+													switch (groupObj.type) {
+														case 'rect':
+															fabricGroupObj = new fabric.Rect({
+																left: groupObj.left || 0,
+																top: groupObj.top || 0,
+																width: groupObj.width || 100,
+																height: groupObj.height || 100,
+																fill: groupObj.fill || 'transparent',
+																stroke: groupObj.stroke || 'black',
+																strokeWidth: groupObj.strokeWidth || 1
+															});
+															break;
+														case 'text':
+															fabricGroupObj = new fabric.Text(groupObj.text || 'Text', {
+																left: groupObj.left || 0,
+																top: groupObj.top || 0,
+																fontSize: groupObj.fontSize || 16,
+																fill: groupObj.fill || 'black'
+															});
+															break;
+														default:
+															console.log('⚠️ Unknown group object type:', groupObj.type);
+													}
+													
+													if (fabricGroupObj) {
+														groupObjects.push(fabricGroupObj);
+													}
+												} catch (e) {
+													console.log('⚠️ Error recreating group object:', e);
+												}
+											});
+											
+											if (groupObjects.length > 0) {
+												// Create the group
+												fabricObject = new fabric.Group(groupObjects, {
+													left: objData.left || 0,
+													top: objData.top || 0,
+													selectable: objData.selectable !== false,
+													evented: objData.evented !== false,
+													angle: objData.angle || 0,
+													scaleX: objData.scaleX || 1,
+													scaleY: objData.scaleY || 1
+												});
+												console.log('✅ Group recreated with', groupObjects.length, 'objects');
+											}
+										} else {
+											// Fallback: create exact rectangle with same properties as the original group
+											fabricObject = new fabric.Rect({
+												left: objData.left || 0,
+												top: objData.top || 0,
+												width: objData.width || 100,
+												height: objData.height || 100,
+												fill: objData.fill || 'rgb(0,0,0)',
+												stroke: objData.stroke || null,
+												strokeWidth: objData.strokeWidth || 0,
+												selectable: objData.selectable !== false,
+												evented: objData.evented !== false,
+												angle: objData.angle || 0,
+												scaleX: objData.scaleX || 1,
+												scaleY: objData.scaleY || 1
+											});
+											console.log('✅ Group recreated as exact rectangle with original properties');
+										}
+										break;
+										
+									case 'path':
+										if (objData.path) {
+											fabricObject = new fabric.Path(objData.path, {
+												left: objData.left || 0,
+												top: objData.top || 0,
+												fill: objData.fill || '#000000',
+												stroke: objData.stroke || '',
+												strokeWidth: objData.strokeWidth || 0,
+												selectable: objData.selectable !== false,
+												evented: objData.evented !== false
+											});
+										}
+										break;
+										
+									default:
+										console.warn('⚠️ Unknown object type:', objData.type);
+										break;
+								}
+								
+								// Add object to canvas if created successfully
+								if (fabricObject) {
+									canvas.add(fabricObject);
+									console.log('✅ Added object to canvas:', objData.type, index);
+								}
+								
+							} catch (error) {
+								console.error('❌ Error recreating object:', error, objData);
+							}
+						});
+						
+						// Render canvas
+						canvas.renderAll();
+						console.log('✅ Canvas recreated successfully');
+						
+						// Update canvas viewport if needed
+						if (typeof updateScrollbars === 'function') {
+							updateScrollbars();
+						}
+						
+						// Show success message
+						alert('Drawing loaded successfully! You can now view and edit the canvas.');
+						
+						// Close the view modal
+						jQuery('#viewDrawingsModal').css('display', 'none');
+						
+					} else {
+						console.warn('⚠️ No canvas objects found in drawing data');
+						alert('This drawing does not contain canvas data. Only PDF generation is available.');
+					}
+				}
+				*/
 				
 		// Close modal functionality
 		jQuery(document).on('click', '#cancel-save', function() {
@@ -12464,23 +13017,150 @@ foreach( $params as $param ) {
 						return false;
 					});
 					
-					// Modal close buttons
-					jQuery('#cancel-email').click(function() {
-						jQuery('#emailModal').css('display', 'none');
-						jQuery('#emailModal #email').val(''); // Clear email field when closing
-					});
+									// Modal close buttons
+				jQuery('#cancel-email').click(function() {
+					jQuery('#emailModal').css('display', 'none');
+					jQuery('#emailModal #email').val(''); // Clear email field when closing
+				});
+				
+				jQuery('#cancel-save').click(function() {
+					jQuery('#saveDrawingModal').css('display', 'none');
+				});
+				
+				jQuery('#cancel-view').click(function() {
+					jQuery('#viewDrawingsModal').css('display', 'none');
+				});
+				
+				// Test modal button
+				jQuery('#test-modal').click(function() {
+					console.log('🧪 Test modal button clicked');
+					console.log('🔍 Modal element:', jQuery('#viewDrawingsModal'));
+					console.log('🔍 Modal display before:', jQuery('#viewDrawingsModal').css('display'));
 					
-					jQuery('#cancel-save').click(function() {
-						jQuery('#saveDrawingModal').css('display', 'none');
-					});
+					jQuery('#viewDrawingsModal').css('display', 'flex');
 					
-					jQuery('#cancel-view').click(function() {
-						jQuery('#viewDrawingsModal').css('display', 'none');
-					});
+					console.log('🔍 Modal display after:', jQuery('#viewDrawingsModal').css('display'));
+					console.log('🔍 Modal visibility:', jQuery('#viewDrawingsModal').is(':visible'));
+					
+					// Test loading drawings
+					loadSavedDrawings();
+				});
 				});
 
 			});
 
+		</script>
+		
+		<script>
+			// Event delegation for dynamically created buttons
+			// DISABLED: Canvas recreation event handler commented out
+			/*
+			jQuery(document).on('click', '.recreate-canvas-btn', function() {
+				console.log('🎨 Recreate Canvas button clicked');
+				const drawingData = jQuery(this).data('drawing');
+				console.log('📊 Drawing data from button:', drawingData);
+				console.log('🔍 Data type:', typeof drawingData);
+				console.log('🔍 Data string representation:', String(drawingData));
+				console.log('🔍 Data first 100 chars:', String(drawingData).substring(0, 100));
+				
+				// Try to fix common data issues
+				let fixedData = drawingData;
+				if (typeof drawingData === 'string') {
+					console.log('🔧 Attempting to fix string data...');
+					
+					// First try: Fix escaped quotes
+					try {
+						let fixedQuotes = drawingData.replace(/\\"/g, '"');
+						console.log('🔧 Fixed escaped quotes, trying to parse...');
+						
+						if (fixedQuotes.trim().startsWith('{') || fixedQuotes.trim().startsWith('[')) {
+							fixedData = JSON.parse(fixedQuotes);
+							console.log('✅ Successfully parsed after fixing escaped quotes');
+						}
+					} catch (e) {
+						console.log('⚠️ Could not fix escaped quotes:', e);
+						
+						// Second try: HTML decode
+						try {
+							const tempDiv = document.createElement('div');
+							tempDiv.innerHTML = drawingData;
+							const decodedData = tempDiv.textContent || tempDiv.innerText || '';
+							console.log('🔧 Decoded HTML entities:', decodedData);
+							
+							// Try to parse the decoded data
+							if (decodedData.trim().startsWith('{') || decodedData.trim().startsWith('[')) {
+								fixedData = JSON.parse(decodedData);
+								console.log('✅ Successfully parsed decoded data');
+							}
+						} catch (e2) {
+							console.log('⚠️ Could not decode/fix data:', e2);
+						}
+					}
+				}
+				
+				if (fixedData && typeof window.recreateCanvasFromDrawing === 'function') {
+					window.recreateCanvasFromDrawing(fixedData);
+				} else {
+					console.error('❌ recreateCanvasFromDrawing function not available or no drawing data');
+					alert('Error: Canvas recreation function not available. Please refresh the page.');
+				}
+			});
+			*/
+			
+			jQuery(document).on('click', '.delete-drawing-btn', function() {
+				console.log('🗑️ Delete Drawing button clicked');
+				const drawingId = jQuery(this).data('drawing-id');
+				console.log('📊 Drawing ID from button:', drawingId);
+				
+				if (drawingId && typeof window.deleteDrawing === 'function') {
+					window.deleteDrawing(drawingId);
+				} else {
+					console.error('❌ deleteDrawing function not available or no drawing ID');
+					alert('Error: Delete function not available. Please refresh the page.');
+				}
+			});
+			
+			// Debug function to check database data
+			window.debugDrawingData = function() {
+				console.log('🔍 Debugging drawing data...');
+				
+				// Check if we can access the saved drawings
+				if (typeof loadSavedDrawings === 'function') {
+					console.log('✅ loadSavedDrawings function available');
+					
+					// Try to load drawings and examine the data
+					jQuery.ajax({
+						url: stone_slab_ajax.ajaxurl,
+						type: 'POST',
+						data: {
+							action: 'ssc_get_drawings',
+							nonce: drawingNonce || 'test'
+						},
+						success: function(response) {
+							console.log('📊 AJAX response:', response);
+							if (response.success && response.data) {
+								console.log('🎨 Found', response.data.length, 'drawings');
+								
+								response.data.forEach((drawing, index) => {
+									console.log(`📋 Drawing ${index + 1}:`, {
+										id: drawing.id,
+										name: drawing.drawing_name,
+										has_drawing_data: !!drawing.drawing_data,
+										drawing_data_type: typeof drawing.drawing_data,
+										drawing_data_length: drawing.drawing_data ? drawing.drawing_data.length : 0,
+										drawing_data_sample: drawing.drawing_data ? drawing.drawing_data.substring(0, 200) : 'none'
+									});
+								});
+							}
+						},
+						error: function(xhr, status, error) {
+							console.error('❌ AJAX error:', error);
+						}
+					});
+				} else {
+					console.error('❌ loadSavedDrawings function not available');
+				}
+			};
 		</script>
 
 	</body>
