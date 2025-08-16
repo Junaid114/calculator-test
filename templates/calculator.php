@@ -2774,33 +2774,61 @@ foreach( $params as $param ) {
 		</div>
 
 		<!-- Save Drawing Modal -->
-		<div id="saveDrawingModal" class="modal">
-			<div class="modal-content">
-				<h2 class="modal-title">Save Drawing</h2>
-				<form id="save-drawing-form">
-					<div class="form-group">
-						<label for="drawing-name">Drawing Name:</label>
-						<input type="text" id="drawing-name" name="drawing-name" required placeholder="Enter a name for this drawing">
-					</div>
-					<div class="form-group">
-						<label for="drawing-notes">Notes (Optional):</label>
-						<textarea id="drawing-notes" name="drawing-notes" placeholder="Add any notes about this drawing"></textarea>
-					</div>
-					<div class="form-group">
-						<label for="pdf-quality">PDF Quality:</label>
-						<select id="pdf-quality" name="pdf-quality">
-							<option value="enhanced">Enhanced PDF (A3, High Quality, Branded)</option>
-							<option value="basic">Basic PDF (A4, Standard Quality)</option>
-						</select>
-						<small style="color: #666; display: block; margin-top: 5px;">
-							Enhanced PDF includes company branding, cover page, and professional layout
-						</small>
-					</div>
-					<div class="error-message" style="color:red;margin: 10px 0;display:none;"></div>
-					<button type="submit">Save Drawing</button>
-				</form>
-				<button type="button" id="cancel-save">Close</button>
-			</div>
+		<div id="saveDrawingModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+
+    <div class="modal-content" style="background:#fff; margin:10% auto; padding:20px; width:400px; border-radius:8px; box-shadow:0 5px 20px rgba(0,0,0,0.3);">
+
+        <h2 class="modal-title" style="margin-top:0; font-size:20px; font-weight:bold;">Save Drawing</h2>
+
+        <form id="save-drawing-form">
+            <div class="form-group" style="margin-bottom:15px;">
+                <label for="drawing-name">Drawing Name:</label>
+                <input type="text" id="drawing-name" name="drawing-name" required 
+                       placeholder="Enter a name for this drawing"
+                       style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:15px;">
+                <label for="drawing-notes">Notes (Optional):</label>
+                <textarea id="drawing-notes" name="drawing-notes" 
+                          placeholder="Add any notes about this drawing"
+                          style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom:15px;">
+                <label for="pdf-quality">PDF Quality:</label>
+                <select id="pdf-quality" name="pdf-quality"
+                        style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="enhanced">Enhanced PDF (A3, High Quality, Branded)</option>
+                    <option value="basic">Basic PDF (A4, Standard Quality)</option>
+                </select>
+                <small style="color:#666; display:block; margin-top:5px;">
+                    Enhanced PDF includes company branding, cover page, and professional layout
+                </small>
+            </div>
+
+            <div class="error-message" style="color:red; margin:10px 0; display:none;"></div>
+
+            <button type="submit" 
+                    style="background:#007bff; color:#fff; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">
+                Save Drawing
+            </button>
+        </form>
+
+        <button type="button" id="cancel-save" 
+                style="margin-top:10px; background:#ccc; color:#333; padding:8px 16px; border:none; border-radius:4px; cursor:pointer;">
+            Close
+        </button>
+    </div>
+</div>
+
+		</div>
+		
+		<!-- TEST BUTTON - Remove this after debugging -->
+		<div style="position: fixed; top: 10px; right: 10px; z-index: 10000; background: red; color: white; padding: 10px; border-radius: 5px;">
+			<button onclick="testSaveDrawing()" style="background: white; color: red; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+				🧪 TEST SAVE
+			</button>
 		</div>
 
 		<!-- View Saved Drawings Modal -->
@@ -2826,12 +2854,28 @@ foreach( $params as $param ) {
 			var urlParams = new URLSearchParams(window.location.search);
 			var siteUrl = urlParams.get('site_url') || window.location.protocol + '//' + window.location.hostname;
 			var ajaxurl = siteUrl + '/wp-admin/admin-ajax.php';
+			
+			// Fallback AJAX URL in case siteUrl is undefined
+			if (!siteUrl || siteUrl === 'undefined' || siteUrl === 'null') {
+				ajaxurl = 'http://localhost/wordpress/wp-admin/admin-ajax.php';
+				console.log('⚠️ Using fallback AJAX URL:', ajaxurl);
+			}
+			
+			// Debug: Log the URL construction
+			console.log('URL construction debug:');
+			console.log('- siteUrl:', siteUrl);
+			console.log('- ajaxurl:', ajaxurl);
+			console.log('- window.location:', window.location.href);
+			
 			// Get nonces from URL parameters
 			var drawingNonce = urlParams.get('nonce') || 'disabled_for_testing';
 			var authNonce = urlParams.get('auth_nonce') || drawingNonce; // Use auth nonce if available, fallback to drawing nonce
 			
 			// Debug: Log all URL parameters
-			console.log('URL Parameters received:');
+			console.log('=== 🌐 URL PARAMETERS RECEIVED ===');
+			console.log('Timestamp:', new Date().toISOString());
+			console.log('Full URL:', window.location.href);
+			console.log('URL Parameters:');
 			for (let [key, value] of urlParams.entries()) {
 				console.log('- ' + key + ':', value);
 			}
@@ -2846,13 +2890,28 @@ foreach( $params as $param ) {
 			}
 			
 			// Debug: Log the nonces being used
-			console.log('Nonces loaded:');
+			console.log('=== 🔑 NONCES LOADED ===');
+			console.log('Timestamp:', new Date().toISOString());
 			console.log('- Drawing nonce:', drawingNonce);
 			console.log('- Auth nonce:', authNonce);
 			console.log('- Using for authentication:', stone_slab_ajax.nonce);
+			console.log('- Nonce lengths:', {
+								drawingNonce: drawingNonce ? drawingNonce.length : 0,
+								authNonce: authNonce ? authNonce.length : 0,
+								stone_slab_ajax_nonce: stone_slab_ajax.nonce ? stone_slab_ajax.nonce.length : 0
+							});
 			
 			// Store current user information
 			let currentUserEmail = null; // Store the current user email
+			
+			// Debug: Log the current state
+			console.log('=== 🏁 INITIAL STATE ===');
+			console.log('Timestamp:', new Date().toISOString());
+			console.log('- stone_slab_ajax:', stone_slab_ajax);
+			console.log('- drawingNonce:', drawingNonce);
+			console.log('- authNonce:', authNonce);
+			console.log('- ajaxurl:', ajaxurl);
+			console.log('- siteUrl:', siteUrl);
 			
 			// Keep the authentication nonce separate from drawing nonce
 			// stone_slab_ajax.nonce should remain as the auth nonce
@@ -3031,7 +3090,7 @@ foreach( $params as $param ) {
 
 
 
-				var canvas = canvas = new fabric.Canvas('canvas', {
+				var canvas = new fabric.Canvas('canvas', {
 
 					width: canvasWidth,
 
@@ -3182,6 +3241,7 @@ foreach( $params as $param ) {
 						greenBox.watermark = img;
 
 						
+
 						// Store reference to the green box in the watermark
 
 						img.greenBox = greenBox;
@@ -5143,12 +5203,15 @@ foreach( $params as $param ) {
 				canvas.on('object:modified', function(e) {
 
 					cleanupEmptyInfoBoxes();
-					
+
 					// Clean up orphaned watermarks when objects are modified
+
 					cleanupOrphanedWatermarks();
-					
+
 					// Update slab usage calculation and visualization when objects are moved
+
 					calculateSlabUsage();
+
 					updateSlabVisualization();
 
 				});
@@ -5166,11 +5229,15 @@ foreach( $params as $param ) {
 				// Force a render to ensure everything is displayed
 
 				canvas.renderAll();
-				
+
 				// Initialize slab usage calculation and visualization
+
 				setTimeout(() => {
+
 					calculateSlabUsage();
+
 					updateSlabVisualization();
+
 				}, 500);
 
 
@@ -7508,9 +7575,11 @@ foreach( $params as $param ) {
 							canvas.remove(activeObject);
 
 							canvas.renderAll(); // Re-render the canvas
-							
+
 							// Update slab usage calculation and visualization
+
 							calculateSlabUsage();
+
 							updateSlabVisualization();
 
 							jQuery(this).attr('data-state', 'save');
@@ -10010,38 +10079,71 @@ foreach( $params as $param ) {
 				});
 
 				// Show/hide toolbar icons based on selection
+
 				canvas.on('selection:created', function(e) {
+
 					if (e.target && e.target.mainShape) {
+
 						showShapeToolbarIcons();
+
 					}
+
 				});
+
+
 
 				canvas.on('selection:updated', function(e) {
+
 					if (e.target && e.target.mainShape) {
+
 						showShapeToolbarIcons();
+
 					} else {
+
 						hideShapeToolbarIcons();
+
 					}
+
 				});
+
+
 
 				canvas.on('selection:cleared', function() {
+
 					hideShapeToolbarIcons();
+
 				});
+
+
 
 				// Handle when objects are removed from canvas
+
 				canvas.on('object:removed', function(e) {
+
 					// If the removed object was the active object, hide the toolbar icons
+
 					if (canvas.getActiveObject() === null) {
+
 						hideShapeToolbarIcons();
+
 					}
+
 				});
 
+
+
 				// Handle when objects are modified (moved, resized, etc.)
+
 				canvas.on('object:modified', function(e) {
+
 					// Ensure toolbar icons are still visible if a shape is selected
+
 					if (canvas.getActiveObject() && canvas.getActiveObject().mainShape) {
+
 						showShapeToolbarIcons();
+
 					}
+
 				});
 
 
@@ -10049,9 +10151,14 @@ foreach( $params as $param ) {
 
 
 				jQuery('#toolbar .btns #download').click(function() {
-
+					console.log('=== 🖱️ DOWNLOAD BUTTON CLICKED ===');
+					console.log('Timestamp:', new Date().toISOString());
+					console.log('Button element:', this);
+					console.log('Dropdown element:', jQuery(this).next());
+					
 					jQuery(this).next().slideToggle();
-
+					
+					console.log('Dropdown toggled');
 				});
 
 				
@@ -10185,8 +10292,14 @@ foreach( $params as $param ) {
 
 
 				jQuery('#toolbar .btns ul.dropdown li').click(function() {
-
+					console.log('=== 📋 DROPDOWN ITEM CLICKED ===');
+					console.log('Timestamp:', new Date().toISOString());
+					console.log('Clicked element:', this);
+					console.log('Element text:', jQuery(this).text());
+					console.log('Data type:', jQuery(this).data('type'));
+					
 					const downloadType = jQuery(this).data('type');
+					console.log('Download type selected:', downloadType);
 
 
 
@@ -10379,8 +10492,15 @@ foreach( $params as $param ) {
 						
 
 					} else if (downloadType === 'SAVE') {
+						console.log('=== 🎯 SAVE DRAWING SELECTED ===');
+						console.log('Timestamp:', new Date().toISOString());
+						console.log('Opening save drawing modal...');
+						
 						// Open save drawing modal
 						jQuery('#saveDrawingModal').css('display', 'flex');
+						console.log('Modal display set to flex');
+						console.log('Modal element:', jQuery('#saveDrawingModal')[0]);
+						console.log('Modal visibility:', jQuery('#saveDrawingModal').is(':visible'));
 						
 						// Maintain fullscreen when modal opens
 						if (isFullscreen) {
@@ -11520,27 +11640,73 @@ foreach( $params as $param ) {
 				}
 				
 				// Function to save drawing with PDF generation
-				function saveDrawing() {
-					const drawingName = jQuery('#drawing-name').val();
-					const drawingNotes = jQuery('#drawing-notes').val();
-					const pdfQuality = jQuery('#pdf-quality').val();
+				function saveDrawing(drawingName, drawingNotes, pdfQuality) {
+					console.log('=== 🎨 SAVE DRAWING FUNCTION STARTED ===');
+					console.log('Timestamp:', new Date().toISOString());
+					console.log('Function called from:', new Error().stack);
+					console.log('Parameters received:');
+					console.log('- drawingName:', drawingName);
+					console.log('- drawingNotes:', drawingNotes);
+					console.log('- pdfQuality:', pdfQuality);
+					
+					// Check authentication status
+					console.log('🔐 Authentication check:');
+					console.log('- isAuthenticated:', typeof isAuthenticated !== 'undefined' ? isAuthenticated : 'undefined');
+					console.log('- currentUserId:', currentUserId);
+					console.log('- stone_slab_ajax:', stone_slab_ajax);
+					console.log('- drawingNonce:', drawingNonce);
+					console.log('- authNonce:', authNonce);
+					
+					// Use parameters passed to function instead of getting from form
+					// const drawingName = jQuery('#drawing-name').val();
+					// const drawingNotes = jQuery('#drawing-notes').val();
+					// const pdfQuality = jQuery('#pdf-quality').val();
+					
+					console.log('📝 Form data:');
+					console.log('- Drawing name:', drawingName);
+					console.log('- Drawing notes:', drawingNotes);
+					console.log('- PDF quality:', pdfQuality);
 					
 					if (!drawingName) {
+						console.error('❌ No drawing name provided');
 						alert('Please enter a drawing name');
 						return;
 					}
 					
+					// Check if canvas exists
+					console.log('🎯 Canvas check:');
+					if (typeof canvas === 'undefined') {
+						console.error('❌ Canvas is undefined!');
+						alert('Error: Canvas not found. Please refresh the page and try again.');
+						return;
+					}
+					
+					console.log('✅ Canvas object found:', canvas);
+					console.log('- Canvas width:', canvas.getWidth());
+					console.log('- Canvas height:', canvas.getHeight());
+					console.log('- Canvas objects count:', canvas.getObjects().length);
+					
 					// Get canvas data
+					console.log('🖼️ Generating canvas data...');
 					const canvasData = canvas.toDataURL({
 						format: 'jpeg',
 						quality: 1.0,
 						multiplier: 2
 					});
 					
+					console.log('✅ Canvas data generated:');
+					console.log('- Data length:', canvasData.length);
+					console.log('- Data preview:', canvasData.substring(0, 100) + '...');
+					console.log('- Data type:', typeof canvasData);
+					
+					console.log('📄 PDF Quality selected:', pdfQuality);
+					
 					if (pdfQuality === 'enhanced') {
+						console.log('🚀 Starting enhanced PDF generation...');
 						// Generate enhanced PDF
 						generateEnhancedPDF(drawingName, drawingNotes, canvasData);
 					} else {
+						console.log('📋 Starting basic PDF generation...');
 						// Generate basic PDF
 						generateBasicPDF(drawingName, drawingNotes, canvasData);
 					}
@@ -11548,15 +11714,24 @@ foreach( $params as $param ) {
 				
 				// Function to generate enhanced PDF
 				function generateEnhancedPDF(drawingName, drawingNotes, canvasData) {
+					console.log('=== 🚀 ENHANCED PDF GENERATION STARTED ===');
+					console.log('Timestamp:', new Date().toISOString());
+					console.log('Parameters:', { drawingName, drawingNotes, canvasDataLength: canvasData.length });
+					
 					// Create FormData for enhanced PDF generation
+					console.log('📋 Creating FormData for enhanced PDF...');
 					const formData = new FormData();
 					formData.append('action', 'ssc_generate_enhanced_pdf');
-					formData.append('nonce', nonce);
+					formData.append('nonce', drawingNonce);
 					
 					// Add user ID if available
 					if (currentUserId) {
 						formData.append('user_id', currentUserId);
+						console.log('✅ Added user_id:', currentUserId);
+					} else {
+						console.log('⚠️ No currentUserId available');
 					}
+					
 					formData.append('drawing_name', drawingName);
 					formData.append('drawing_notes', drawingNotes);
 					formData.append('total_cutting_mm', totalCuttingMM);
@@ -11564,7 +11739,8 @@ foreach( $params as $param ) {
 					formData.append('mitred_cut_mm', mitredEdgeAreaMM);
 					formData.append('slab_cost', '$' + slabCost);
 					formData.append('canvas_data', canvasData);
-					formData.append('drawing_data', JSON.stringify({
+					
+					const drawingDataObj = {
 						name: drawingName,
 						notes: drawingNotes,
 						total_cutting_mm: totalCuttingMM,
@@ -11572,13 +11748,53 @@ foreach( $params as $param ) {
 						mitred_cut_mm: mitredEdgeAreaMM,
 						slab_cost: slabCost,
 						created_at: new Date().toISOString()
-					}));
+					};
+					formData.append('drawing_data', JSON.stringify(drawingDataObj));
 					formData.append('drawing_link', window.location.href);
+					
+					console.log('📊 FormData created with:');
+					console.log('- drawing_name:', drawingName);
+					console.log('- drawing_notes:', drawingNotes);
+					console.log('- total_cutting_mm:', totalCuttingMM);
+					console.log('- only_cut_mm:', onlyCutAreaMM);
+					console.log('- mitred_cut_mm:', mitredEdgeAreaMM);
+					console.log('- slab_cost:', '$' + slabCost);
+					console.log('- canvas_data length:', canvasData.length);
+					console.log('- drawing_data:', drawingDataObj);
+					console.log('- drawing_link:', window.location.href);
 					
 					// Show loading message
 					jQuery('#saveDrawingModal .modal-content').append('<div id="pdf-loading" style="text-align: center; padding: 20px; color: #666;">Generating enhanced PDF...</div>');
 					
 					// Send AJAX request for enhanced PDF
+					console.log('🌐 Sending AJAX request for enhanced PDF...');
+					console.log('- URL:', ajaxurl);
+					console.log('- Method: POST');
+					console.log('- FormData entries:');
+					for (let [key, value] of formData.entries()) {
+						if (key === 'canvas_data') {
+							console.log('  - ' + key + ':', value.substring(0, 100) + '... (length: ' + value.length + ')');
+						} else {
+							console.log('  - ' + key + ':', value);
+						}
+					}
+					
+					// Validate AJAX URL before making the call
+					if (!ajaxurl || ajaxurl === 'undefined' || ajaxurl === 'null') {
+						console.error('❌ ajaxurl is invalid:', ajaxurl);
+						alert('AJAX URL is invalid. Please check the console for details.');
+						return;
+					}
+					
+					// Test ajaxurl variable
+					console.log('🧪 AJAX URL Test:');
+					console.log('- ajaxurl type:', typeof ajaxurl);
+					console.log('- ajaxurl value:', ajaxurl);
+					console.log('- ajaxurl length:', ajaxurl ? ajaxurl.length : 'N/A');
+					
+					console.log('🚀 Making AJAX call to:', ajaxurl);
+					console.log('📋 FormData contains:', formData.entries().length, 'entries');
+					
 					jQuery.ajax({
 						url: ajaxurl,
 						type: 'POST',
@@ -11586,37 +11802,91 @@ foreach( $params as $param ) {
 						processData: false,
 						contentType: false,
 						success: function(response) {
+							console.log('✅ Enhanced PDF AJAX SUCCESS response received');
+							console.log('- Response:', response);
+							console.log('- Response type:', typeof response);
+							console.log('- Response success:', response.success);
+							console.log('- Response data:', response.data);
+							
 							jQuery('#pdf-loading').remove();
 							
 							if (response.success) {
+								console.log('🎉 Enhanced PDF generation successful!');
+								console.log('- PDF file data:', response.data.pdf_file);
+								
+								// Convert PDF data to File object
+								console.log('🔄 Converting PDF data to File object...');
+								const pdfData = response.data.pdf_file;
+								console.log('- PDF data received:', pdfData);
+								
+								const pdfBlob = new Blob([Uint8Array.from(atob(pdfData.data), c => c.charCodeAt(0))], { type: 'application/pdf' });
+								console.log('- PDF blob created:', pdfBlob);
+								
+								const pdfFile = new File([pdfBlob], pdfData.name, { type: 'application/pdf' });
+								console.log('✅ PDF File created:', pdfFile);
+								console.log('- File name:', pdfFile.name);
+								console.log('- File size:', pdfFile.size);
+								console.log('- File type:', pdfFile.type);
+								
 								// Now save the drawing with the enhanced PDF
-								saveDrawingWithPDF(response.data.pdf_file, drawingName, drawingNotes);
+								console.log('🚀 Calling saveDrawingWithPDF...');
+								saveDrawingWithPDF(pdfFile, drawingName, drawingNotes);
 							} else {
+								console.error('❌ Enhanced PDF generation failed:', response.data);
 								alert('Failed to generate enhanced PDF: ' + response.data);
 								// Fallback to basic PDF generation
 								generateBasicPDF(drawingName, drawingNotes, canvasData);
 							}
 						},
-						error: function() {
+						error: function(xhr, status, error) {
+							console.error('❌ Enhanced PDF AJAX ERROR occurred');
+							console.error('- XHR object:', xhr);
+							console.error('- Status:', status);
+							console.error('- Error:', error);
+							console.error('- Response text:', xhr.responseText);
+							console.error('- Status code:', xhr.status);
+							
 							jQuery('#pdf-loading').remove();
 							alert('Failed to generate enhanced PDF. Using basic PDF instead.');
 							// Fallback to basic PDF generation
+							console.log('🔄 Falling back to basic PDF generation...');
 							generateBasicPDF(drawingName, drawingNotes, canvasData);
 						}
 					});
+					
+					console.log('✅ AJAX call completed (this means the call was made)');
 				}
 				
 				// Function to save drawing with the generated PDF
 				function saveDrawingWithPDF(pdfFile, drawingName, drawingNotes) {
+					console.log('=== 💾 SAVE DRAWING WITH PDF STARTED ===');
+					console.log('Timestamp:', new Date().toISOString());
+					console.log('Parameters received:');
+					console.log('- pdfFile:', pdfFile);
+					console.log('- drawingName:', drawingName);
+					console.log('- drawingNotes:', drawingNotes);
+					
+					console.log('📁 PDF File details:');
+					console.log('- File type:', typeof pdfFile);
+					console.log('- File instanceof File:', pdfFile instanceof File);
+					console.log('- File size:', pdfFile.size);
+					console.log('- File name:', pdfFile.name);
+					console.log('- File type property:', pdfFile.type);
+					
 					// Create FormData for saving drawing
+					console.log('📋 Creating FormData for saving drawing...');
 					const formData = new FormData();
 					formData.append('action', 'ssc_save_drawing');
-					formData.append('nonce', nonce);
+					formData.append('nonce', drawingNonce);
 					
 					// Add user ID if available
 					if (currentUserId) {
 						formData.append('user_id', currentUserId);
+						console.log('✅ Added user_id:', currentUserId);
+					} else {
+						console.log('⚠️ No currentUserId available');
 					}
+					
 					formData.append('drawing_name', drawingName);
 					formData.append('drawing_notes', drawingNotes);
 					formData.append('total_cutting_mm', totalCuttingMM);
@@ -11624,7 +11894,8 @@ foreach( $params as $param ) {
 					formData.append('mitred_cut_mm', mitredEdgeAreaMM);
 					formData.append('slab_cost', '$' + slabCost);
 					formData.append('pdf_file', pdfFile);
-					formData.append('drawing_data', JSON.stringify({
+					
+					const drawingDataObj = {
 						name: drawingName,
 						notes: drawingNotes,
 						total_cutting_mm: totalCuttingMM,
@@ -11632,10 +11903,36 @@ foreach( $params as $param ) {
 						mitred_cut_mm: mitredEdgeAreaMM,
 						slab_cost: slabCost,
 						created_at: new Date().toISOString()
-					}));
+					};
+					formData.append('drawing_data', JSON.stringify(drawingDataObj));
 					formData.append('drawing_link', window.location.href);
 					
+					console.log('📊 FormData created with:');
+					console.log('- action: ssc_save_drawing');
+					console.log('- nonce:', drawingNonce);
+					console.log('- drawing_name:', drawingName);
+					console.log('- drawing_notes:', drawingNotes);
+					console.log('- total_cutting_mm:', totalCuttingMM);
+					console.log('- only_cut_mm:', onlyCutAreaMM);
+					console.log('- mitred_cut_mm:', mitredEdgeAreaMM);
+					console.log('- slab_cost:', '$' + slabCost);
+					console.log('- pdf_file:', pdfFile);
+					console.log('- drawing_data:', drawingDataObj);
+					console.log('- drawing_link:', window.location.href);
+					
 					// Send AJAX request
+					console.log('🌐 Sending AJAX request to save drawing...');
+					console.log('- URL:', ajaxurl);
+					console.log('- Method: POST');
+					console.log('- FormData entries:');
+					for (let [key, value] of formData.entries()) {
+						if (key === 'pdf_file') {
+							console.log('  - ' + key + ':', value.name + ' (File object, size: ' + value.size + ')');
+						} else {
+							console.log('  - ' + key + ':', value);
+						}
+					}
+					
 					jQuery.ajax({
 						url: ajaxurl,
 						type: 'POST',
@@ -11643,7 +11940,14 @@ foreach( $params as $param ) {
 						processData: false,
 						contentType: false,
 						success: function(response) {
+							console.log('✅ Save drawing AJAX SUCCESS response received');
+							console.log('- Response:', response);
+							console.log('- Response type:', typeof response);
+							console.log('- Response success:', response.success);
+							console.log('- Response data:', response.data);
+							
 							if (response.success) {
+								console.log('🎉 Drawing saved successfully!');
 								alert('Drawing and enhanced PDF saved successfully!');
 								jQuery('#saveDrawingModal').css('display', 'none');
 								jQuery('#drawing-name').val('');
@@ -11651,8 +11955,9 @@ foreach( $params as $param ) {
 								
 								// Provide view and download options
 								if (response.data && response.data.pdf_filename) {
-									let viewLink = ajaxurl + '?action=ssc_view_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + nonce;
-									let downloadLink = ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + nonce;
+									console.log('📄 Creating view/download links for:', response.data.pdf_filename);
+									let viewLink = ajaxurl + '?action=ssc_view_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + drawingNonce;
+									let downloadLink = ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + drawingNonce;
 									
 									// Add user ID if available
 									if (currentUserId) {
@@ -11673,7 +11978,13 @@ foreach( $params as $param ) {
 								alert('Failed to save drawing: ' + response.data);
 							}
 						},
-						error: function() {
+						error: function(xhr, status, error) {
+							console.error('❌ Save drawing AJAX ERROR occurred');
+							console.error('- XHR object:', xhr);
+							console.error('- Status:', status);
+							console.error('- Error:', error);
+							console.error('- Response text:', xhr.responseText);
+							console.error('- Status code:', xhr.status);
 							alert('Error saving drawing');
 						}
 					});
@@ -11681,7 +11992,12 @@ foreach( $params as $param ) {
 				
 				// Fallback function for basic PDF generation
 				function generateBasicPDF(drawingName, drawingNotes, canvasData) {
+					console.log('=== 📋 BASIC PDF GENERATION STARTED ===');
+					console.log('Timestamp:', new Date().toISOString());
+					console.log('Parameters:', { drawingName, drawingNotes, canvasDataLength: canvasData.length });
+					
 					// Generate basic PDF using jsPDF
+					console.log('📄 Creating jsPDF instance...');
 					const { jsPDF } = window.jspdf;
 					const pdf = new jsPDF({
 						orientation: 'l',
@@ -11705,10 +12021,21 @@ foreach( $params as $param ) {
 					}
 					
 					// Convert to blob and create file
+					console.log('🔄 Converting PDF to blob...');
 					const pdfBlob = pdf.output('blob');
+					console.log('- PDF blob created:', pdfBlob);
+					console.log('- Blob size:', pdfBlob.size);
+					console.log('- Blob type:', pdfBlob.type);
+					
+					console.log('📁 Creating File object...');
 					const pdfFile = new File([pdfBlob], 'drawing_' + Date.now() + '.pdf', { type: 'application/pdf' });
+					console.log('- PDF file created:', pdfFile);
+					console.log('- File name:', pdfFile.name);
+					console.log('- File size:', pdfFile.size);
+					console.log('- File type:', pdfFile.type);
 					
 					// Now save the drawing with the basic PDF
+					console.log('🚀 Calling saveDrawingWithPDF for basic PDF...');
 					saveDrawingWithPDF(pdfFile, drawingName, drawingNotes);
 				}
 				
@@ -11810,16 +12137,82 @@ foreach( $params as $param ) {
 							error: function() {
 								alert('Error deleting drawing');
 							}
-						});
+											});
 					}
 				}
 				
+		// Close modal functionality
+		jQuery(document).on('click', '#cancel-save', function() {
+			console.log('=== 🚪 CLOSE MODAL CLICKED ===');
+			jQuery('#saveDrawingModal').css('display', 'none');
+		});
+
+		// Close modal when clicking outside
+		jQuery(document).on('click', '#saveDrawingModal', function(e) {
+			if (e.target === this) {
+				console.log('=== 🚪 CLOSE MODAL OUTSIDE CLICK ===');
+				jQuery('#saveDrawingModal').css('display', 'none');
+			}
+		});
+
+		// Test function for debugging
+		window.testSaveDrawing = function() {
+					console.log('=== 🧪 TEST SAVE DRAWING FUNCTION ===');
+					console.log('Timestamp:', new Date().toISOString());
+					console.log('Function called manually');
+					
+					// Check if elements exist
+					console.log('🔍 Element check:');
+					console.log('- Save form:', document.getElementById('save-drawing-form'));
+					console.log('- Canvas:', typeof canvas !== 'undefined' ? canvas : 'undefined');
+					console.log('- jQuery:', typeof jQuery !== 'undefined' ? 'available' : 'not available');
+					
+					// Try to open modal manually
+					console.log('🚀 Trying to open modal manually...');
+					jQuery('#saveDrawingModal').css('display', 'flex');
+					
+					// Try to trigger form submit
+					console.log('📝 Trying to trigger form submit...');
+					if (document.getElementById('save-drawing-form')) {
+						document.getElementById('save-drawing-form').dispatchEvent(new Event('submit'));
+					}
+					
+					console.log('=== TEST COMPLETE ===');
+				};
+				
 				// Add event handlers for new modals
 				jQuery(document).ready(function() {
-					// Save drawing form submit
+					// Save drawing form submit - FIXED VERSION
 					jQuery('#save-drawing-form').on('submit', function(e) {
+						console.log('=== 📝 SAVE DRAWING FORM SUBMITTED ===');
+						console.log('Timestamp:', new Date().toISOString());
+						console.log('Event:', e);
+						console.log('Form element:', this);
+						console.log('Form action:', this.action);
+						console.log('Form method:', this.method);
+						
+						// CRITICAL: Prevent form from submitting normally
 						e.preventDefault();
-						saveDrawing();
+						e.stopPropagation();
+						
+						console.log('🚀 Calling saveDrawing function...');
+						
+						// Get form data
+						const formData = new FormData(this);
+						const drawingName = formData.get('drawing-name');
+						const drawingNotes = formData.get('drawing-notes');
+						const pdfQuality = formData.get('pdf-quality');
+						
+						console.log('📝 Form data extracted:');
+						console.log('- Drawing name:', drawingName);
+						console.log('- Drawing notes:', drawingNotes);
+						console.log('- PDF quality:', pdfQuality);
+						
+						// Call save function with form data
+						saveDrawing(drawingName, drawingNotes, pdfQuality);
+						
+						// Return false to ensure form doesn't submit
+						return false;
 					});
 					
 					// Modal close buttons
