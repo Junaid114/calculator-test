@@ -1027,6 +1027,82 @@ foreach( $params as $param ) {
 				opacity: 0.9;
 				font-size: 12px;
 			}
+			
+			/* View Drawings Modal Styles */
+			#viewDrawingsModal {
+				display: none;
+				position: fixed;
+				z-index: 10000;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				padding-top: 20px;
+				background-color: rgba(0, 0, 0, 0.5);
+				justify-content: center;
+				align-items: start;
+				/* Debug: Add border to see modal boundaries */
+				border: 3px solid blue;
+				/* Ensure modal is on top */
+				pointer-events: auto;
+			}
+			
+			#viewDrawingsModal.show {
+				display: flex !important;
+			}
+			
+			#viewDrawingsModal .modal-content {
+				background-color: white;
+				padding: 30px;
+				border-radius: 10px;
+				width: 90%;
+				max-width: 1200px;
+				max-height: 90vh;
+				overflow-y: auto;
+				position: relative;
+				/* Ensure content is properly contained */
+				overflow: hidden;
+				/* Debug: Add border to see modal boundaries */
+				border: 2px solid red;
+			}
+			
+			#viewDrawingsModal .modal-title {
+				margin-top: 0;
+				margin-bottom: 20px;
+				color: #333;
+				font-size: 24px;
+				text-align: center;
+			}
+			
+			#viewDrawingsModal #saved-drawings-list {
+				margin-bottom: 20px;
+				/* Ensure drawings list is properly contained */
+				position: relative;
+				z-index: 1;
+				/* Debug: Add background to see list boundaries */
+				background: rgba(0, 255, 0, 0.1);
+				border: 1px dashed green;
+				/* Ensure proper scrolling */
+				max-height: calc(90vh - 150px);
+				overflow-y: auto;
+			}
+			
+			#viewDrawingsModal #cancel-view {
+				background-color: #6c757d;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				border-radius: 5px;
+				cursor: pointer;
+				font-size: 16px;
+				position: absolute;
+				bottom: 20px;
+				right: 30px;
+			}
+			
+			#viewDrawingsModal #cancel-view:hover {
+				background-color: #5a6268;
+			}
 
 			.auth-tabs {
 				display: flex;
@@ -2174,6 +2250,12 @@ foreach( $params as $param ) {
 				grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 				gap: 20px;
 				margin: 20px 0;
+				/* Ensure drawings stay within modal */
+				position: relative;
+				z-index: 1;
+				/* Debug: Add background to see grid boundaries */
+				background: rgba(255, 255, 0, 0.1);
+				border: 1px dashed orange;
 			}
 			
 			.drawing-item {
@@ -10609,22 +10691,57 @@ foreach( $params as $param ) {
 					} else if (downloadType === 'VIEW') {
 						// Open view drawings modal
 						console.log('🎯 Opening view drawings modal...');
-						jQuery('#viewDrawingsModal').css('display', 'flex');
 						
-						// Debug modal visibility
+						// Debug modal before opening
 						const modal = jQuery('#viewDrawingsModal');
-						console.log('🔍 Modal display style:', modal.css('display'));
-						console.log('🔍 Modal visibility:', modal.is(':visible'));
-						console.log('🔍 Modal CSS properties:', {
+						console.log('🔍 Modal element found:', modal.length > 0);
+						console.log('🔍 Modal before opening - display:', modal.css('display'));
+						console.log('🔍 Modal before opening - visibility:', modal.css('visibility'));
+						console.log('🔍 Modal before opening - z-index:', modal.css('z-index'));
+						console.log('🔍 Modal before opening - position:', modal.css('position'));
+						
+						// Open modal
+						modal.css('display', 'flex');
+						
+						// Debug modal after opening
+						console.log('🔍 Modal after opening - display:', modal.css('display'));
+						console.log('🔍 Modal after opening - visibility:', modal.is(':visible'));
+						console.log('🔍 Modal after opening - CSS properties:', {
 							display: modal.css('display'),
 							visibility: modal.css('visibility'),
 							opacity: modal.css('opacity'),
-							zIndex: modal.css('z-index')
+							zIndex: modal.css('z-index'),
+							position: modal.css('position'),
+							top: modal.css('top'),
+							left: modal.css('left'),
+							width: modal.css('width'),
+							height: modal.css('height')
 						});
 						
-						// Load saved drawings
-						console.log('📊 Loading saved drawings...');
-						loadSavedDrawings();
+						// Check modal content
+						const modalContent = modal.find('.modal-content');
+						console.log('🔍 Modal content found:', modalContent.length > 0);
+						console.log('🔍 Modal content display:', modalContent.css('display'));
+						console.log('🔍 Modal content position:', modalContent.css('position'));
+						
+						// Ensure modal is properly opened before loading content
+						setTimeout(function() {
+							console.log('⏰ Delayed modal check after 100ms...');
+							console.log('🔍 Modal display after delay:', modal.css('display'));
+							console.log('🔍 Modal visibility after delay:', modal.is(':visible'));
+							
+							// Load saved drawings only after modal is confirmed open
+							if (modal.is(':visible') && modal.css('display') === 'flex') {
+								console.log('✅ Modal is properly open, loading drawings...');
+								loadSavedDrawings();
+							} else {
+								console.error('❌ Modal failed to open properly');
+								// Force modal open
+								modal.css('display', 'flex').show();
+								console.log('🔄 Forced modal open, loading drawings...');
+								loadSavedDrawings();
+							}
+						}, 100);
 						
 						// Maintain fullscreen when modal opens
 						if (isFullscreen) {
@@ -12595,13 +12712,37 @@ foreach( $params as $param ) {
 					});
 					html += '</div>';
 					
-					jQuery('#saved-drawings-list').html(html);
+					// Ensure we're inserting into the correct element within the modal
+					const savedDrawingsList = jQuery('#saved-drawings-list');
+					const modal = jQuery('#viewDrawingsModal');
+					
+					console.log('🎯 About to insert HTML content...');
+					console.log('🔍 Target element found:', savedDrawingsList.length > 0);
+					console.log('🔍 Target element parent:', savedDrawingsList.parent().length > 0);
+					console.log('🔍 Target element within modal:', modal.find('#saved-drawings-list').length > 0);
+					
+					// Insert the HTML content
+					savedDrawingsList.html(html);
 					
 					// Debug: Check if content was set
 					console.log('🎨 HTML content set to saved-drawings-list');
 					console.log('🔍 Content length:', html.length);
-					console.log('🔍 Modal content element:', jQuery('#saved-drawings-list').length);
-					console.log('🔍 Modal content HTML:', jQuery('#saved-drawings-list').html().substring(0, 200) + '...');
+					console.log('🔍 Modal content element:', savedDrawingsList.length);
+					console.log('🔍 Modal content HTML:', savedDrawingsList.html().substring(0, 200) + '...');
+					
+					// Additional debugging for modal visibility
+					console.log('🔍 Modal visibility after content set:', modal.is(':visible'));
+					console.log('🔍 Modal display after content set:', modal.css('display'));
+					console.log('🔍 Saved drawings list visibility:', savedDrawingsList.is(':visible'));
+					console.log('🔍 Saved drawings list display:', savedDrawingsList.css('display'));
+					console.log('🔍 Saved drawings list parent visibility:', savedDrawingsList.parent().is(':visible'));
+					console.log('🔍 Modal content visibility:', modal.find('.modal-content').is(':visible'));
+					
+					// Verify content was inserted correctly
+					const insertedContent = savedDrawingsList.find('.drawings-grid');
+					console.log('🔍 Drawings grid found after insertion:', insertedContent.length > 0);
+					console.log('🔍 Drawings grid parent:', insertedContent.parent().attr('id'));
+					console.log('🔍 Drawings grid within modal:', modal.find('.drawings-grid').length > 0);
 				}
 				
 								// Function to delete drawing
