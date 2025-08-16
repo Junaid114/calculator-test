@@ -5933,7 +5933,7 @@ foreach( $params as $param ) {
 
                     shape.stroke = 'black';
 
-                    shape.strokeWidth = 6; // match icon thickness
+                    shape.strokeWidth = 2; // match icon thickness
 
                     shape.strokeLineJoin = 'miter';
 
