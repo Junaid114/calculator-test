@@ -56,7 +56,7 @@ function ssc_activate_plugin() {
         slab_cost varchar(50) NOT NULL,
         drawing_data longtext NOT NULL,
         pdf_file_path varchar(500) NOT NULL,
-        drawing_link varchar(500) NOT NULL,
+        drawing_link text NOT NULL,
         created_at datetime DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         KEY user_id (user_id),
@@ -91,6 +91,24 @@ function ssc_activate_plugin() {
         $htaccess_content = "Order Deny,Allow\nDeny from all\n";
         file_put_contents($htaccess_file, $htaccess_content);
         error_log('Created .htaccess file in quotes directory');
+    }
+    
+    // Update existing table structure if needed
+    $existing_columns = $wpdb->get_results("SHOW COLUMNS FROM $table_name");
+    $drawing_link_column = null;
+    
+    foreach ($existing_columns as $column) {
+        if ($column->Field === 'drawing_link') {
+            $drawing_link_column = $column;
+            break;
+        }
+    }
+    
+    // If drawing_link column exists and is varchar(500), update it to text
+    if ($drawing_link_column && strpos($drawing_link_column->Type, 'varchar(500)') !== false) {
+        error_log('Updating drawing_link column from varchar(500) to text...');
+        $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN drawing_link text NOT NULL");
+        error_log('✅ drawing_link column updated to text');
     }
 }
 
@@ -265,25 +283,38 @@ function ssc_ajax_save_drawing() {
     
     
     // Check nonce for security - TEMPORARILY DISABLED FOR TESTING
+    error_log('🔍 Nonce verification temporarily disabled for testing');
+    error_log('Received nonce: ' . ($_POST['nonce'] ?? 'NOT SET'));
+    error_log('Expected nonce action: ssc_save_drawing_nonce');
     /*
     if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
-        error_log('Nonce verification failed');
-        wp_die('Security check failed');
+        error_log('❌ Nonce verification failed');
+        error_log('Received nonce: ' . ($_POST['nonce'] ?? 'NOT SET'));
+        error_log('Expected nonce action: ssc_save_drawing_nonce');
+        wp_die('Security check failed - Invalid nonce');
     }
+    error_log('✅ Nonce verification passed');
     */
-    error_log('Nonce verification temporarily disabled for testing');
     
     // Check if user is logged in or if user_id is provided
+    error_log('🔍 User authentication check...');
     $user_id = null;
     if (is_user_logged_in()) {
         $user_id = get_current_user_id();
+        error_log('✅ User logged in, ID: ' . $user_id);
     } elseif (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
         $user_id = intval($_POST['user_id']);
+        error_log('✅ User ID from POST: ' . $user_id);
         // Verify the user exists
         if (!get_user_by('ID', $user_id)) {
+            error_log('❌ Invalid user ID: ' . $user_id);
             wp_die('Invalid user ID');
         }
+        error_log('✅ User ID verified: ' . $user_id);
     } else {
+        error_log('❌ No user ID available');
+        error_log('User logged in: ' . (is_user_logged_in() ? 'YES' : 'NO'));
+        error_log('POST user_id: ' . ($_POST['user_id'] ?? 'NOT SET'));
         wp_die('User not logged in and no user ID provided');
     }
     
@@ -429,19 +460,82 @@ function ssc_ajax_save_drawing() {
     // Add user_id to POST data
     $_POST['user_id'] = $user_id;
     
-    // DATABASE SAVING DISABLED - FOCUS ON FILE SAVING ONLY
-    error_log('=== DATABASE SAVE DISABLED - FILE SAVING ONLY ===');
+    // ENABLE DATABASE SAVING - SAVE PDF PATH TO DATABASE
+    error_log('=== DATABASE SAVE ENABLED - SAVING PDF PATH ===');
     error_log('✅ PDF file saved successfully to: ' . $file_path);
     error_log('✅ File size: ' . filesize($file_path) . ' bytes');
     error_log('✅ File permissions: ' . substr(sprintf('%o', fileperms($file_path)), -4));
     
-    // Send success response for file saving only
+    // Prepare data for database save
+    $drawing_link = $_POST['drawing_link'] ?? '';
+    
+    // Truncate drawing_link if it's too long (keep only essential parts)
+    if (strlen($drawing_link) > 500) {
+        $parsed_url = parse_url($drawing_link);
+        $drawing_link = ($parsed_url['scheme'] ?? 'http') . '://' . ($parsed_url['host'] ?? 'localhost') . '/...';
+        error_log('⚠️ Drawing link truncated from ' . strlen($_POST['drawing_link']) . ' to ' . strlen($drawing_link) . ' characters');
+    }
+    
+    $drawing_data = array(
+        'user_id' => $user_id,
+        'drawing_name' => $_POST['drawing_name'] ?? '',
+        'drawing_notes' => $_POST['drawing_notes'] ?? '',
+        'total_cutting_mm' => $_POST['total_cutting_mm'] ?? 0,
+        'only_cut_mm' => $_POST['only_cut_mm'] ?? 0,
+        'mitred_cut_mm' => $_POST['mitred_cut_mm'] ?? 0,
+        'slab_cost' => $_POST['slab_cost'] ?? '$0',
+        'drawing_data' => $_POST['drawing_data'] ?? '',
+        'pdf_file_path' => $filename, // Save the PDF filename to database
+        'drawing_link' => $drawing_link
+    );
+    
+    error_log('Data prepared for database save: ' . print_r($drawing_data, true));
+    error_log('🔍 Checking database table before save...');
+    
+    // Ensure database table exists before saving
+    if (function_exists('ssc_ensure_table_exists')) {
+        error_log('🚀 Calling ssc_ensure_table_exists...');
+        $table_ready = ssc_ensure_table_exists();
+        error_log('📊 Table ready status: ' . ($table_ready ? 'YES' : 'NO'));
+        
+        // Also update table structure if needed
+        if (function_exists('ssc_update_table_structure')) {
+            error_log('🔧 Updating table structure if needed...');
+            $structure_updated = ssc_update_table_structure();
+            error_log('📊 Structure update result: ' . ($structure_updated ? 'SUCCESS' : 'FAILED'));
+        }
+    } else {
+        error_log('❌ ssc_ensure_table_exists function not found');
+    }
+    
+    // Save to database
+    error_log('🚀 Calling ssc_save_drawing function...');
+    $db_result = ssc_save_drawing($drawing_data);
+    error_log('📊 Database save result: ' . ($db_result === false ? 'FAILED' : 'SUCCESS - ID: ' . $db_result));
+    
+    if ($db_result === false) {
+        error_log('❌ Database save failed');
+        global $wpdb;
+        if ($wpdb) {
+            error_log('❌ Last database error: ' . $wpdb->last_error);
+            error_log('❌ Last SQL query: ' . $wpdb->last_query);
+        } else {
+            error_log('❌ $wpdb variable not available');
+        }
+        wp_send_json_error('PDF file saved but failed to save to database');
+    } else {
+        error_log('✅ Database save successful. Drawing ID: ' . $db_result);
+        error_log('✅ PDF file path saved to database: ' . $filename);
+    }
+    
+    // Send success response with both file and database info
     wp_send_json_success(array(
         'pdf_filename' => $filename,
         'file_type' => 'pdf',
         'file_path' => $file_path,
         'file_size' => filesize($file_path),
-        'message' => 'PDF file saved successfully to quotes folder!'
+        'drawing_id' => $db_result,
+        'message' => 'PDF file saved successfully to quotes folder and database!'
     ));
 }
 
@@ -694,6 +788,24 @@ function ssc_ensure_table_exists() {
         return $table_exists_after;
     } else {
         error_log('Table already exists');
+        
+        // Check if table structure needs updating
+        $existing_columns = $wpdb->get_results("SHOW COLUMNS FROM $table_name");
+        $drawing_link_column = null;
+        
+        foreach ($existing_columns as $column) {
+            if ($column->Field === 'drawing_link') {
+                $drawing_link_column = $column;
+                break;
+            }
+        }
+        
+        // If drawing_link column is varchar(500), update it to text
+        if ($drawing_link_column && strpos($drawing_link_column->Type, 'varchar(500)') !== false) {
+            error_log('Updating existing table structure...');
+            ssc_activate_plugin(); // This will update the table structure
+            error_log('✅ Table structure updated');
+        }
     }
     
     return $table_exists;
@@ -709,6 +821,31 @@ function ssc_ajax_ensure_table() {
     //     wp_send_json_error('Failed to create table');
     // }
     wp_send_json_success('Table check temporarily disabled');
+}
+
+// Function to manually update table structure
+function ssc_update_table_structure() {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    
+    // Check if table exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    if (!$table_exists) {
+        error_log('❌ Table does not exist, cannot update structure');
+        return false;
+    }
+    
+    // Update drawing_link column to text
+    $result = $wpdb->query("ALTER TABLE $table_name MODIFY COLUMN drawing_link text NOT NULL");
+    
+    if ($result !== false) {
+        error_log('✅ Table structure updated successfully');
+        return true;
+    } else {
+        error_log('❌ Failed to update table structure: ' . $wpdb->last_error);
+        return false;
+    }
 }
 
 // AJAX function to test database table functionality

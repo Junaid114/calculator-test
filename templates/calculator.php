@@ -12168,7 +12168,15 @@ foreach( $params as $param ) {
 								
 								if (response.success) {
 									console.log('🎉 Drawing saved successfully!');
-									alert('Drawing and enhanced PDF saved successfully!');
+									console.log('📊 Database save info:');
+									console.log('- Drawing ID:', response.data.drawing_id);
+									console.log('- PDF filename:', response.data.pdf_filename);
+									console.log('- File path:', response.data.file_path);
+									console.log('- File size:', response.data.file_size);
+									
+									// Show success message with database info
+									alert('Drawing and enhanced PDF saved successfully!\n\nDatabase ID: ' + response.data.drawing_id + '\nPDF saved to: ' + response.data.pdf_filename);
+									
 									jQuery('#saveDrawingModal').css('display', 'none');
 									jQuery('#drawing-name').val('');
 									jQuery('#drawing-notes').val('');
@@ -12185,7 +12193,7 @@ foreach( $params as $param ) {
 											downloadLink += '&user_id=' + currentUserId;
 										}
 										
-										const choice = confirm('Enhanced PDF generated! Click OK to view the PDF in browser, or Cancel to download it.');
+										const choice = confirm('Enhanced PDF generated and saved to database! Click OK to view the PDF in browser, or Cancel to download it.');
 										if (choice) {
 											// View in browser
 											window.open(viewLink, '_blank');
