@@ -2799,8 +2799,8 @@ foreach( $params as $param ) {
                 <label for="pdf-quality">PDF Quality:</label>
                 <select id="pdf-quality" name="pdf-quality"
                         style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;">
-                    <option value="enhanced">Enhanced PDF (A3, High Quality, Branded)</option>
                     <option value="basic">Basic PDF (A4, Standard Quality)</option>
+                    <option value="enhanced">Enhanced PDF (A3, High Quality, Branded)</option>
                 </select>
                 <small style="color:#666; display:block; margin-top:5px;">
                     Enhanced PDF includes company branding, cover page, and professional layout
@@ -11660,12 +11660,11 @@ foreach( $params as $param ) {
 					// Use parameters passed to function instead of getting from form
 					// const drawingName = jQuery('#drawing-name').val();
 					// const drawingNotes = jQuery('#drawing-notes').val();
-					// const pdfQuality = jQuery('#pdf-quality').val();
+					// PDF quality removed - always using basic PDF generation
 					
 					console.log('📝 Form data:');
 					console.log('- Drawing name:', drawingName);
 					console.log('- Drawing notes:', drawingNotes);
-					console.log('- PDF quality:', pdfQuality);
 					
 					if (!drawingName) {
 						console.error('❌ No drawing name provided');
@@ -11699,27 +11698,74 @@ foreach( $params as $param ) {
 					console.log('- Data preview:', canvasData.substring(0, 100) + '...');
 					console.log('- Data type:', typeof canvasData);
 					
-					console.log('📄 PDF Quality selected:', pdfQuality);
+					console.log('📄 PDF Quality: Basic PDF (simplified)');
+					
+					// Get current cutting measurements
+					console.log('📏 Getting current cutting measurements...');
+					
+					// Get current total cutting MM
+					getTotalMM(); // Ensure we have the latest calculations
+					updateTotalMMDisplay();
+					
+					// Use the calculated values directly instead of reading from DOM
+					const onlyCutAreaMM = window.onlyCutAreaMM || 0;
+					const mitredEdgeAreaMM = window.mitredEdgeAreaMM || 0;
+					const totalCuttingMM = window.totalMM || 0;
+					const slabCost = parseFloat(jQuery('#slabCostDisplay').text().replace('$', '')) || 1000;
+					
+					console.log('📊 Cutting measurements:');
+					console.log('- onlyCutAreaMM (from window):', onlyCutAreaMM);
+					console.log('- mitredEdgeAreaMM (from window):', mitredEdgeAreaMM);
+					console.log('- totalCuttingMM (from window):', totalCuttingMM);
+					console.log('- slabCost:', slabCost);
+					console.log('- DOM only_cut_mm:', jQuery('.only_cut_mm').text());
+					console.log('- DOM mitred_edge_mm:', jQuery('.mitred_edge_mm').text());
+					
+					// Use the pdfQuality parameter passed to the function
+					console.log('📄 PDF Quality received as parameter:', pdfQuality);
 					
 					if (pdfQuality === 'enhanced') {
 						console.log('🚀 Starting enhanced PDF generation...');
-						// Generate enhanced PDF
-						generateEnhancedPDF(drawingName, drawingNotes, canvasData);
+						console.log('🔍 Calling generateEnhancedPDF with parameters:');
+						console.log('- drawingName:', drawingName);
+						console.log('- drawingNotes:', drawingNotes);
+						console.log('- canvasData length:', canvasData ? canvasData.length : 'undefined');
+						console.log('- totalCuttingMM:', totalCuttingMM);
+						console.log('- onlyCutAreaMM:', onlyCutAreaMM);
+						console.log('- mitredEdgeAreaMM:', mitredEdgeAreaMM);
+						console.log('- slabCost:', slabCost);
+						
+						// Test: Try to create a simple enhanced PDF first
+						console.log('🧪 Testing enhanced PDF generation...');
+						try {
+							// Generate enhanced PDF with cutting measurements
+							generateEnhancedPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+							console.log('✅ generateEnhancedPDF function call completed');
+						} catch (error) {
+							console.error('❌ Error calling generateEnhancedPDF:', error);
+							console.log('🔄 Falling back to basic PDF generation due to error...');
+							generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+						}
 					} else {
 						console.log('📋 Starting basic PDF generation...');
-						// Generate basic PDF
-						generateBasicPDF(drawingName, drawingNotes, canvasData);
+						// Generate basic PDF with cutting measurements
+						generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
 					}
 				}
 				
-				// Function to generate enhanced PDF
-				function generateEnhancedPDF(drawingName, drawingNotes, canvasData) {
-					console.log('=== 🚀 ENHANCED PDF GENERATION STARTED ===');
+				// Function to generate enhanced HTML
+				function generateEnhancedPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost) {
+					console.log('=== 🚀 ENHANCED HTML GENERATION STARTED ===');
 					console.log('Timestamp:', new Date().toISOString());
-					console.log('Parameters:', { drawingName, drawingNotes, canvasDataLength: canvasData.length });
+					console.log('Parameters:', { 
+						drawingName, 
+						drawingNotes, 
+						canvasDataLength: canvasData ? canvasData.length : 'undefined',
+						canvasDataType: typeof canvasData
+					});
 					
-					// Create FormData for enhanced PDF generation
-					console.log('📋 Creating FormData for enhanced PDF...');
+					// Create FormData for enhanced HTML generation
+					console.log('📋 Creating FormData for enhanced HTML...');
 					const formData = new FormData();
 					formData.append('action', 'ssc_generate_enhanced_pdf');
 					formData.append('nonce', drawingNonce);
@@ -11738,7 +11784,13 @@ foreach( $params as $param ) {
 					formData.append('only_cut_mm', onlyCutAreaMM);
 					formData.append('mitred_cut_mm', mitredEdgeAreaMM);
 					formData.append('slab_cost', '$' + slabCost);
-					formData.append('canvas_data', canvasData);
+					// Only add canvas data if it exists
+					if (canvasData && canvasData.length > 0) {
+						formData.append('canvas_data', canvasData);
+						console.log('✅ Canvas data added to FormData');
+					} else {
+						console.log('⚠️ No canvas data available, skipping...');
+					}
 					
 					const drawingDataObj = {
 						name: drawingName,
@@ -11759,7 +11811,7 @@ foreach( $params as $param ) {
 					console.log('- only_cut_mm:', onlyCutAreaMM);
 					console.log('- mitred_cut_mm:', mitredEdgeAreaMM);
 					console.log('- slab_cost:', '$' + slabCost);
-					console.log('- canvas_data length:', canvasData.length);
+					console.log('- canvas_data length:', canvasData ? canvasData.length : 'undefined');
 					console.log('- drawing_data:', drawingDataObj);
 					console.log('- drawing_link:', window.location.href);
 					
@@ -11767,40 +11819,55 @@ foreach( $params as $param ) {
 					jQuery('#saveDrawingModal .modal-content').append('<div id="pdf-loading" style="text-align: center; padding: 20px; color: #666;">Generating enhanced PDF...</div>');
 					
 					// Send AJAX request for enhanced PDF
-					console.log('🌐 Sending AJAX request for enhanced PDF...');
-					console.log('- URL:', ajaxurl);
+					console.log('🌐 Sending AJAX request for enhanced HTML...');
+					console.log('- URL:', stone_slab_ajax.ajaxurl);
 					console.log('- Method: POST');
 					console.log('- FormData entries:');
-					for (let [key, value] of formData.entries()) {
-						if (key === 'canvas_data') {
-							console.log('  - ' + key + ':', value.substring(0, 100) + '... (length: ' + value.length + ')');
-						} else {
-							console.log('  - ' + key + ':', value);
+					try {
+						for (let [key, value] of formData.entries()) {
+							if (key === 'canvas_data') {
+								console.log('  - ' + key + ':', value ? (value.substring(0, 100) + '... (length: ' + value.length + ')') : 'undefined');
+							} else {
+								console.log('  - ' + key + ':', value);
+							}
 						}
+					} catch (error) {
+						console.error('❌ Error logging FormData entries:', error);
+						console.log('FormData entries count:', formData.entries().length);
 					}
 					
 					// Validate AJAX URL before making the call
-					if (!ajaxurl || ajaxurl === 'undefined' || ajaxurl === 'null') {
-						console.error('❌ ajaxurl is invalid:', ajaxurl);
-						alert('AJAX URL is invalid. Please check the console for details.');
+					if (!stone_slab_ajax || !stone_slab_ajax.ajaxurl) {
+						console.error('❌ stone_slab_ajax is invalid:', stone_slab_ajax);
+						alert('AJAX configuration is invalid. Please check the console for details.');
 						return;
 					}
 					
-					// Test ajaxurl variable
+					// Test AJAX URL variable
 					console.log('🧪 AJAX URL Test:');
-					console.log('- ajaxurl type:', typeof ajaxurl);
-					console.log('- ajaxurl value:', ajaxurl);
-					console.log('- ajaxurl length:', ajaxurl ? ajaxurl.length : 'N/A');
+					console.log('- stone_slab_ajax type:', typeof stone_slab_ajax);
+					console.log('- stone_slab_ajax.ajaxurl value:', stone_slab_ajax.ajaxurl);
+					console.log('- stone_slab_ajax.ajaxurl length:', stone_slab_ajax.ajaxurl ? stone_slab_ajax.ajaxurl.length : 'N/A');
 					
-					console.log('🚀 Making AJAX call to:', ajaxurl);
+					console.log('🚀 Making AJAX call to:', stone_slab_ajax.ajaxurl);
 					console.log('📋 FormData contains:', formData.entries().length, 'entries');
 					
+					console.log('🚀 About to make AJAX call...');
+					console.log('🔍 Final validation before AJAX:');
+					console.log('- stone_slab_ajax available:', typeof stone_slab_ajax);
+					console.log('- stone_slab_ajax.ajaxurl:', stone_slab_ajax.ajaxurl);
+					console.log('- FormData entries count:', formData.entries().length);
+					
 					jQuery.ajax({
-						url: ajaxurl,
+						url: stone_slab_ajax.ajaxurl,
 						type: 'POST',
 						data: formData,
 						processData: false,
 						contentType: false,
+						timeout: 30000, // 30 second timeout
+						beforeSend: function() {
+							console.log('🔄 AJAX request starting...');
+						},
 						success: function(response) {
 							console.log('✅ Enhanced PDF AJAX SUCCESS response received');
 							console.log('- Response:', response);
@@ -11811,31 +11878,144 @@ foreach( $params as $param ) {
 							jQuery('#pdf-loading').remove();
 							
 							if (response.success) {
-								console.log('🎉 Enhanced PDF generation successful!');
-								console.log('- PDF file data:', response.data.pdf_file);
+								console.log('🎉 Enhanced HTML content generation successful!');
+								console.log('- Response data structure:', response.data);
+								console.log('- HTML content received, length:', response.data.html_content ? response.data.html_content.length : 'undefined');
+								console.log('- Drawing data:', response.data.drawing_data);
+								console.log('- Quote ID:', response.data.quote_id);
 								
-								// Convert PDF data to File object
-								console.log('🔄 Converting PDF data to File object...');
-								const pdfData = response.data.pdf_file;
-								console.log('- PDF data received:', pdfData);
+								// Generate PDF directly in frontend using jsPDF
+								console.log('🔄 Converting HTML content to PDF using jsPDF...');
 								
-								const pdfBlob = new Blob([Uint8Array.from(atob(pdfData.data), c => c.charCodeAt(0))], { type: 'application/pdf' });
-								console.log('- PDF blob created:', pdfBlob);
+								// Validate response data
+								console.log('🔍 Validating response data structure...');
+								console.log('Response data:', response.data);
+								console.log('Response data type:', typeof response.data);
+								console.log('Response data keys:', response.data ? Object.keys(response.data) : 'undefined');
 								
-								const pdfFile = new File([pdfBlob], pdfData.name, { type: 'application/pdf' });
-								console.log('✅ PDF File created:', pdfFile);
-								console.log('- File name:', pdfFile.name);
-								console.log('- File size:', pdfFile.size);
-								console.log('- File type:', pdfFile.type);
+								if (!response.data) {
+									console.error('❌ No response data received');
+									alert('Enhanced PDF generation failed: No response data');
+									generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+									return;
+								}
 								
-								// Now save the drawing with the enhanced PDF
-								console.log('🚀 Calling saveDrawingWithPDF...');
-								saveDrawingWithPDF(pdfFile, drawingName, drawingNotes);
+								if (!response.data.drawing_data) {
+									console.error('❌ No drawing data in response:', response.data);
+									alert('Enhanced PDF generation failed: No drawing data in response');
+									generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+									return;
+								}
+								
+								console.log('✅ Response data validation passed');
+								
+								try {
+									// Create a simple PDF with the drawing data using jsPDF
+									console.log('📄 Creating PDF with drawing data...');
+									
+									// Check if jsPDF is available
+									if (typeof window.jspdf === 'undefined') {
+										console.error('❌ jsPDF library not available');
+										alert('Enhanced PDF generation failed: jsPDF library not loaded');
+										generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+										return;
+									}
+									
+									const { jsPDF } = window.jspdf;
+									console.log('✅ jsPDF library loaded successfully');
+									
+									const pdf = new jsPDF({
+										orientation: 'p',
+										unit: 'mm',
+										format: 'a4'
+									});
+									console.log('✅ jsPDF instance created successfully');
+									
+									// Add company header
+									pdf.setFontSize(20);
+									pdf.text('Stone Slab Quote', 105, 20, { align: 'center' });
+									
+									// Add drawing details
+									pdf.setFontSize(12);
+									pdf.text('Project Name: ' + response.data.drawing_data.drawing_name, 20, 40);
+									pdf.text('Date: ' + new Date().toLocaleDateString(), 20, 50);
+									pdf.text('Quote ID: ' + response.data.quote_id, 20, 60);
+									
+									// Add measurements
+									pdf.text('Total Cutting: ' + response.data.drawing_data.total_cutting_mm + ' mm', 20, 80);
+									pdf.text('Standard Cut: ' + response.data.drawing_data.only_cut_mm + ' mm', 20, 90);
+									pdf.text('Mitred Edge: ' + response.data.drawing_data.mitred_cut_mm + ' mm', 20, 100);
+									pdf.text('Slab Cost: ' + response.data.drawing_data.slab_cost, 20, 110);
+									
+									// Add notes if available
+									if (response.data.drawing_data.drawing_notes) {
+										pdf.text('Project Notes:', 20, 130);
+										pdf.setFontSize(10);
+										const notes = response.data.drawing_data.drawing_notes;
+										const maxWidth = 170;
+										const lines = pdf.splitTextToSize(notes, maxWidth);
+										pdf.text(lines, 20, 140);
+									}
+									
+									// Add canvas drawing if available
+									if (canvasData) {
+										pdf.addPage();
+										pdf.setFontSize(16);
+										pdf.text('Project Drawing', 105, 20, { align: 'center' });
+										
+										// Convert base64 canvas data to image
+										const img = new Image();
+										img.onload = function() {
+											// Add image to PDF
+											const imgWidth = 170;
+											const imgHeight = (img.height * imgWidth) / img.width;
+											pdf.addImage(img, 'JPEG', 20, 30, imgWidth, imgHeight);
+											
+											// Convert PDF to blob and create file
+											console.log('🔄 Converting PDF to blob...');
+											const pdfBlob = pdf.output('blob');
+											console.log('- PDF blob created:', pdfBlob);
+											
+											const pdfFile = new File([pdfBlob], 'enhanced_quote_' + Date.now() + '.pdf', { type: 'application/pdf' });
+											console.log('✅ PDF File created:', pdfFile);
+											console.log('- File name:', pdfFile.name);
+											console.log('- File size:', pdfFile.size);
+											console.log('- File type:', pdfFile.type);
+											
+											// Call saveDrawingWithPDF function with PDF file
+											console.log('🚀 Calling saveDrawingWithPDF with PDF...');
+											saveDrawingWithPDF(pdfFile, drawingName, drawingNotes, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+										};
+										img.src = canvasData;
+									} else {
+										// No canvas data, just save the PDF
+										console.log('🔄 Converting PDF to blob...');
+										const pdfBlob = pdf.output('blob');
+										console.log('- PDF blob created:', pdfBlob);
+										
+										const pdfFile = new File([pdfBlob], 'enhanced_quote_' + Date.now() + '.pdf', { type: 'application/pdf' });
+										console.log('✅ PDF File created:', pdfFile);
+										console.log('- File name:', pdfFile.name);
+										console.log('- File size:', pdfFile.size);
+										console.log('- File type:', pdfFile.type);
+										
+										// Call saveDrawingWithPDF function with PDF file
+										console.log('🚀 Calling saveDrawingWithPDF with PDF...');
+										saveDrawingWithPDF(pdfFile, drawingName, drawingNotes, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+									}
+									
+								} catch (error) {
+									console.error('❌ Error generating PDF:', error);
+									alert('Error generating PDF: ' + error.message);
+									// Fallback to basic PDF generation
+									console.log('🔄 Falling back to basic PDF generation...');
+									generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+								}
 							} else {
 								console.error('❌ Enhanced PDF generation failed:', response.data);
 								alert('Failed to generate enhanced PDF: ' + response.data);
 								// Fallback to basic PDF generation
-								generateBasicPDF(drawingName, drawingNotes, canvasData);
+								generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
 							}
 						},
 						error: function(xhr, status, error) {
@@ -11850,28 +12030,44 @@ foreach( $params as $param ) {
 							alert('Failed to generate enhanced PDF. Using basic PDF instead.');
 							// Fallback to basic PDF generation
 							console.log('🔄 Falling back to basic PDF generation...');
-							generateBasicPDF(drawingName, drawingNotes, canvasData);
+							generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
 						}
 					});
 					
 					console.log('✅ AJAX call completed (this means the call was made)');
 				}
 				
-				// Function to save drawing with the generated PDF
-				function saveDrawingWithPDF(pdfFile, drawingName, drawingNotes) {
+				// Add debugging to see if function is being called
+				console.log('🔍 generateEnhancedPDF function completed execution');
+				
+				// Function to save drawing with the generated file (PDF or HTML)
+				function saveDrawingWithPDF(generatedFile, drawingName, drawingNotes, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost) {
 					console.log('=== 💾 SAVE DRAWING WITH PDF STARTED ===');
 					console.log('Timestamp:', new Date().toISOString());
 					console.log('Parameters received:');
-					console.log('- pdfFile:', pdfFile);
+					console.log('- generatedFile:', generatedFile);
 					console.log('- drawingName:', drawingName);
 					console.log('- drawingNotes:', drawingNotes);
 					
-					console.log('📁 PDF File details:');
-					console.log('- File type:', typeof pdfFile);
-					console.log('- File instanceof File:', pdfFile instanceof File);
-					console.log('- File size:', pdfFile.size);
-					console.log('- File name:', pdfFile.name);
-					console.log('- File type property:', pdfFile.type);
+					// Validate input parameters
+					if (!generatedFile || !(generatedFile instanceof File)) {
+						console.error('❌ Invalid file parameter:', generatedFile);
+						alert('Error: Invalid file generated');
+						return;
+					}
+					
+					if (!drawingName || !drawingName.trim()) {
+						console.error('❌ Invalid drawing name:', drawingName);
+						alert('Error: Please enter a drawing name');
+						return;
+					}
+					
+					console.log('📁 Generated File details:');
+					console.log('- File type:', typeof generatedFile);
+					console.log('- File instanceof File:', generatedFile instanceof File);
+					console.log('- File size:', generatedFile.size);
+					console.log('- File name:', generatedFile.name);
+					console.log('- File type property:', generatedFile.type);
 					
 					// Create FormData for saving drawing
 					console.log('📋 Creating FormData for saving drawing...');
@@ -11893,7 +12089,7 @@ foreach( $params as $param ) {
 					formData.append('only_cut_mm', onlyCutAreaMM);
 					formData.append('mitred_cut_mm', mitredEdgeAreaMM);
 					formData.append('slab_cost', '$' + slabCost);
-					formData.append('pdf_file', pdfFile);
+					formData.append('pdf_file', generatedFile);
 					
 					const drawingDataObj = {
 						name: drawingName,
@@ -11916,82 +12112,127 @@ foreach( $params as $param ) {
 					console.log('- only_cut_mm:', onlyCutAreaMM);
 					console.log('- mitred_cut_mm:', mitredEdgeAreaMM);
 					console.log('- slab_cost:', '$' + slabCost);
-					console.log('- pdf_file:', pdfFile);
+					console.log('- pdf_file:', generatedFile);
 					console.log('- drawing_data:', drawingDataObj);
 					console.log('- drawing_link:', window.location.href);
 					
 					// Send AJAX request
 					console.log('🌐 Sending AJAX request to save drawing...');
-					console.log('- URL:', ajaxurl);
+					console.log('- URL:', stone_slab_ajax.ajaxurl);
 					console.log('- Method: POST');
 					console.log('- FormData entries:');
-					for (let [key, value] of formData.entries()) {
-						if (key === 'pdf_file') {
-							console.log('  - ' + key + ':', value.name + ' (File object, size: ' + value.size + ')');
-						} else {
-							console.log('  - ' + key + ':', value);
+					
+					try {
+						for (let [key, value] of formData.entries()) {
+							if (key === 'pdf_file') {
+								console.log('  - ' + key + ':', value.name + ' (File object, size: ' + value.size + ')');
+							} else {
+								console.log('  - ' + key + ':', value);
+							}
 						}
+					} catch (error) {
+						console.error('❌ Error logging FormData entries:', error);
 					}
 					
-					jQuery.ajax({
-						url: ajaxurl,
-						type: 'POST',
-						data: formData,
-						processData: false,
-						contentType: false,
-						success: function(response) {
-							console.log('✅ Save drawing AJAX SUCCESS response received');
-							console.log('- Response:', response);
-							console.log('- Response type:', typeof response);
-							console.log('- Response success:', response.success);
-							console.log('- Response data:', response.data);
-							
-							if (response.success) {
-								console.log('🎉 Drawing saved successfully!');
-								alert('Drawing and enhanced PDF saved successfully!');
-								jQuery('#saveDrawingModal').css('display', 'none');
-								jQuery('#drawing-name').val('');
-								jQuery('#drawing-notes').val('');
+					console.log('🚀 About to make AJAX call...');
+					console.log('🔍 Checking if jQuery is available:', typeof jQuery);
+					console.log('🔍 Checking if stone_slab_ajax is available:', typeof stone_slab_ajax);
+					
+					// Final validation before AJAX call
+					if (typeof jQuery === 'undefined') {
+						console.error('❌ jQuery is not available');
+						alert('Error: jQuery is not loaded');
+						return;
+					}
+					
+					if (!stone_slab_ajax || !stone_slab_ajax.ajaxurl) {
+						console.error('❌ stone_slab_ajax is not available');
+						alert('Error: AJAX configuration not found');
+						return;
+					}
+					
+					try {
+						console.log('🚀 Making AJAX call now...');
+						jQuery.ajax({
+							url: stone_slab_ajax.ajaxurl,
+							type: 'POST',
+							data: formData,
+							processData: false,
+							contentType: false,
+							success: function(response) {
+								console.log('✅ Save drawing AJAX SUCCESS response received');
+								console.log('- Response:', response);
+								console.log('- Response type:', typeof response);
+								console.log('- Response success:', response.success);
+								console.log('- Response data:', response.data);
 								
-								// Provide view and download options
-								if (response.data && response.data.pdf_filename) {
-									console.log('📄 Creating view/download links for:', response.data.pdf_filename);
-									let viewLink = ajaxurl + '?action=ssc_view_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + drawingNonce;
-									let downloadLink = ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + drawingNonce;
+								if (response.success) {
+									console.log('🎉 Drawing saved successfully!');
+									alert('Drawing and enhanced PDF saved successfully!');
+									jQuery('#saveDrawingModal').css('display', 'none');
+									jQuery('#drawing-name').val('');
+									jQuery('#drawing-notes').val('');
 									
-									// Add user ID if available
-									if (currentUserId) {
-										viewLink += '&user_id=' + currentUserId;
-										downloadLink += '&user_id=' + currentUserId;
+									// Provide view and download options
+									if (response.data && response.data.pdf_filename) {
+										console.log('📄 Creating view/download links for:', response.data.pdf_filename);
+										let viewLink = stone_slab_ajax.ajaxurl + '?action=ssc_view_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + drawingNonce;
+										let downloadLink = stone_slab_ajax.ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + drawingNonce;
+										
+										// Add user ID if available
+										if (currentUserId) {
+											viewLink += '&user_id=' + currentUserId;
+											downloadLink += '&user_id=' + currentUserId;
+										}
+										
+										const choice = confirm('Enhanced PDF generated! Click OK to view the PDF in browser, or Cancel to download it.');
+										if (choice) {
+											// View in browser
+											window.open(viewLink, '_blank');
+										} else {
+											// Download
+											window.open(downloadLink, '_blank');
+										}
 									}
-									
-									const choice = confirm('Enhanced PDF generated! Click OK to view the PDF in browser, or Cancel to download it.');
-									if (choice) {
-										// View in browser
-										window.open(viewLink, '_blank');
-									} else {
-										// Download
-										window.open(downloadLink, '_blank');
-									}
+								} else {
+									alert('Failed to save drawing: ' + response.data);
 								}
-							} else {
-								alert('Failed to save drawing: ' + response.data);
-							}
+							},
+							error: function(xhr, status, error) {
+								console.error('❌ Save drawing AJAX ERROR occurred');
+								console.error('- XHR object:', xhr);
+								console.error('- Status:', status);
+								console.error('- Error:', error);
+								console.error('- Response text:', xhr.responseText);
+								console.error('- Status code:', xhr.status);
+								alert('Error saving drawing: ' + error);
+							},
+													complete: function(xhr, status) {
+							console.log('🔄 AJAX call completed with status:', status);
+							console.log('Response code:', xhr.status);
 						},
-						error: function(xhr, status, error) {
-							console.error('❌ Save drawing AJAX ERROR occurred');
-							console.error('- XHR object:', xhr);
-							console.error('- Status:', status);
-							console.error('- Error:', error);
-							console.error('- Response text:', xhr.responseText);
-							console.error('- Status code:', xhr.status);
-							alert('Error saving drawing');
+						timeout: function() {
+							console.error('❌ AJAX request timed out after 30 seconds');
+							jQuery('#pdf-loading').remove();
+							alert('Enhanced PDF generation timed out. Using basic PDF instead.');
+							// Fallback to basic PDF generation
+							generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
+						},
+						complete: function(xhr, status) {
+							console.log('🔄 AJAX call completed with status:', status);
+							console.log('Response code:', xhr.status);
 						}
 					});
+						console.log('✅ AJAX call initiated successfully');
+					} catch (error) {
+						console.error('❌ JavaScript error in AJAX call:', error);
+						console.error('Error stack:', error.stack);
+						alert('JavaScript error occurred: ' + error.message);
+					}
 				}
 				
 				// Fallback function for basic PDF generation
-				function generateBasicPDF(drawingName, drawingNotes, canvasData) {
+				function generateBasicPDF(drawingName, drawingNotes, canvasData, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost) {
 					console.log('=== 📋 BASIC PDF GENERATION STARTED ===');
 					console.log('Timestamp:', new Date().toISOString());
 					console.log('Parameters:', { drawingName, drawingNotes, canvasDataLength: canvasData.length });
@@ -12036,7 +12277,7 @@ foreach( $params as $param ) {
 					
 					// Now save the drawing with the basic PDF
 					console.log('🚀 Calling saveDrawingWithPDF for basic PDF...');
-					saveDrawingWithPDF(pdfFile, drawingName, drawingNotes);
+					saveDrawingWithPDF(pdfFile, drawingName, drawingNotes, totalCuttingMM, onlyCutAreaMM, mitredEdgeAreaMM, slabCost);
 				}
 				
 				// Function to load saved drawings
@@ -12052,7 +12293,7 @@ foreach( $params as $param ) {
 					}
 					
 					jQuery.ajax({
-						url: ajaxurl,
+						url: stone_slab_ajax.ajaxurl,
 						type: 'POST',
 						data: requestData,
 						success: function(response) {
@@ -12088,8 +12329,8 @@ foreach( $params as $param ) {
 						html += '<p><strong>Slab Cost:</strong> ' + drawing.slab_cost + '</p>';
 						html += '<p><strong>Created:</strong> ' + new Date(drawing.created_at).toLocaleDateString() + '</p>';
 						html += '<div class="drawing-actions">';
-						let viewUrl = ajaxurl + '?action=ssc_view_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + drawingNonce;
-						let downloadUrl = ajaxurl + '?action=ssc_download_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + drawingNonce;
+						let viewUrl = stone_slab_ajax.ajaxurl + '?action=ssc_view_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + drawingNonce;
+						let downloadUrl = stone_slab_ajax.ajaxurl + '?action=ssc_download_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + drawingNonce;
 						
 						// Add user ID if available
 						if (currentUserId) {
@@ -12123,7 +12364,7 @@ foreach( $params as $param ) {
 						}
 						
 						jQuery.ajax({
-							url: ajaxurl,
+							url: stone_slab_ajax.ajaxurl,
 							type: 'POST',
 							data: requestData,
 							success: function(response) {
@@ -12201,15 +12442,15 @@ foreach( $params as $param ) {
 						const formData = new FormData(this);
 						const drawingName = formData.get('drawing-name');
 						const drawingNotes = formData.get('drawing-notes');
-						const pdfQuality = formData.get('pdf-quality');
+						const selectedPdfQuality = formData.get('pdf-quality');
 						
 						console.log('📝 Form data extracted:');
 						console.log('- Drawing name:', drawingName);
 						console.log('- Drawing notes:', drawingNotes);
-						console.log('- PDF quality:', pdfQuality);
+						console.log('- PDF quality:', selectedPdfQuality);
 						
 						// Call save function with form data
-						saveDrawing(drawingName, drawingNotes, pdfQuality);
+						saveDrawing(drawingName, drawingNotes, selectedPdfQuality);
 						
 						// Return false to ensure form doesn't submit
 						return false;

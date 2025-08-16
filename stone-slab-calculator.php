@@ -98,11 +98,29 @@ function ssc_activate_plugin() {
 function ssc_save_drawing($data) {
     global $wpdb;
     
+    error_log('=== DATABASE SAVE FUNCTION STARTED ===');
+    error_log('Received data: ' . print_r($data, true));
+    
     $table_name = $wpdb->prefix . 'ssc_drawings';
+    error_log('Table name: ' . $table_name);
+    
+    // Check if table exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    error_log('Table exists: ' . ($table_exists ? 'YES' : 'NO'));
+    
+    if (!$table_exists) {
+        error_log('❌ Table does not exist. Creating it...');
+        ssc_ensure_table_exists();
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+        error_log('Table exists after creation: ' . ($table_exists ? 'YES' : 'NO'));
+    }
     
     // Get user ID from data or current user
     $user_id = isset($data['user_id']) ? intval($data['user_id']) : get_current_user_id();
+    error_log('User ID: ' . $user_id);
+    
     if (!$user_id) {
+        error_log('❌ No user ID available');
         return false;
     }
     
@@ -121,13 +139,28 @@ function ssc_save_drawing($data) {
         'created_at' => current_time('mysql')
     );
     
+    error_log('Insert data prepared: ' . print_r($insert_data, true));
+    
+    // Check for required fields
+    $required_fields = ['drawing_name', 'total_cutting_mm', 'only_cut_mm', 'mitred_cut_mm', 'slab_cost'];
+    foreach ($required_fields as $field) {
+        if (!isset($insert_data[$field]) || $insert_data[$field] === '') {
+            error_log('❌ Missing required field: ' . $field);
+        }
+    }
+    
     $result = $wpdb->insert($table_name, $insert_data);
+    error_log('Database insert result: ' . ($result === false ? 'FAILED' : 'SUCCESS'));
     
     if ($result === false) {
+        error_log('❌ Database error: ' . $wpdb->last_error);
+        error_log('❌ Last SQL query: ' . $wpdb->last_query);
         return false;
     }
     
-    return $wpdb->insert_id;
+    $insert_id = $wpdb->insert_id;
+    error_log('✅ Insert successful. New ID: ' . $insert_id);
+    return $insert_id;
 }
 
 // Function to get drawings for a user
@@ -218,8 +251,16 @@ add_action('wp_ajax_ssc_save_drawing', 'ssc_ajax_save_drawing');
 add_action('wp_ajax_nopriv_ssc_save_drawing', 'ssc_ajax_save_drawing');
 
 function ssc_ajax_save_drawing() {
-    // Ensure database table exists
-    ssc_ensure_table_exists();
+    error_log('=== SAVE DRAWING AJAX HANDLER STARTED ===');
+    error_log('Timestamp: ' . date('Y-m-d H:i:s'));
+    error_log('POST data received: ' . print_r($_POST, true));
+    error_log('FILES data received: ' . print_r($_FILES, true));
+    error_log('Request method: ' . $_SERVER['REQUEST_METHOD']);
+    error_log('Content type: ' . ($_SERVER['CONTENT_TYPE'] ?? 'Not set'));
+    error_log('AJAX action: ' . ($_POST['action'] ?? 'NOT SET'));
+    error_log('Nonce received: ' . ($_POST['nonce'] ?? 'NOT SET'));
+    
+    // Database table creation disabled - focus on file saving only
     
     
     
@@ -248,8 +289,22 @@ function ssc_ajax_save_drawing() {
     
     // Check if PDF file was uploaded
     error_log('Checking PDF file upload...');
+    error_log('$_FILES keys: ' . print_r(array_keys($_FILES), true));
+    error_log('$_FILES content: ' . print_r($_FILES, true));
+    error_log('$_POST content: ' . print_r($_POST, true));
+    error_log('Total POST fields: ' . count($_POST));
+    error_log('Total FILES fields: ' . count($_FILES));
+    
+    // Debug: Check if this is actually a file upload
+    if (empty($_FILES)) {
+        error_log('❌ $_FILES is completely empty - this is not a file upload request');
+        error_log('This suggests the FormData is not being sent as multipart/form-data');
+        wp_send_json_error('No files received. This might be a FormData encoding issue.');
+    }
+    
     if (!isset($_FILES['pdf_file'])) {
         error_log('No pdf_file in $_FILES');
+        error_log('Available FILES keys: ' . print_r(array_keys($_FILES), true));
         wp_send_json_error('No PDF file received');
     }
     
@@ -292,15 +347,30 @@ function ssc_ajax_save_drawing() {
         wp_send_json_error('PDF file size exceeds 10MB limit');
     }
     
-    // Validate file type
+    // Validate file type - ONLY PDF files allowed
     $allowed_types = array('application/pdf');
-    $file_type = mime_content_type($pdf_file['tmp_name']);
     
-    if (!in_array($file_type, $allowed_types)) {
-        wp_send_json_error('Invalid file type. Only PDF files are allowed.');
+    // Check if mime_content_type function exists, otherwise use file extension
+    if (function_exists('mime_content_type')) {
+        $file_type = mime_content_type($pdf_file['tmp_name']);
+        error_log('File type detected by mime_content_type: ' . $file_type);
+    } else {
+        // Fallback: use file extension to determine type
+        $file_extension = strtolower(pathinfo($pdf_file['name'], PATHINFO_EXTENSION));
+        if ($file_extension === 'pdf') {
+            $file_type = 'application/pdf';
+        } else {
+            $file_type = 'unknown';
+        }
+        error_log('File type detected by extension: ' . $file_type . ' (extension: ' . $file_extension . ')');
     }
     
-    // Additional security: check file extension
+    if (!in_array($file_type, $allowed_types)) {
+        error_log('❌ Invalid file type: ' . $file_type);
+        wp_send_json_error('Invalid file type. Only PDF files are allowed. Detected: ' . $file_type);
+    }
+    
+    // Additional security: check file extension - ONLY PDF
     $file_extension = strtolower(pathinfo($pdf_file['name'], PATHINFO_EXTENSION));
     if ($file_extension !== 'pdf') {
         wp_send_json_error('Invalid file extension. Only .pdf files are allowed.');
@@ -308,21 +378,47 @@ function ssc_ajax_save_drawing() {
     
     // Create quotes directory if it doesn't exist
     $quotes_dir = SSC_PLUGIN_DIR . 'quotes/';
+    error_log('Quotes directory path: ' . $quotes_dir);
+    error_log('Directory exists before creation: ' . (file_exists($quotes_dir) ? 'YES' : 'NO'));
+    error_log('Directory writable before creation: ' . (is_writable(dirname($quotes_dir)) ? 'YES' : 'NO'));
+    
     if (!file_exists($quotes_dir)) {
-        wp_mkdir_p($quotes_dir);
+        error_log('Creating quotes directory...');
+        $created = wp_mkdir_p($quotes_dir);
+        error_log('Directory creation result: ' . ($created ? 'SUCCESS' : 'FAILED'));
+        if (!$created) {
+            error_log('Failed to create quotes directory. Check permissions.');
+            wp_send_json_error('Failed to create quotes directory. Check server permissions.');
+        }
     }
     
-    // Generate filename in format: QuoteID-USERID-PRODUCT-DATE.pdf
+    error_log('Directory exists after creation: ' . (file_exists($quotes_dir) ? 'YES' : 'NO'));
+    error_log('Directory writable after creation: ' . (is_writable($quotes_dir) ? 'YES' : 'NO'));
+    
+    // Generate filename in format: QuoteID-USERID-PRODUCT-DATE.[extension]
     $quote_id = time() . '_' . rand(1000, 9999); // Using timestamp + random number as QuoteID
     $product_name = sanitize_file_name($_POST['drawing_name'] ?? 'Custom-Slab');
     $current_date = date('Y-m-d');
-    $filename = $quote_id . '-' . $user_id . '-' . $product_name . '-' . $current_date . '.pdf';
+    $file_extension = strtolower(pathinfo($pdf_file['name'], PATHINFO_EXTENSION));
+    $filename = $quote_id . '-' . $user_id . '-' . $product_name . '-' . $current_date . '.' . $file_extension;
     $file_path = $quotes_dir . $filename;
     
     // Move uploaded file to quotes directory
+    error_log('Attempting to move uploaded file...');
+    error_log('- Source (tmp_name): ' . $pdf_file['tmp_name']);
+    error_log('- Destination: ' . $file_path);
+    error_log('- Source file exists: ' . (file_exists($pdf_file['tmp_name']) ? 'YES' : 'NO'));
+    error_log('- Source file readable: ' . (is_readable($pdf_file['tmp_name']) ? 'YES' : 'NO'));
+    error_log('- Destination directory writable: ' . (is_writable($quotes_dir) ? 'YES' : 'NO'));
+    
     if (!move_uploaded_file($pdf_file['tmp_name'], $file_path)) {
-        wp_send_json_error('Failed to save PDF file to server');
+        error_log('Failed to move uploaded file. PHP error: ' . error_get_last()['message']);
+        wp_send_json_error('Failed to save PDF file to server: ' . error_get_last()['message']);
     }
+    
+    error_log('File moved successfully to: ' . $file_path);
+    error_log('File exists after move: ' . (file_exists($file_path) ? 'YES' : 'NO'));
+    error_log('File size after move: ' . filesize($file_path));
     
     // Set file permissions
     chmod($file_path, 0644);
@@ -333,22 +429,20 @@ function ssc_ajax_save_drawing() {
     // Add user_id to POST data
     $_POST['user_id'] = $user_id;
     
-    // Save drawing to database
-    $drawing_id = ssc_save_drawing($_POST);
+    // DATABASE SAVING DISABLED - FOCUS ON FILE SAVING ONLY
+    error_log('=== DATABASE SAVE DISABLED - FILE SAVING ONLY ===');
+    error_log('✅ PDF file saved successfully to: ' . $file_path);
+    error_log('✅ File size: ' . filesize($file_path) . ' bytes');
+    error_log('✅ File permissions: ' . substr(sprintf('%o', fileperms($file_path)), -4));
     
-    if ($drawing_id) {
-        wp_send_json_success(array(
-            'drawing_id' => $drawing_id,
-            'pdf_filename' => $filename,
-            'message' => 'Drawing and PDF saved successfully'
-        ));
-    } else {
-        // If database save failed, delete the uploaded file
-        if (file_exists($file_path)) {
-            unlink($file_path);
-        }
-        wp_send_json_error('Failed to save drawing to database');
-    }
+    // Send success response for file saving only
+    wp_send_json_success(array(
+        'pdf_filename' => $filename,
+        'file_type' => 'pdf',
+        'file_path' => $file_path,
+        'file_size' => filesize($file_path),
+        'message' => 'PDF file saved successfully to quotes folder!'
+    ));
 }
 
 // AJAX handler for getting user drawings
@@ -590,7 +684,7 @@ function ssc_ensure_table_exists() {
     
     if (!$table_exists) {
         error_log('Table does not exist, creating it now...');
-        // ssc_activate_plugin(); // TEMPORARILY DISABLED
+        ssc_activate_plugin(); // ENABLED - This creates the table
         error_log('Table creation completed');
         
         // Check again after creation

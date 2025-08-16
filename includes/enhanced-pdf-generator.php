@@ -2,11 +2,8 @@
 /**
  * Enhanced PDF Generator for Stone Slab Calculator
  * 
- * This file handles the generation of high-quality PDFs with:
- * - A3 size support
- * - Customizable templates (cover, body, footer)
- * - Company branding and contact information
- * - High-resolution output
+ * This file handles the generation of high-quality PDFs by creating
+ * HTML files that can be converted to PDF using browser print functionality
  */
 
 // Exit if accessed directly
@@ -18,60 +15,111 @@ if (!defined('ABSPATH')) {
  * Generate enhanced PDF with custom templates
  */
 function ssc_generate_enhanced_pdf($drawing_data, $canvas_data = null) {
-    // Get PDF settings from admin
-    $page_size = get_option('ssc_pdf_page_size', 'A3');
-    $export_quality = get_option('ssc_pdf_export_quality', 'high');
-    
     // Get company information
     $company_info = ssc_get_company_info();
-    
-    // Get templates
-    $cover_template = get_option('ssc_pdf_template_cover', '');
-    $body_template = get_option('ssc_pdf_template_body', '');
-    $footer_template = get_option('ssc_pdf_template_footer', '');
     
     // Generate unique quote ID
     $quote_id = 'Q' . time() . rand(1000, 9999);
     
-    // Prepare template data
-    $template_data = array(
-        'company_logo' => $company_info['logo'],
-        'company_name' => $company_info['name'],
-        'company_address' => $company_info['address'],
-        'company_phone' => $company_info['phone'],
-        'company_email' => $company_info['email'],
-        'company_website' => $company_info['website'],
-        'drawing_name' => $drawing_data['drawing_name'] ?? 'Custom Drawing',
-        'total_cutting_mm' => $drawing_data['total_cutting_mm'] ?? '0',
-        'only_cut_mm' => $drawing_data['only_cut_mm'] ?? '0',
-        'mitred_cut_mm' => $drawing_data['mitred_cut_mm'] ?? '0',
-        'slab_cost' => $drawing_data['slab_cost'] ?? '$0',
-        'drawing_notes' => $drawing_data['drawing_notes'] ?? '',
-        'current_date' => date('F j, Y'),
-        'quote_id' => $quote_id
-    );
+    // Create HTML content for the enhanced PDF
+    $html_content = ssc_create_enhanced_html($drawing_data, $canvas_data, $company_info, $quote_id);
     
-    // Process templates with dynamic fields
-    $cover_content = ssc_process_template($cover_template, $template_data);
-    $body_content = ssc_process_template($body_template, $template_data);
-    $footer_content = ssc_process_template($footer_template, $template_data);
-    
-    // Create PDF using jsPDF
-    $pdf = ssc_create_enhanced_pdf($page_size, $export_quality);
-    
-    // Add cover page
-    if (!empty($cover_content)) {
-        ssc_add_cover_page($pdf, $cover_content, $company_info);
-        $pdf->addPage();
+    // Create a temporary HTML file for PDF conversion
+    $temp_dir = wp_upload_dir()['basedir'] . '/ssc-temp/';
+    if (!file_exists($temp_dir)) {
+        wp_mkdir_p($temp_dir);
     }
     
-    // Add body content
-    ssc_add_body_content($pdf, $body_content, $canvas_data, $drawing_data);
+    $html_filename = 'enhanced_quote_' . time() . '.html';
+    $html_filepath = $temp_dir . $html_filename;
     
-    // Add footer to all pages
-    ssc_add_footer_to_pages($pdf, $footer_content, $company_info);
+    // Write HTML content to temporary file
+    file_put_contents($html_filepath, $html_content);
     
-    return $pdf;
+    // Convert HTML to PDF using wkhtmltopdf or similar
+    $pdf_filename = 'enhanced_quote_' . time() . '.pdf';
+    $pdf_filepath = $temp_dir . $pdf_filename;
+    
+    // Try to convert HTML to PDF
+    $pdf_converted = ssc_convert_html_to_pdf($html_filepath, $pdf_filepath);
+    
+    // Clean up temporary HTML file
+    if (file_exists($html_filepath)) {
+        unlink($html_filepath);
+    }
+    
+    if ($pdf_converted && file_exists($pdf_filepath)) {
+        // Return PDF file info
+        return array(
+            'filepath' => $pdf_filepath,
+            'filename' => $pdf_filename,
+            'file_type' => 'application/pdf',
+            'html_content' => $html_content,
+            'quote_id' => $quote_id
+        );
+    } else {
+        // Fallback to HTML if PDF conversion fails
+        return array(
+            'filepath' => $html_filepath,
+            'filename' => $html_filename,
+            'file_type' => 'text/html',
+            'html_content' => $html_content,
+            'quote_id' => $quote_id
+        );
+    }
+}
+
+/**
+ * Convert HTML to PDF using available methods
+ */
+function ssc_convert_html_to_pdf($html_filepath, $pdf_filepath) {
+    // Method 1: Try using wkhtmltopdf if available
+    if (function_exists('shell_exec') && is_executable('/usr/local/bin/wkhtmltopdf')) {
+        $command = "/usr/local/bin/wkhtmltopdf --page-size A4 --orientation Landscape --margin-top 10 --margin-right 10 --margin-bottom 10 --margin-left 10 '$html_filepath' '$pdf_filepath'";
+        $output = shell_exec($command);
+        if (file_exists($pdf_filepath) && filesize($pdf_filepath) > 0) {
+            return true;
+        }
+    }
+    
+    // Method 2: Try using Chrome/Chromium headless mode
+    if (function_exists('shell_exec') && is_executable('/usr/bin/google-chrome')) {
+        $command = "/usr/bin/google-chrome --headless --disable-gpu --print-to-pdf='$pdf_filepath' --print-to-pdf-no-header '$html_filepath'";
+        $output = shell_exec($command);
+        if (file_exists($pdf_filepath) && filesize($pdf_filepath) > 0) {
+            return true;
+        }
+    }
+    
+    // Method 3: Try using Chrome/Chromium headless mode (alternative path)
+    if (function_exists('shell_exec') && is_executable('/usr/bin/chromium-browser')) {
+        $command = "/usr/bin/chromium-browser --headless --disable-gpu --print-to-pdf='$pdf_filepath' --print-to-pdf-no-header '$html_filepath'";
+        $output = shell_exec($command);
+        if (file_exists($pdf_filepath) && filesize($pdf_filepath) > 0) {
+            return true;
+        }
+    }
+    
+    // Method 4: Try using wkhtmltopdf (alternative path)
+    if (function_exists('shell_exec') && is_executable('/usr/bin/wkhtmltopdf')) {
+        $command = "/usr/bin/wkhtmltopdf --page-size A4 --orientation Landscape --margin-top 10 --margin-right 10 --margin-bottom 10 --margin-left 10 '$html_filepath' '$pdf_filepath'";
+        $output = shell_exec($command);
+        if (file_exists($pdf_filepath) && filesize($pdf_filepath) > 0) {
+            return true;
+        }
+    }
+    
+    // Method 5: Try using weasyprint if available
+    if (function_exists('shell_exec') && is_executable('/usr/local/bin/weasyprint')) {
+        $command = "/usr/local/bin/weasyprint '$html_filepath' '$pdf_filepath'";
+        $output = shell_exec($command);
+        if (file_exists($pdf_filepath) && filesize($pdf_filepath) > 0) {
+            return true;
+        }
+    }
+    
+    // If all methods fail, return false
+    return false;
 }
 
 /**
@@ -89,207 +137,212 @@ function ssc_get_company_info() {
 }
 
 /**
- * Process template with dynamic field replacements
+ * Create enhanced HTML content for PDF
  */
-function ssc_process_template($template, $data) {
-    if (empty($template)) {
-        return '';
-    }
+function ssc_create_enhanced_html($drawing_data, $canvas_data, $company_info, $quote_id) {
+    $current_date = date('F j, Y');
     
-    foreach ($data as $key => $value) {
-        $template = str_replace('{{' . $key . '}}', $value, $template);
-    }
-    
-    return $template;
-}
-
-/**
- * Create enhanced PDF with specified settings
- */
-function ssc_create_enhanced_pdf($page_size, $quality) {
-    // Map page sizes to jsPDF format
-    $page_sizes = array(
-        'A4' => 'a4',
-        'A3' => 'a3',
-        'Letter' => 'letter',
-        'Legal' => 'legal'
-    );
-    
-    $format = $page_sizes[$page_size] ?? 'a3';
-    
-    // Create PDF with high quality settings
-    $pdf = new jsPDF(array(
-        'orientation' => 'p', // Portrait for better A3 layout
-        'unit' => 'mm',
-        'format' => $format,
-        'compress' => false // Disable compression for better quality
-    ));
-    
-    // Set document properties
-    $pdf->setProperties(array(
-        'title' => 'Stone Slab Project Quote',
-        'subject' => 'Project Drawing and Calculations',
-        'author' => 'Bamby Stone Calculator',
-        'creator' => 'Stone Slab Calculator Plugin'
-    ));
-    
-    return $pdf;
-}
-
-/**
- * Add cover page to PDF
- */
-function ssc_add_cover_page($pdf, $content, $company_info) {
-    $pdf->setFont('helvetica', 'bold', 24);
-    $pdf->setTextColor(0, 0, 0);
-    
-    // Add company logo if available
-    if (!empty($company_info['logo'])) {
-        try {
-            // Try to add logo (this will fail gracefully if logo can't be loaded)
-            $pdf->addImage($company_info['logo'], 'JPEG', 20, 20, 60, 30);
-        } catch (Exception $e) {
-            // Logo failed to load, continue without it
-        }
-    }
-    
-    // Add company name
-    $pdf->setFont('helvetica', 'bold', 28);
-    $pdf->text(20, 80, $company_info['name']);
-    
-    // Add company contact info
-    $pdf->setFont('helvetica', 'normal', 12);
-    $pdf->text(20, 100, $company_info['address']);
-    $pdf->text(20, 110, 'Phone: ' . $company_info['phone']);
-    $pdf->text(20, 120, 'Email: ' . $company_info['email']);
-    $pdf->text(20, 130, 'Website: ' . $company_info['website']);
-    
-    // Add project title
-    $pdf->setFont('helvetica', 'bold', 20);
-    $pdf->text(20, 180, 'PROJECT QUOTE');
-    
-    // Add content lines
-    $lines = explode("\n", $content);
-    $y_position = 200;
-    
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if (!empty($line)) {
-            if (strpos($line, '{{') === false) { // Only add non-template lines
-                $pdf->setFont('helvetica', 'normal', 14);
-                $pdf->text(20, $y_position, $line);
-                $y_position += 8;
-            }
-        }
-    }
-}
-
-/**
- * Add body content to PDF
- */
-function ssc_add_body_content($pdf, $content, $canvas_data, $drawing_data) {
-    $pdf->setFont('helvetica', 'normal', 12);
-    $pdf->setTextColor(0, 0, 0);
-    
-    // Add content lines
-    $lines = explode("\n", $content);
-    $y_position = 30;
-    $page_height = $pdf->getPageHeight();
-    
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if (!empty($line)) {
-            // Check if this is a special field
-            if ($line === '{{drawing_image}}' && $canvas_data) {
-                // Add drawing image
-                ssc_add_drawing_image($pdf, $canvas_data, $y_position);
-                $y_position += 150; // Space for image
-            } elseif (strpos($line, '{{') === false) {
-                // Regular text line
-                if ($y_position > $page_height - 50) {
-                    $pdf->addPage();
-                    $y_position = 30;
-                }
-                
-                // Check if it's a heading
-                if (strpos($line, 'PROJECT DETAILS') !== false || 
-                    strpos($line, 'NOTES') !== false || 
-                    strpos($line, 'CALCULATIONS') !== false) {
-                    $pdf->setFont('helvetica', 'bold', 16);
-                    $pdf->text(20, $y_position, $line);
-                    $y_position += 12;
-                    $pdf->setFont('helvetica', 'normal', 12);
-                } else {
-                    $pdf->text(20, $y_position, $line);
-                    $y_position += 8;
-                }
-            }
-        }
-    }
-}
-
-/**
- * Add drawing image to PDF
- */
-function ssc_add_drawing_image($pdf, $canvas_data, $y_position) {
-    try {
-        // Convert canvas data to image
-        $image_data = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $canvas_data));
-        
-        // Create temporary file
-        $temp_file = tempnam(sys_get_temp_dir(), 'ssc_pdf_');
-        file_put_contents($temp_file, $image_data);
-        
-        // Add image to PDF
-        $pdf->addImage($temp_file, 'JPEG', 20, $y_position, 170, 130);
-        
-        // Clean up temp file
-        unlink($temp_file);
-    } catch (Exception $e) {
-        // If image fails, add placeholder text
-        $pdf->setFont('helvetica', 'italic', 12);
-        $pdf->setTextColor(128, 128, 128);
-        $pdf->text(20, $y_position + 65, '[Drawing Image - See attached file]');
-        $pdf->setTextColor(0, 0, 0);
-    }
-}
-
-/**
- * Add footer to all pages
- */
-function ssc_add_footer_to_pages($pdf, $footer_content, $company_info) {
-    $page_count = $pdf->getNumberOfPages();
-    
-    for ($i = 1; $i <= $page_count; $i++) {
-        $pdf->setPage($i);
-        
-        // Get page dimensions
-        $page_height = $pdf->getPageHeight();
-        
-        // Add footer content
-        $pdf->setFont('helvetica', 'normal', 10);
-        $pdf->setTextColor(128, 128, 128);
-        
-        $lines = explode("\n", $footer_content);
-        $y_position = $page_height - 20;
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (!empty($line) && strpos($line, '{{') === false) {
-                $pdf->text(20, $y_position, $line);
-                $y_position += 5;
-            }
+    $html = '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stone Slab Project Quote</title>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .page { page-break-after: always; }
+            .page:last-child { page-break-after: avoid; }
         }
         
-        // Add page number
-        $pdf->text($pdf->getPageWidth() - 30, $page_height - 10, 'Page ' . $i . ' of ' . $page_count);
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: white;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .company-logo {
+            max-width: 200px;
+            max-height: 100px;
+            margin-bottom: 15px;
+        }
+        
+        .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        
+        .company-info {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        .quote-title {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 30px 0;
+            color: #333;
+        }
+        
+        .project-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .detail-value {
+            color: #333;
+        }
+        
+        .drawing-section {
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .drawing-image {
+            max-width: 100%;
+            max-height: 400px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .notes-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .quote-id {
+            background: #007bff;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="quote-id">Quote ID: ' . $quote_id . '</div>
+            <div class="company-name">' . esc_html($company_info['name']) . '</div>
+            <div class="company-info">
+                ' . esc_html($company_info['address']) . '<br>
+                Phone: ' . esc_html($company_info['phone']) . '<br>
+                Email: ' . esc_html($company_info['email']) . '<br>
+                Website: ' . esc_html($company_info['website']) . '
+            </div>
+        </div>
+        
+        <div class="quote-title">PROJECT QUOTE</div>
+        
+        <div class="project-details">
+            <div class="detail-row">
+                <span class="detail-label">Project Name:</span>
+                <span class="detail-value">' . esc_html($drawing_data['drawing_name']) . '</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Date:</span>
+                <span class="detail-value">' . $current_date . '</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Total Cutting:</span>
+                <span class="detail-value">' . number_format($drawing_data['total_cutting_mm'], 2) . ' mm</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Only Cut:</span>
+                <span class="detail-value">' . number_format($drawing_data['only_cut_mm'], 2) . ' mm</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Mitred Edge:</span>
+                <span class="detail-value">' . number_format($drawing_data['mitred_cut_mm'], 2) . ' mm</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Slab Cost:</span>
+                <span class="detail-value">' . esc_html($drawing_data['slab_cost']) . '</span>
+            </div>
+        </div>';
+    
+    // Add notes if available
+    if (!empty($drawing_data['drawing_notes'])) {
+        $html .= '
+        <div class="notes-section">
+            <strong>Project Notes:</strong><br>
+            ' . esc_html($drawing_data['drawing_notes']) . '
+        </div>';
     }
+    
+    // Add drawing image if available
+    if ($canvas_data) {
+        $html .= '
+        <div class="drawing-section">
+            <h3>Project Drawing</h3>
+            <img src="' . esc_attr($canvas_data) . '" alt="Project Drawing" class="drawing-image">
+        </div>';
+    }
+    
+    $html .= '
+        <div class="footer">
+            <p>Thank you for choosing ' . esc_html($company_info['name']) . '</p>
+            <p>This quote is valid for 30 days from the date of issue.</p>
+            <p>Generated on ' . $current_date . ' | Quote ID: ' . $quote_id . '</p>
+        </div>
+    </div>
+</body>
+</html>';
+    
+    return $html;
 }
 
 /**
  * AJAX handler for generating enhanced PDF
  */
 function ssc_ajax_generate_enhanced_pdf() {
+    error_log('=== ENHANCED PDF AJAX HANDLER STARTED ===');
+    error_log('POST data received: ' . print_r($_POST, true));
+    
     // Check nonce for security - TEMPORARILY DISABLED FOR TESTING
     /*
     if (!wp_verify_nonce($_POST['nonce'], 'ssc_save_drawing_nonce')) {
@@ -308,33 +361,52 @@ function ssc_ajax_generate_enhanced_pdf() {
         'slab_cost' => sanitize_text_field($_POST['slab_cost'] ?? '$0')
     );
     
+    error_log('Drawing data processed: ' . print_r($drawing_data, true));
+    
     // Get canvas data if provided
     $canvas_data = isset($_POST['canvas_data']) ? $_POST['canvas_data'] : null;
+    error_log('Canvas data received: ' . ($canvas_data ? 'Yes, length: ' . strlen($canvas_data) : 'No'));
     
     try {
-        // Generate PDF
-        $pdf = ssc_generate_enhanced_pdf($drawing_data, $canvas_data);
+        error_log('Starting enhanced HTML generation...');
+        // Generate enhanced HTML
+        $result = ssc_generate_enhanced_pdf($drawing_data, $canvas_data);
+        error_log('Enhanced HTML generation completed successfully');
+        error_log('Result: ' . print_r($result, true));
         
-        // Convert to string
-        $pdf_string = $pdf->Output('S');
+        // Debug file information
+        error_log('File path: ' . $result['filepath']);
+        error_log('File exists: ' . (file_exists($result['filepath']) ? 'Yes' : 'No'));
+        if (file_exists($result['filepath'])) {
+            error_log('File size: ' . filesize($result['filepath']));
+            error_log('File readable: ' . (is_readable($result['filepath']) ? 'Yes' : 'No'));
+        }
         
-        // Create file data for AJAX response
-        $filename = 'enhanced_quote_' . time() . '.pdf';
+        // Get company information for the response
+        $company_info = ssc_get_company_info();
         
-        wp_send_json_success(array(
-            'pdf_file' => array(
-                'name' => $filename,
-                'type' => 'application/pdf',
-                'size' => strlen($pdf_string),
-                'data' => base64_encode($pdf_string)
-            ),
-            'filename' => $filename,
-            'message' => 'Enhanced PDF generated successfully'
-        ));
+        // Return HTML content and metadata for frontend PDF generation
+        $response_data = array(
+            'html_content' => $result['html_content'],
+            'quote_id' => $result['quote_id'],
+            'company_info' => $company_info,
+            'drawing_data' => $drawing_data,
+            'canvas_data' => $canvas_data,
+            'message' => 'Enhanced HTML content generated successfully. Converting to PDF in frontend...'
+        );
+        
+        error_log('Response data prepared: ' . print_r($response_data, true));
+        error_log('Sending success response...');
+        
+        wp_send_json_success($response_data);
         
     } catch (Exception $e) {
-        wp_send_json_error('Failed to generate PDF: ' . $e->getMessage());
+        error_log('Enhanced PDF generation error: ' . $e->getMessage());
+        error_log('Error trace: ' . $e->getTraceAsString());
+        wp_send_json_error('Failed to generate enhanced PDF: ' . $e->getMessage());
     }
+    
+    error_log('=== ENHANCED PDF AJAX HANDLER COMPLETED ===');
 }
 
 // Register AJAX handlers
