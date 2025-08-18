@@ -565,9 +565,6 @@ Slab Cost: {{slab_cost}}
 
 {{drawing_image}}
 
-NOTES
-{{drawing_notes}}
-
 CALCULATIONS
 Total Cutting Required: {{total_cutting_mm}} mm
 Standard Cuts: {{only_cut_mm}} mm

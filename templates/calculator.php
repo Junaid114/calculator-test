@@ -3061,7 +3061,7 @@ foreach( $params as $param ) {
 		</div>
 		
 		<!-- Test Button for Modal -->
-		<button id="test-modal" style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: #ff6b6b; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">🧪 Test Modal</button>
+		<!-- <button id="test-modal" style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: #ff6b6b; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">🧪 Test Modal</button> -->
 
 		<script src="./../assets/js/jquery-3.6.0.min.js"></script>
 
@@ -11757,12 +11757,8 @@ foreach( $params as $param ) {
 					// Round to 1 decimal place for display
 					const slabsNeededRounded = Math.round(slabsNeeded * 10) / 10;
 					
-					// Update the slab usage display - format as "1 Slab/s" for single slab
-					if (slabsNeededRounded <= 1) {
-						jQuery('#slabUsageDisplay').html('1 Slab/s');
-					} else {
-						jQuery('#slabUsageDisplay').html(slabsNeededRounded + ' Slab/s');
-					}
+					// Update the slab usage display using both area estimate and used green slabs
+					updateSlabUsageDisplay();
 					
 					// Calculate total cutting area
 					window.totalCutting = onlyCutAreaMM + mitredEdgeAreaMM;
@@ -11771,6 +11767,50 @@ foreach( $params as $param ) {
 					// Calculate costs
 					calculateCosts();				
 					return slabsNeededRounded;
+				}
+
+				// Helper to count slabs that have any shapes
+				function getUsedSlabCount() {
+					// Get all shapes on canvas
+					const shapes = canvas.getObjects().filter(obj => obj.mainShape);
+					let usedCount = 0;
+					
+					infoBoxes.forEach((box) => {
+						let hasShapes = false;
+						shapes.forEach(shape => {
+							if (checkIntersection(
+								{
+									left: shape.left,
+									top: shape.top,
+									right: shape.left + shape.width,
+									bottom: shape.top + shape.height
+								},
+								{
+									left: box.left,
+									top: box.top,
+									right: box.left + boxWidth,
+									bottom: box.top + boxHeight
+								}
+							)) {
+								hasShapes = true;
+							}
+						});
+						if (hasShapes) {
+							usedCount++;
+						}
+					});
+					
+					return usedCount;
+				}
+
+				// Update the slab usage label using both area and used slabs
+				function updateSlabUsageDisplay() {
+					const totalAreaMM = totalMM;
+					const slabAreaMM = <?=$_GET['slab_width']?> * <?=$_GET['slab_height']?>;
+					const areaBased = Math.ceil((totalAreaMM / slabAreaMM) || 0);
+					const usedCount = getUsedSlabCount();
+					const displayCount = Math.max(1, areaBased, usedCount);
+					jQuery('#slabUsageDisplay').html(displayCount + ' Slab/s');
 				}
 				
 				// Function to calculate costs based on cutting areas
@@ -11869,6 +11909,8 @@ foreach( $params as $param ) {
 					});
 					
 					canvas.renderAll();
+					// Also update the slab usage label to reflect current usage
+					updateSlabUsageDisplay();
 				}
 
 				// Function to update slab usage visualization (alias for updateSlabVisualization)
