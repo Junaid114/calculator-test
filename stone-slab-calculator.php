@@ -1151,6 +1151,9 @@ function slab_calculator_shortcode(){
 		$ssc_rate_mitred = get_option('ssc_production_cost_mitred', '0');
 		$ssc_install_cost = get_option('ssc_installation_cost', '0');
 
+		// Disable drawing after submission setting
+		$ssc_disable_drawing = get_option('ssc_disable_drawing_after_submission', 'no');
+
 		// Current product price (slab cost) to pass to iframe
 		$slab_price = is_object($product) ? $product->get_price() : '0';
 
@@ -1191,7 +1194,7 @@ function slab_calculator_shortcode(){
 			let iframePath = "<?=SSC_PLUGIN_URL?>templates/calculator.php";
 
 			// Append the data as query parameters to the iframe URL
-			iframePath += "?name=<?=$product->get_name()?>&slab_width=<?=$dimensions['width']?>&slab_height=<?=$dimensions['height']?>&pad_width=<?=$drawing_pad_width?>&pad_height=<?=$drawing_pad_height?>&edges="+edgeProfiles+"&site_url=<?=urlencode(site_url())?>&nonce=<?=wp_create_nonce('ssc_save_drawing_nonce')?>&auth_nonce=<?=wp_create_nonce('stone_slab_auth_nonce')?>&rate_standard=<?=rawurlencode($ssc_rate_standard)?>&rate_mitred=<?=rawurlencode($ssc_rate_mitred)?>&install_cost=<?=rawurlencode($ssc_install_cost)?>&slab_price=<?=rawurlencode($slab_price)?>";
+			iframePath += "?name=<?=$product->get_name()?>&slab_width=<?=$dimensions['width']?>&slab_height=<?=$dimensions['height']?>&pad_width=<?=$drawing_pad_width?>&pad_height=<?=$drawing_pad_height?>&edges="+edgeProfiles+"&site_url=<?=urlencode(site_url())?>&nonce=<?=wp_create_nonce('ssc_save_drawing_nonce')?>&auth_nonce=<?=wp_create_nonce('stone_slab_auth_nonce')?>&rate_standard=<?=rawurlencode($ssc_rate_standard)?>&rate_mitred=<?=rawurlencode($ssc_rate_mitred)?>&install_cost=<?=rawurlencode($ssc_install_cost)?>&slab_price=<?=rawurlencode($slab_price)?>&disable_drawing=<?=rawurlencode($ssc_disable_drawing)?>";
 			
 			if ( youtubeUrl != '' ) {
 				let videoId = '';

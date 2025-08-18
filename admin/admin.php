@@ -822,7 +822,8 @@ function ssc_saved_drawings_page() {
 		wp_die(__('You do not have sufficient permissions to access this page.'));
 	}
 	
-	// Handle drawing deletion
+	// Handle drawing deletion - TEMPORARILY DISABLED TO DEBUG 500 ERROR
+	/*
 	if (isset($_POST['delete_drawing']) && isset($_POST['drawing_id'])) {
 		$drawing_id = intval($_POST['drawing_id']);
 		if (wp_verify_nonce($_POST['_wpnonce'], 'delete_drawing_' . $drawing_id)) {
@@ -835,6 +836,7 @@ function ssc_saved_drawings_page() {
 			}
 		}
 	}
+	*/
 	
 	echo '<div class="wrap">';
 	echo '<h1>Saved Drawings</h1>';
@@ -919,10 +921,13 @@ function ssc_saved_drawings_page() {
 	echo '</div>';
 	
 	// Add JavaScript for filtering
+	$nonce = wp_create_nonce('ssc_admin_filter_nonce');
 	echo '<script type="text/javascript">
+	var ajaxurl = "' . admin_url('admin-ajax.php') . '";
+	var filterNonce = "' . $nonce . '";
 	jQuery(document).ready(function($) {
 		// Load initial data
-		loadFilteredDrawings();
+		loadInitialDrawings();
 		
 		// Apply filters button
 		$("#apply_filters").on("click", function() {
@@ -966,13 +971,37 @@ function ssc_saved_drawings_page() {
 			}
 		});
 		
+		function loadInitialDrawings() {
+			console.log("Loading initial drawings...");
+			console.log("AJAX URL:", ajaxurl);
+			$("#ssc-loading").addClass("show");
+			$("#ssc-results-table").hide();
+			
+			$.post(ajaxurl, {
+				action: "ssc_admin_load_drawings"
+			}, function(response) {
+				console.log("AJAX Response:", response);
+				$("#ssc-loading").removeClass("show");
+				if (response.success) {
+					displayFilteredResults(response.data);
+				} else {
+					$("#ssc-results-table").html("<div class=\"notice notice-error\"><p>Error loading drawings: " + response.data + "</p></div>");
+					$("#ssc-results-table").show();
+				}
+			}).fail(function(xhr, status, error) {
+				$("#ssc-loading").removeClass("show");
+				$("#ssc-results-table").html("<div class=\"notice notice-error\"><p>Failed to load drawings. Please try again.</p></div>");
+				$("#ssc-results-table").show();
+			});
+		}
+		
 		function loadFilteredDrawings() {
 			$("#ssc-loading").addClass("show");
 			$("#ssc-results-table").hide();
 			
 			var filterData = {
 				action: "ssc_admin_filter_drawings",
-				_wpnonce: "' . wp_create_nonce('ssc_admin_filter_nonce') . '",
+				_wpnonce: filterNonce,
 				quote_id: $("#filter_quote_id").val(),
 				user_id: $("#filter_user_id").val(),
 				full_name: $("#filter_full_name").val(),
@@ -990,9 +1019,10 @@ function ssc_saved_drawings_page() {
 					$("#ssc-results-table").html("<div class=\"notice notice-error\"><p>Error loading drawings: " + response.data + "</p></div>");
 					$("#ssc-results-table").show();
 				}
-			}).fail(function() {
+			}).fail(function(xhr, status, error) {
+				console.log("AJAX Failed:", {xhr: xhr, status: status, error: error});
 				$("#ssc-loading").removeClass("show");
-				$("#ssc-results-table").html("<div class=\"notice notice-error\"><p>Failed to load drawings. Please try again.</p></div>");
+				$("#ssc-results-table").html("<div class=\"notice notice-error\"><p>Failed to load drawings. Error: " + error + "</p></div>");
 				$("#ssc-results-table").show();
 			});
 		}
@@ -1065,10 +1095,10 @@ function ssc_saved_drawings_page() {
 				tableHtml += "<td>";
 				
 				// Generate direct quote link
-				var directQuoteUrl = "' . home_url('/slab-calculator/quote/') . '" + drawing.id + "-" + drawing.user_id + "-" + (drawing.drawing_name || drawing.slab_name || "product").replace(/[^a-zA-Z0-9]/g, "-") + "-" + new Date(drawing.created_at).toISOString().split(\"T\")[0] + ".pdf";
+				var directQuoteUrl = "' . home_url('/slab-calculator/quote/') . '" + drawing.id + "-" + drawing.user_id + "-" + (drawing.drawing_name || drawing.slab_name || "product").replace(/[^a-zA-Z0-9]/g, "-") + "-" + new Date(drawing.created_at).toISOString().split("T")[0] + ".pdf";
 				
 				// View PDF link
-				var pdfUrl = "<?php echo home_url('/ssc-pdf/'); ?>" + drawing.pdf_file_path;
+				var pdfUrl = "' . home_url('/ssc-pdf/') . '" + drawing.pdf_file_path;
 				tableHtml += "<a href=\"" + pdfUrl + "\" target=\"_blank\" class=\"button button-small\">View PDF</a> ";
 				
 				// Download PDF link
@@ -1077,12 +1107,11 @@ function ssc_saved_drawings_page() {
 				// Direct Quote Link
 				tableHtml += "<a href=\"" + directQuoteUrl + "\" target=\"_blank\" class=\"button button-small\" style=\"background: #007cba; color: white;\">Direct Link</a> ";
 				
-				// Delete button
-				tableHtml += "<form method=\"post\" style=\"display:inline;\">";
-				tableHtml += "' . wp_nonce_field('delete_drawing_', '_wpnonce', true, false) . '";
-				tableHtml += "<input type=\"hidden\" name=\"drawing_id\" value=\"" + drawing.id + "\">";
-				tableHtml += "<input type=\"submit\" name=\"delete_drawing\" value=\"Delete\" class=\"button button-small button-link-delete\" onclick=\"return confirm(\\\"Are you sure you want to delete this drawing?\\\")\">";
-				tableHtml += "</form>";
+				// Delete button - TEMPORARILY DISABLED
+				// tableHtml += "<form method=\"post\" style=\"display:inline;\">";
+				// tableHtml += "<input type=\"hidden\" name=\"drawing_id\" value=\"" + drawing.id + "\">";
+				// tableHtml += "<input type=\"submit\" name=\"delete_drawing\" value=\"Delete\" class=\"button button-small button-link-delete\" onclick=\"return confirm(\"Are you sure you want to delete this drawing?\")>\">";
+				// tableHtml += "</form>";
 				
 				tableHtml += "</td>";
 				tableHtml += "</tr>";
@@ -1113,6 +1142,9 @@ function ssc_saved_drawings_page() {
 
 // AJAX handler for admin filtering
 add_action('wp_ajax_ssc_admin_filter_drawings', 'ssc_admin_filter_drawings');
+
+// AJAX handler for loading initial drawings
+add_action('wp_ajax_ssc_admin_load_drawings', 'ssc_admin_load_drawings');
 
 // Enqueue admin styles
 add_action('admin_enqueue_scripts', 'ssc_admin_enqueue_styles');
@@ -1146,6 +1178,13 @@ function ssc_admin_filter_drawings() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'ssc_drawings';
     $users_table = $wpdb->prefix . 'users';
+    
+    // Check if table exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    if (!$table_exists) {
+        wp_send_json_error('Database table does not exist. Please deactivate and reactivate the plugin.');
+        return;
+    }
     
     // Build the query with filters
     $where_conditions = array();
@@ -1209,5 +1248,38 @@ function ssc_admin_filter_drawings() {
         wp_send_json_success($drawings);
     } else {
         wp_send_json_error('Failed to get filtered drawings: ' . $wpdb->last_error);
+    }
+}
+
+// Function to load initial drawings for admin page
+function ssc_admin_load_drawings() {
+    // Check if user has permission
+    if (!current_user_can('manage_options')) {
+        wp_die(__('You do not have sufficient permissions to access this page.'));
+    }
+    
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'ssc_drawings';
+    $users_table = $wpdb->prefix . 'users';
+    
+    // Check if table exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    if (!$table_exists) {
+        wp_send_json_error('Database table does not exist. Please deactivate and reactivate the plugin.');
+        return;
+    }
+    
+    // Get all drawings with user info
+    $query = "SELECT d.*, u.display_name, u.user_email 
+              FROM $table_name d 
+              LEFT JOIN $users_table u ON d.user_id = u.ID 
+              ORDER BY d.created_at DESC";
+    
+    $drawings = $wpdb->get_results($query, ARRAY_A);
+    
+    if ($drawings !== false) {
+        wp_send_json_success($drawings);
+    } else {
+        wp_send_json_error('Failed to load drawings: ' . $wpdb->last_error);
     }
 }

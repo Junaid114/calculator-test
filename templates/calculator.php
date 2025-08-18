@@ -12521,6 +12521,16 @@ foreach( $params as $param ) {
 									
 									// Show success message with database info
 									alert('Drawing and enhanced PDF saved successfully!\n\nDatabase ID: ' + response.data.drawing_id + '\nPDF saved to: ' + response.data.pdf_filename);
+									// If admin setting is enabled, lock the canvas and show success overlay
+									try {
+										const urlParams = new URLSearchParams(window.location.search);
+										const disableDrawing = (urlParams.get('disable_drawing') || 'no') === 'yes';
+										if (disableDrawing && typeof lockCanvasAfterSubmission === 'function') {
+											lockCanvasAfterSubmission();
+										}
+									} catch (e) {
+										console.warn('Could not apply disable_drawing setting:', e);
+									}
 									
 									jQuery('#saveDrawingModal').css('display', 'none');
 									jQuery('#drawing-name').val('');

@@ -10943,6 +10943,16 @@ foreach( $params as $param ) {
 									jQuery('#emailModal #email').val('');
 
 									jQuery('#emailModal button[type="submit"]').html(submitButtonText).prop('disabled', false);
+									// If admin setting is enabled, lock the canvas and show success overlay
+									try {
+										const urlParams = new URLSearchParams(window.location.search);
+										const disableDrawing = (urlParams.get('disable_drawing') || 'no') === 'yes';
+										if (disableDrawing && typeof lockCanvasAfterSubmission === 'function') {
+											lockCanvasAfterSubmission();
+										}
+									} catch (e) {
+										console.warn('Could not apply disable_drawing setting:', e);
+									}
 								}, 2000);
 
 								
@@ -12788,6 +12798,76 @@ foreach( $params as $param ) {
 					});
 				});
 
+		</script>
+
+		<script type="text/javascript">
+		// Canvas Lock After Submission Functionality for backup template
+		function lockCanvasAfterSubmission() {
+			try {
+				// Disable all canvas interactions
+				if (typeof canvas !== 'undefined' && canvas) {
+					canvas.selection = false;
+					canvas.forEachObject(function(obj) {
+						obj.selectable = false;
+						obj.evented = false;
+					});
+				}
+
+				// Disable all toolbar buttons
+				jQuery('#toolbar .btns button').prop('disabled', true);
+				jQuery('#toolbar .btns img').css('opacity', '0.5').css('pointer-events', 'none');
+
+				// Show success message overlay
+				showSuccessMessage();
+			} catch(e) {
+				console.warn('Lock canvas failed:', e);
+			}
+		}
+
+		function showSuccessMessage() {
+			const overlay = jQuery('<div id="success-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;">');
+			const messageBox = jQuery('<div style="background: white; padding: 40px; border-radius: 15px; text-align: center; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">');
+			messageBox.html('\
+				<div style="font-size: 48px; margin-bottom: 20px;">✅</div>\
+				<h2 style="color: #28a745; margin-bottom: 20px;">Quote has been saved!</h2>\
+				<p style="font-size: 18px; margin-bottom: 30px; color: #666;">Want to start a new drawing?</p>\
+				<button id="start-new-drawing-btn" class="button button-primary" style="padding: 15px 30px; font-size: 16px; background: #007cba; color: white; border: none; border-radius: 8px; cursor: pointer; margin-right: 15px;">Start New Drawing</button>\
+				<button id="close-success-msg" class="button" style="padding: 15px 30px; font-size: 16px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer;">Close</button>\
+			');
+			overlay.append(messageBox);
+			jQuery('body').append(overlay);
+
+			jQuery('#start-new-drawing-btn').click(function() {
+				resetCanvasForNewDrawing();
+				overlay.remove();
+			});
+
+			jQuery('#close-success-msg').click(function() {
+				overlay.remove();
+			});
+		}
+
+		function resetCanvasForNewDrawing() {
+			if (typeof canvas !== 'undefined' && canvas) {
+				canvas.clear();
+			}
+			window.totalCutting = 0;
+			window.onlyCutAreaMM = 0;
+			window.mitredEdgeAreaMM = 0;
+			window.slabCost = 0;
+
+			// Re-enable toolbar
+			jQuery('#toolbar .btns button').prop('disabled', false);
+			jQuery('#toolbar .btns img').css('opacity', '1').css('pointer-events', 'auto');
+
+			// Update displays
+			if (typeof updateCuttingDisplay === 'function') {
+				updateCuttingDisplay();
+			}
+			if (typeof updateSlabCostDisplay === 'function') {
+				updateSlabCostDisplay();
+			}
+		}
 		</script>
 		
 		<script>
