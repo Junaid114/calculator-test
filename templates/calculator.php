@@ -2468,8 +2468,8 @@ foreach( $params as $param ) {
 			padding-left:30px;
         ">
             <div><strong>Total Slab:</strong> <span id="slabUsageDisplay" style="color: #0066cc;">1 Slab/s</span></div>
-            <div><strong>Only Cut Area:</strong> <span class="only_cut_mm" style="color: #666;">0</span> mm <span style="color: #888; font-size: 8px;">(50.00 p/mm)</span></div>
-            <div><strong>Mitred Cut Area:</strong> <span class="mitred_edge_mm" style="color: #666;">0</span> mm <span style="color: #888; font-size: 8px;">(50.16 p/mm)</span></div>
+            <div><strong>Only Cut Area:</strong> <span class="only_cut_mm" style="color: #666;">0</span> mm <span style="color: #888; font-size: 8px;">(<?= isset($_GET['rate_standard']) ? htmlspecialchars($_GET['rate_standard']) : '0' ?> p/mm)</span></div>
+            <div><strong>Mitred Cut Area:</strong> <span class="mitred_edge_mm" style="color: #666;">0</span> mm <span style="color: #888; font-size: 8px;">(<?= isset($_GET['rate_mitred']) ? htmlspecialchars($_GET['rate_mitred']) : '0' ?> p/mm)</span></div>
             <div><strong>Total Cutting:</strong> <span id="totalCuttingDisplay" style="color: #cc6600;">0 mm</span></div>
         </div>
         
@@ -2480,10 +2480,10 @@ foreach( $params as $param ) {
 			 font-size:14px;
             line-height: 12px;
         ">
-            <div><strong>Slab Cost:</strong> <span id="slabCostDisplay" style="color: #0066cc; font-weight: bold;">$1000</span></div>
+            <div><strong>Slab Cost:</strong> <span id="slabCostDisplay" style="color: #0066cc; font-weight: bold;">$<?= isset($_GET['slab_price']) ? htmlspecialchars($_GET['slab_price']) : '1000' ?></span></div>
             <div><strong>Production Cost:</strong> <span id="productionCostDisplay" style="color: #666;">$0</span></div>
             <div><strong>Installation Cost:</strong> <span id="installationCostDisplay" style="color: #666;">$0</span></div>
-            <div><strong>Total Project Cost:</strong> <span id="totalProjectCostDisplay" style="color: #cc0000; font-weight: bold;">$1000</span></div>
+            <div><strong>Total Project Cost:</strong> <span id="totalProjectCostDisplay" style="color: #cc0000; font-weight: bold;">$<?= isset($_GET['slab_price']) ? htmlspecialchars($_GET['slab_price']) : '1000' ?></span></div>
         </div>
 						</div>
 
@@ -3166,10 +3166,10 @@ foreach( $params as $param ) {
 					// Set initial values
 					jQuery('#slabUsageDisplay').html('1 Slab/s');
 					jQuery('#totalCuttingDisplay').html('0 mm');
-					jQuery('#slabCostDisplay').html('$1000');
+					jQuery('#slabCostDisplay').html('$' + (parseFloat('<?= isset($_GET['slab_price']) ? $_GET['slab_price'] : '1000' ?>') || 1000));
 					jQuery('#productionCostDisplay').html('$0.00');
 					jQuery('#installationCostDisplay').html('$0.00');
-					jQuery('#totalProjectCostDisplay').html('$1000.00');
+					jQuery('#totalProjectCostDisplay').html('$' + (parseFloat('<?= isset($_GET['slab_price']) ? $_GET['slab_price'] : '1000' ?>') || 1000).toFixed(2));
 					
 					// Update the cutting area displays with proper formatting
 					jQuery('.only_cut_mm').html('0');
@@ -3180,6 +3180,8 @@ foreach( $params as $param ) {
 				
 				// Call initialization function
 				initializeDisplayValues();
+				// Ensure costs reflect admin settings immediately
+				calculateCosts();
 
 				// Initialize toolbar logout button as hidden
 				jQuery('#toolbarLogoutBtn').hide();
@@ -11816,21 +11818,23 @@ foreach( $params as $param ) {
 				// Function to calculate costs based on cutting areas
 				function calculateCosts() {
 					// Base slab cost (from URL parameter or default)
-					window.slabCost = 1000; // Default $1000, can be made dynamic
+					window.slabCost = parseFloat('<?= isset($_GET['slab_price']) ? $_GET['slab_price'] : '1000' ?>') || 1000;
 					
-					// Production cost based on cutting areas (50.00 p/mm for only cut, 50.16 p/mm for mitred)
-					const onlyCutCost = (window.onlyCutAreaMM * 50.00) / 1000; // Convert to dollars
-					const mitredCutCost = (window.mitredEdgeAreaMM * 50.16) / 1000; // Convert to dollars
+					// Dynamic rates from query parameters
+					const rateStandard = parseFloat('<?= isset($_GET['rate_standard']) ? $_GET['rate_standard'] : '0' ?>') || 0;
+					const rateMitred = parseFloat('<?= isset($_GET['rate_mitred']) ? $_GET['rate_mitred'] : '0' ?>') || 0;
+					const installationCost = parseFloat('<?= isset($_GET['install_cost']) ? $_GET['install_cost'] : '0' ?>') || 0;
+					
+					// Production cost based on cutting areas and admin-configured rates
+					const onlyCutCost = ((window.onlyCutAreaMM || 0) * rateStandard) / 1000;
+					const mitredCutCost = ((window.mitredEdgeAreaMM || 0) * rateMitred) / 1000;
 					const productionCost = onlyCutCost + mitredCutCost;
 					
-					// Installation cost (can be made configurable)
-					const installationCost = 0; // Default $0, can be made dynamic
-					
 					// Total project cost
-					const totalProjectCost = window.slabCost + productionCost + installationCost;
+					const totalProjectCost = (window.slabCost || 0) + productionCost + installationCost;
 					
 					// Update cost displays
-					jQuery('#slabCostDisplay').html('$' + window.slabCost.toLocaleString());
+					jQuery('#slabCostDisplay').html('$' + (window.slabCost || 0).toLocaleString());
 					jQuery('#productionCostDisplay').html('$' + productionCost.toFixed(2));
 					jQuery('#installationCostDisplay').html('$' + installationCost.toFixed(2));
 					jQuery('#totalProjectCostDisplay').html('$' + totalProjectCost.toFixed(2));
