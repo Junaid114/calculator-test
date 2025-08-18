@@ -4384,11 +4384,30 @@ $watermark_url = !empty($custom_watermark) ? $custom_watermark : $_GET['site_url
 
 							if ( obj.length < 4 ) {
 
-								totalMM += convertPxToMm(obj[2]._objects[0].height * 3);
+								// Calculate circle area using accurate Pi (π) formula: A = π × r²
+								// Get radius from the circle object (height/2 represents diameter, so radius = height/2)
+								const radius = obj[2]._objects[0].height / 2;
+								// Validate radius is positive
+								if (radius > 0) {
+									const circleArea = Math.PI * radius * radius;
+									totalMM += convertPxToMm(circleArea);
+									console.log(`🔵 Circle area calculated: π × ${radius}² = ${circleArea.toFixed(2)} pixels²`);
+								} else {
+									console.warn('⚠️ Invalid circle radius detected:', radius);
+								}
 
 							} else {
 
-								totalMM += convertPxToMm(obj[0].height);
+								// Calculate circle area using accurate Pi (π) formula: A = π × r²
+								const radius = obj[0].height / 2;
+								// Validate radius is positive
+								if (radius > 0) {
+									const circleArea = Math.PI * radius * radius;
+									totalMM += convertPxToMm(circleArea);
+									console.log(`🔵 Circle area calculated: π × ${radius}² = ${circleArea.toFixed(2)} pixels²`);
+								} else {
+									console.warn('⚠️ Invalid circle radius detected:', radius);
+								}
 
 							}
 
