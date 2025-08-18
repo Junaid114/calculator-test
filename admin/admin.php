@@ -42,8 +42,129 @@ if (!function_exists('slab_calculator_settings_page_html')) {
 		if ( ! class_exists('WooCommerce') ) {
 			echo '<h3 style="color:red">The Slab Calculator Settings Plugin requires the WooCommerce plugin to be installed and activated. Please install and activate WooCommerce to use this plugin properly.</h3>';
 		}
-        echo '<form method="post" action="options.php">';
-        settings_fields('slab_calculator_settings_group');
+        // Handle form submission
+        if (isset($_POST['submit'])) {
+            // Verify nonce
+            if (wp_verify_nonce($_POST['slab_calculator_nonce'], 'slab_calculator_settings_nonce')) {
+                // Handle watermark upload if submitted
+                if (isset($_FILES['ssc_watermark_image']) && $_FILES['ssc_watermark_image']['error'] === UPLOAD_ERR_OK) {
+                    $watermark_result = handle_watermark_upload();
+                    if ($watermark_result['success']) {
+                        $success_message = $watermark_result['message'];
+                    } else {
+                        $error_message = $watermark_result['message'];
+                    }
+                }
+                
+                // Save other settings
+                if (isset($_POST['ssc_pdf_export_quality'])) {
+                    update_option('ssc_pdf_export_quality', sanitize_text_field($_POST['ssc_pdf_export_quality']));
+                }
+                if (isset($_POST['ssc_pdf_page_size'])) {
+                    update_option('ssc_pdf_page_size', sanitize_text_field($_POST['ssc_pdf_page_size']));
+                }
+                if (isset($_POST['ssc_pdf_company_logo'])) {
+                    update_option('ssc_pdf_company_logo', esc_url_raw($_POST['ssc_pdf_company_logo']));
+                }
+                if (isset($_POST['ssc_pdf_company_name'])) {
+                    update_option('ssc_pdf_company_name', sanitize_text_field($_POST['ssc_pdf_company_name']));
+                }
+                if (isset($_POST['ssc_pdf_company_address'])) {
+                    update_option('ssc_pdf_company_address', sanitize_textarea_field($_POST['ssc_pdf_company_address']));
+                }
+                if (isset($_POST['ssc_pdf_company_phone'])) {
+                    update_option('ssc_pdf_company_phone', sanitize_text_field($_POST['ssc_pdf_company_phone']));
+                }
+                if (isset($_POST['ssc_pdf_company_email'])) {
+                    update_option('ssc_pdf_company_email', sanitize_email($_POST['ssc_pdf_company_email']));
+                }
+                if (isset($_POST['ssc_pdf_company_website'])) {
+                    update_option('ssc_pdf_company_website', esc_url_raw($_POST['ssc_pdf_company_website']));
+                }
+                if (isset($_POST['ssc_production_cost_standard'])) {
+                    update_option('ssc_production_cost_standard', floatval($_POST['ssc_production_cost_standard']));
+                }
+                if (isset($_POST['ssc_production_cost_mitred'])) {
+                    update_option('ssc_production_cost_mitred', floatval($_POST['ssc_production_cost_mitred']));
+                }
+                if (isset($_POST['ssc_installation_cost'])) {
+                    update_option('ssc_installation_cost', floatval($_POST['ssc_installation_cost']));
+                }
+                
+                // Save other existing settings
+                if (isset($_POST['slab_calculator_access_type'])) {
+                    update_option('slab_calculator_access_type', sanitize_text_field($_POST['slab_calculator_access_type']));
+                }
+                if (isset($_POST['slab_calculator_visible_roles'])) {
+                    $visible_roles = isset($_POST['slab_calculator_visible_roles']) ? array_map('sanitize_text_field', $_POST['slab_calculator_visible_roles']) : array();
+                    update_option('slab_calculator_visible_roles', $visible_roles);
+                }
+                if (isset($_POST['slab_calculator_edge_profiles'])) {
+                    $edge_profiles = array();
+                    if (isset($_POST['slab_calculator_edge_profiles']) && is_array($_POST['slab_calculator_edge_profiles'])) {
+                        foreach ($_POST['slab_calculator_edge_profiles'] as $profile) {
+                            if (!empty($profile['title']) && !empty($profile['value'])) {
+                                $edge_profiles[] = array(
+                                    'title' => sanitize_text_field($profile['title']),
+                                    'value' => sanitize_text_field($profile['value'])
+                                );
+                            }
+                        }
+                    }
+                    update_option('slab_calculator_edge_profiles', $edge_profiles);
+                }
+                if (isset($_POST['slab_calculator_youtube_link'])) {
+                    update_option('slab_calculator_youtube_link', esc_url_raw($_POST['slab_calculator_youtube_link']));
+                }
+                if (isset($_POST['slab_calculator_height'])) {
+                    update_option('slab_calculator_height', sanitize_text_field($_POST['slab_calculator_height']));
+                }
+                if (isset($_POST['slab_calculator_drawing_pad_height'])) {
+                    update_option('slab_calculator_drawing_pad_height', intval($_POST['slab_calculator_drawing_pad_height']));
+                }
+                if (isset($_POST['slab_calculator_drawing_pad_width'])) {
+                    update_option('slab_calculator_drawing_pad_width', intval($_POST['slab_calculator_drawing_pad_width']));
+                }
+                if (isset($_POST['slab_calculator_min_screen_size'])) {
+                    update_option('slab_calculator_min_screen_size', intval($_POST['slab_calculator_min_screen_size']));
+                }
+                if (isset($_POST['slab_calculator_email_template'])) {
+                    update_option('slab_calculator_email_template', wp_kses_post($_POST['slab_calculator_email_template']));
+                }
+                if (isset($_POST['slab_calculator_internal_cc_email'])) {
+                    update_option('slab_calculator_internal_cc_email', sanitize_email($_POST['slab_calculator_internal_cc_email']));
+                }
+                if (isset($_POST['ssc_public_quote_access'])) {
+                    update_option('ssc_public_quote_access', sanitize_text_field($_POST['ssc_public_quote_access']));
+                }
+                if (isset($_POST['ssc_pdf_template_cover'])) {
+                    update_option('ssc_pdf_template_cover', wp_kses_post($_POST['ssc_pdf_template_cover']));
+                }
+                if (isset($_POST['ssc_pdf_template_body'])) {
+                    update_option('ssc_pdf_template_body', wp_kses_post($_POST['ssc_pdf_cover_template']));
+                }
+                if (isset($_POST['ssc_pdf_template_footer'])) {
+                    update_option('ssc_pdf_template_footer', wp_kses_post($_POST['ssc_pdf_template_footer']));
+                }
+                if (isset($_POST['ssc_disable_drawing_after_submission'])) {
+                    update_option('ssc_disable_drawing_after_submission', isset($_POST['ssc_disable_drawing_after_submission']) ? '1' : '0');
+                }
+                
+                // Display success/error messages
+                if (isset($success_message)) {
+                    echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($success_message) . '</p></div>';
+                } elseif (isset($error_message)) {
+                    echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($error_message) . '</p></div>';
+                } else {
+                    echo '<div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>';
+                }
+            } else {
+                echo '<div class="notice notice-error is-dismissible"><p>Security check failed. Please try again.</p></div>';
+            }
+        }
+        
+        echo '<form method="post" action="" enctype="multipart/form-data">';
+        wp_nonce_field('slab_calculator_settings_nonce', 'slab_calculator_nonce');
         do_settings_sections('slab_calculator_settings');
         submit_button();
         echo '</form>';
@@ -77,6 +198,7 @@ if (!function_exists('slab_calculator_register_settings')) {
         register_setting('slab_calculator_settings_group', 'ssc_pdf_company_website');
         register_setting('slab_calculator_settings_group', 'ssc_pdf_export_quality');
         register_setting('slab_calculator_settings_group', 'ssc_pdf_page_size');
+        register_setting('slab_calculator_settings_group', 'ssc_watermark_image');
         
         // Production and Installation Cost Settings
         register_setting('slab_calculator_settings_group', 'ssc_production_cost_standard');
@@ -182,14 +304,7 @@ if (!function_exists('slab_calculator_register_settings')) {
             'slab_calculator_settings_section'
         );
         
-        // Company Information Settings
-        add_settings_field(
-            'ssc_pdf_company_info',
-            'Company Information',
-            'ssc_pdf_company_info_callback',
-            'slab_calculator_settings',
-            'slab_calculator_settings_section'
-        );
+
         
         // PDF Export Settings
         add_settings_field(
@@ -225,6 +340,55 @@ if (!function_exists('slab_calculator_register_settings')) {
             'slab_calculator_settings_section'
         );
         
+        // Company Information Settings
+        add_settings_field(
+            'ssc_pdf_company_logo',
+            'Company Logo URL',
+            'ssc_pdf_company_logo_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_pdf_company_name',
+            'Company Name',
+            'ssc_pdf_company_name_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_pdf_company_address',
+            'Company Address',
+            'ssc_pdf_company_address_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_pdf_company_phone',
+            'Company Phone',
+            'ssc_pdf_company_phone_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_pdf_company_email',
+            'Company Email',
+            'ssc_pdf_company_email_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        add_settings_field(
+            'ssc_pdf_company_website',
+            'Company Website',
+            'ssc_pdf_company_website_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
         add_settings_field(
             'slab_calculator_internal_cc_email',
             'Internal CC Email',
@@ -252,6 +416,8 @@ if (!function_exists('slab_calculator_register_settings')) {
 
     }
     add_action('admin_init', 'slab_calculator_register_settings');
+    
+    // Handle watermark image upload (now handled in form submission)
 }
 
 
@@ -626,51 +792,54 @@ Quote ID: {{quote_id}} | Generated on: {{current_date}}';
     }
 }
 
-if (!function_exists('ssc_pdf_company_info_callback')) {
-    function ssc_pdf_company_info_callback() {
-        $company_logo = get_option('ssc_pdf_company_logo', '');
-        $company_name = get_option('ssc_pdf_company_name', 'Bamby Stone');
-        $company_address = get_option('ssc_pdf_company_address', 'Unit 6, 8 Technology Drive, Arundel QLD, Australia 4214');
-        $company_phone = get_option('ssc_pdf_company_phone', '1300 536 120');
-        $company_email = get_option('ssc_pdf_company_email', 'welcome@bambystone.com.au');
-        $company_website = get_option('ssc_pdf_company_website', 'https://www.bambystone.com.au');
-
-        echo '<div style="margin-bottom: 15px;">';
-        echo '<h4>Company Information for PDF Templates</h4>';
-        echo '<p class="description">This information will be used in the PDF templates above. Leave empty to use default values.</p>';
-        
-        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
-        echo '<label for="ssc_pdf_company_logo" style="margin-right:10px;font-weight:500;min-width:150px;">Company Logo (URL):</label>';
-        echo '<input type="url" id="ssc_pdf_company_logo" name="ssc_pdf_company_logo" value="' . esc_attr($company_logo) . '" style="width: 300px;" placeholder="https://example.com/logo.png" />';
-        echo '</div>';
-        
-        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
-        echo '<label for="ssc_pdf_company_name" style="margin-right:10px;font-weight:500;min-width:150px;">Company Name:</label>';
-        echo '<input type="text" id="ssc_pdf_company_name" name="ssc_pdf_company_name" value="' . esc_attr($company_name) . '" style="width: 300px;" />';
-        echo '</div>';
-        
-        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
-        echo '<label for="ssc_pdf_company_address" style="margin-right:10px;font-weight:500;min-width:150px;">Company Address:</label>';
-        echo '<textarea id="ssc_pdf_company_address" name="ssc_pdf_company_address" rows="2" style="width: 300px;">' . esc_textarea($company_address) . '</textarea>';
-        echo '</div>';
-        
-        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
-        echo '<label for="ssc_pdf_company_phone" style="margin-right:10px;font-weight:500;min-width:150px;">Company Phone:</label>';
-        echo '<input type="text" id="ssc_pdf_company_phone" name="ssc_pdf_company_phone" value="' . esc_attr($company_phone) . '" style="width: 300px;" />';
-        echo '</div>';
-        
-        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
-        echo '<label for="ssc_pdf_company_email" style="margin-right:10px;font-weight:500;min-width:150px;">Company Email:</label>';
-        echo '<input type="email" id="ssc_pdf_company_email" name="ssc_pdf_company_email" value="' . esc_attr($company_email) . '" style="width: 300px;" />';
-        echo '</div>';
-        
-        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
-        echo '<label for="ssc_pdf_company_website" style="margin-right:10px;font-weight:500;min-width:150px;">Company Website:</label>';
-        echo '<input type="url" id="ssc_pdf_company_website" name="ssc_pdf_company_website" value="' . esc_attr($company_website) . '" style="width: 300px;" />';
-        echo '</div>';
-        echo '</div>';
+// Add JavaScript for watermark upload enhancement
+add_action('admin_footer', 'watermark_upload_script');
+function watermark_upload_script() {
+    if (isset($_GET['page']) && $_GET['page'] === 'slab-calculator-settings') {
+        ?>
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            $('#ssc_watermark_image').on('change', function() {
+                var file = this.files[0];
+                if (file) {
+                    // Validate file type
+                    if (file.type !== 'image/png') {
+                        alert('Please select a PNG image file.');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    // Validate file size (2MB)
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('File size must be less than 2MB.');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    // Show preview
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var preview = $('<div class="watermark-preview">' +
+                            '<p><strong>New Upload Preview:</strong></p>' +
+                            '<img src="' + e.target.result + '" alt="Upload Preview" />' +
+                            '</div>');
+                        
+                        // Remove existing preview
+                        $('.watermark-preview').remove();
+                        
+                        // Add new preview after the file input
+                        $('#ssc_watermark_image').closest('div').after(preview);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+        </script>
+        <?php
     }
 }
+
+
 
 if (!function_exists('ssc_pdf_export_settings_callback')) {
     function ssc_pdf_export_settings_callback() {
@@ -700,9 +869,40 @@ if (!function_exists('ssc_pdf_export_settings_callback')) {
         echo '</select>';
         echo '</div>';
         
-        echo '<div style="background: #e7f3fa; border-left: 4px solid #00a0d2; padding: 10px; margin-top: 15px;">';
-        echo '<strong>💡 Tip:</strong> A3 size is recommended for detailed drawings and professional presentations.';
+        echo '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+        echo '<label for="ssc_watermark_image" style="margin-right:10px;font-weight:500;min-width:150px;">Watermark Image:</label>';
+        echo '<input type="file" id="ssc_watermark_image" name="ssc_watermark_image" accept="image/png" style="width: 300px;" />';
         echo '</div>';
+        
+        $current_watermark = get_active_watermark();
+        if (!empty($current_watermark)) {
+            echo '<div style="margin-left: 150px; margin-bottom: 10px;">';
+            echo '<p class="description">Current watermark: <strong>' . esc_html($current_watermark) . '</strong></p>';
+            echo '<div class="watermark-preview">';
+            echo '<p><strong>Preview:</strong></p>';
+            echo '<img src="' . esc_url($current_watermark) . '" alt="Current Watermark" onerror="this.style.display=\'none\'" />';
+            echo '</div>';
+            echo '<p class="description">Upload a new PNG image to replace the current watermark.</p>';
+            echo '</div>';
+        } else {
+            echo '<div style="margin-left: 150px; margin-bottom: 10px;">';
+            echo '<p class="description">No watermark image uploaded. The default watermark will be used.</p>';
+            echo '<p class="description">Upload a PNG image to customize the watermark for your drawings.</p>';
+            echo '</div>';
+        }
+        
+        echo '<div style="background: #e7f3fa; border-left: 4px solid #00a0d2; padding: 10px; margin-top: 15px;">';
+        echo '<h4 style="margin: 0 0 8px 0; color: #00a0d2;">📋 PDF Export Information</h4>';
+        echo '<p style="margin: 0; color: #00a0d2;">';
+        echo '• <strong>Export Quality:</strong> Choose between low, medium, or high quality for your PDF exports.<br>';
+        echo '• <strong>Page Size:</strong> Select the appropriate page size for your PDF documents. A3 size is recommended for detailed drawings.<br>';
+        echo '• <strong>Watermark:</strong> Upload a custom PNG image to use as a watermark on all drawings. The watermark will be automatically applied to every green box in the calculator.';
+        echo '</p>';
+        echo '</div>';
+        
+        // Display watermark history
+        display_watermark_history();
+        
         echo '</div>';
     }
 }
@@ -723,6 +923,66 @@ if (!function_exists('ssc_production_cost_mitred_callback')) {
         ?>
         <input type="number" name="ssc_production_cost_mitred" value="<?php echo esc_attr($mitred_cost); ?>" step="0.01" min="0" />
         <p class="description">Cost per square meter for mitred cutting.</p>
+        <?php
+    }
+}
+
+if (!function_exists('ssc_pdf_company_logo_callback')) {
+    function ssc_pdf_company_logo_callback() {
+        $company_logo = get_option('ssc_pdf_company_logo', '');
+        ?>
+        <input type="url" name="ssc_pdf_company_logo" value="<?php echo esc_attr($company_logo); ?>" style="width: 300px;" placeholder="https://example.com/logo.png" />
+        <p class="description">URL to your company logo image.</p>
+        <?php
+    }
+}
+
+if (!function_exists('ssc_pdf_company_name_callback')) {
+    function ssc_pdf_company_name_callback() {
+        $company_name = get_option('ssc_pdf_company_name', 'Bamby Stone');
+        ?>
+        <input type="text" name="ssc_pdf_company_name" value="<?php echo esc_attr($company_name); ?>" style="width: 300px;" />
+        <p class="description">Your company name for PDF templates.</p>
+        <?php
+    }
+}
+
+if (!function_exists('ssc_pdf_company_address_callback')) {
+    function ssc_pdf_company_address_callback() {
+        $company_address = get_option('ssc_pdf_company_address', 'Unit 6, 8 Technology Drive, Arundel QLD, Australia 4214');
+        ?>
+        <textarea name="ssc_pdf_company_address" rows="2" style="width: 300px;"><?php echo esc_textarea($company_address); ?></textarea>
+        <p class="description">Your company address for PDF templates.</p>
+        <?php
+    }
+}
+
+if (!function_exists('ssc_pdf_company_phone_callback')) {
+    function ssc_pdf_company_phone_callback() {
+        $company_phone = get_option('ssc_pdf_company_phone', '1300 536 120');
+        ?>
+        <input type="text" name="ssc_pdf_company_phone" value="<?php echo esc_attr($company_phone); ?>" style="width: 300px;" />
+        <p class="description">Your company phone number for PDF templates.</p>
+        <?php
+    }
+}
+
+if (!function_exists('ssc_pdf_company_email_callback')) {
+    function ssc_pdf_company_email_callback() {
+        $company_email = get_option('ssc_pdf_company_email', 'welcome@bambystone.com.au');
+        ?>
+        <input type="email" name="ssc_pdf_company_email" value="<?php echo esc_attr($company_email); ?>" style="width: 300px;" />
+        <p class="description">Your company email for PDF templates.</p>
+        <?php
+    }
+}
+
+if (!function_exists('ssc_pdf_company_website_callback')) {
+    function ssc_pdf_company_website_callback() {
+        $company_website = get_option('ssc_pdf_company_website', 'https://www.bambystone.com.au');
+        ?>
+        <input type="url" name="ssc_pdf_company_website" value="<?php echo esc_attr($company_website); ?>" style="width: 300px;" />
+        <p class="description">Your company website for PDF templates.</p>
         <?php
     }
 }
@@ -1282,4 +1542,185 @@ function ssc_admin_load_drawings() {
     } else {
         wp_send_json_error('Failed to load drawings: ' . $wpdb->last_error);
     }
+}
+
+// Function to get active watermark from database
+function get_active_watermark() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'ssc_watermarks';
+    
+    // Check if table exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    if (!$table_exists) {
+        // Fallback to WordPress option if table doesn't exist
+        return get_option('ssc_watermark_image', '');
+    }
+    
+    // Get the active watermark
+    $active_watermark = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM $table_name WHERE is_active = %d ORDER BY created_at DESC LIMIT 1",
+            1
+        )
+    );
+    
+    if ($active_watermark) {
+        return $active_watermark->file_url;
+    }
+    
+    // Fallback to WordPress option
+    return get_option('ssc_watermark_image', '');
+}
+
+// Handle watermark image upload
+function handle_watermark_upload() {
+    // Check if user has permission
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    
+    // Check if file was uploaded
+    if (!isset($_FILES['ssc_watermark_image']) || $_FILES['ssc_watermark_image']['error'] !== UPLOAD_ERR_OK) {
+        return;
+    }
+    
+    $file = $_FILES['ssc_watermark_image'];
+    
+    // Validate file type
+    $allowed_types = array('image/png');
+    if (!in_array($file['type'], $allowed_types)) {
+        add_settings_error(
+            'slab_calculator_settings_group',
+            'watermark_upload_error',
+            'Only PNG images are allowed for watermark uploads.',
+            'error'
+        );
+        return;
+    }
+    
+    // Validate file size (max 2MB)
+    if ($file['size'] > 2 * 1024 * 1024) {
+        add_settings_error(
+            'slab_calculator_settings_group',
+            'watermark_upload_error',
+            'Watermark image must be smaller than 2MB.',
+            'error'
+        );
+        return;
+    }
+    
+    // Create uploads directory if it doesn't exist
+    $upload_dir = wp_upload_dir();
+    $watermark_dir = $upload_dir['basedir'] . '/stone-slab-calculator/watermarks';
+    
+    if (!file_exists($watermark_dir)) {
+        wp_mkdir_p($watermark_dir);
+    }
+    
+    // Generate unique filename
+    $filename = 'watermark_' . time() . '.png';
+    $filepath = $watermark_dir . '/' . $filename;
+    
+    // Move uploaded file
+    if (move_uploaded_file($file['tmp_name'], $filepath)) {
+        // Save to database table
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ssc_watermarks';
+        
+        // Deactivate all existing watermarks
+        $wpdb->update(
+            $table_name,
+            array('is_active' => 0),
+            array('is_active' => 1),
+            array('%d'),
+            array('%d')
+        );
+        
+        // Insert new watermark record
+        $insert_result = $wpdb->insert(
+            $table_name,
+            array(
+                'filename' => $filename,
+                'file_path' => $filepath,
+                'file_url' => $upload_dir['baseurl'] . '/stone-slab-calculator/watermarks/' . $filename,
+                'file_size' => $file['size'],
+                'mime_type' => $file['type'],
+                'uploaded_by' => get_current_user_id(),
+                'is_active' => 1,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ),
+            array(
+                '%s', // filename
+                '%s', // file_path
+                '%s', // file_url
+                '%d', // file_size
+                '%s', // mime_type
+                '%d', // uploaded_by
+                '%d', // is_active
+                '%s', // created_at
+                '%s'  // updated_at
+            )
+        );
+        
+        if ($insert_result !== false) {
+            // Also update the WordPress option for backward compatibility
+            $relative_path = $upload_dir['baseurl'] . '/stone-slab-calculator/watermarks/' . $filename;
+            update_option('ssc_watermark_image', $relative_path);
+            
+            return array('success' => true, 'message' => 'Watermark image uploaded and saved to database successfully.');
+        } else {
+            // If database insert failed, delete the uploaded file
+            unlink($filepath);
+            return array('success' => false, 'message' => 'Failed to save watermark to database: ' . $wpdb->last_error);
+        }
+    } else {
+            return array('success' => false, 'message' => 'Failed to upload watermark image. Please try again.');
+}
+
+// Function to display watermark history
+function display_watermark_history() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'ssc_watermarks';
+    
+    // Check if table exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+    if (!$table_exists) {
+        return;
+    }
+    
+    // Get all watermarks
+    $watermarks = $wpdb->get_results(
+        "SELECT * FROM $table_name ORDER BY created_at DESC LIMIT 10"
+    );
+    
+    if (!empty($watermarks)) {
+        echo '<div style="margin-top: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;">';
+        echo '<h4 style="margin: 0 0 15px 0;">📚 Watermark History</h4>';
+        echo '<div style="max-height: 300px; overflow-y: auto;">';
+        
+        foreach ($watermarks as $watermark) {
+            $status_class = $watermark->is_active ? 'active' : 'inactive';
+            $status_text = $watermark->is_active ? '✅ Active' : '❌ Inactive';
+            $file_size_kb = round($watermark->file_size / 1024, 2);
+            
+            echo '<div style="padding: 10px; margin-bottom: 10px; background: white; border: 1px solid #eee; border-radius: 3px;">';
+            echo '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
+            echo '<strong>' . esc_html($watermark->filename) . '</strong>';
+            echo '<span style="padding: 3px 8px; background: ' . ($watermark->is_active ? '#d4edda' : '#f8d7da') . '; color: ' . ($watermark->is_active ? '#155724' : '#721c24') . '; border-radius: 3px; font-size: 12px;">' . $status_text . '</span>';
+            echo '</div>';
+            echo '<div style="font-size: 12px; color: #666;">';
+            echo 'Size: ' . $file_size_kb . ' KB | Uploaded: ' . date('M j, Y g:i A', strtotime($watermark->created_at));
+            echo '</div>';
+            echo '<div style="margin-top: 8px;">';
+            echo '<img src="' . esc_url($watermark->file_url) . '" alt="Watermark Preview" style="max-width: 100px; max-height: 60px; border: 1px solid #ddd; border-radius: 3px;" onerror="this.style.display=\'none\'" />';
+            echo '</div>';
+            echo '</div>';
+        }
+        
+        echo '</div>';
+        echo '<p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Showing last 10 watermarks. Only one watermark can be active at a time.</p>';
+        echo '</div>';
+    }
+}
 }

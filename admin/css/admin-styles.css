@@ -98,6 +98,42 @@
     margin-top: 20px;
 }
 
+/* Watermark upload field styling */
+#ssc_watermark_image {
+    border: 2px dashed #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    background: #f9f9f9;
+    transition: border-color 0.3s ease;
+}
+
+#ssc_watermark_image:hover {
+    border-color: #0073aa;
+    background: #f0f8ff;
+}
+
+#ssc_watermark_image:focus {
+    border-color: #0073aa;
+    background: #fff;
+    outline: none;
+    box-shadow: 0 0 0 1px #0073aa;
+}
+
+.watermark-preview {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f0f8ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 4px;
+}
+
+.watermark-preview img {
+    max-width: 200px;
+    max-height: 100px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
 #ssc-results-table .wp-list-table {
     margin-top: 0;
 }

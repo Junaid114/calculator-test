@@ -67,10 +67,34 @@ function ssc_activate_plugin() {
         KEY created_at (created_at)
     ) $charset_collate;";
     
-    error_log('Creating table with SQL: ' . $sql);
+    error_log('Creating drawings table with SQL: ' . $sql);
     
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     $result = dbDelta($sql);
+    
+    // Table for storing watermark images
+    $watermark_table_name = $wpdb->prefix . 'ssc_watermarks';
+    
+    $watermark_sql = "CREATE TABLE $watermark_table_name (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        filename varchar(255) NOT NULL,
+        file_path varchar(500) NOT NULL,
+        file_url varchar(500) NOT NULL,
+        file_size int(11) NOT NULL,
+        mime_type varchar(100) NOT NULL,
+        uploaded_by bigint(20) NOT NULL,
+        is_active tinyint(1) DEFAULT 1,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY uploaded_by (uploaded_by),
+        KEY is_active (is_active),
+        KEY created_at (created_at)
+    ) $charset_collate;";
+    
+    error_log('Creating watermarks table with SQL: ' . $watermark_sql);
+    
+    $watermark_result = dbDelta($watermark_sql);
     
             
     
@@ -851,25 +875,35 @@ function ssc_ensure_table_exists() {
     
     error_log('ssc_ensure_table_exists called');
     
+    // Check drawings table
     $table_name = $wpdb->prefix . 'ssc_drawings';
-    error_log('Checking for table: ' . $table_name);
+    error_log('Checking for drawings table: ' . $table_name);
     
     // Check if table exists
     $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
-    error_log('Table exists check result: ' . ($table_exists ? 'Yes' : 'No'));
+    error_log('Drawings table exists check result: ' . ($table_exists ? 'Yes' : 'No'));
     
-    if (!$table_exists) {
-        error_log('Table does not exist, creating it now...');
-        ssc_activate_plugin(); // ENABLED - This creates the table
+    // Check watermarks table
+    $watermark_table_name = $wpdb->prefix . 'ssc_watermarks';
+    error_log('Checking for watermarks table: ' . $watermark_table_name);
+    
+    $watermark_table_exists = $wpdb->get_var("SHOW TABLES LIKE '$watermark_table_name'") == $watermark_table_name;
+    error_log('Watermarks table exists check result: ' . ($watermark_table_exists ? 'Yes' : 'No'));
+    
+    if (!$table_exists || !$watermark_table_exists) {
+        error_log('One or more tables do not exist, creating them now...');
+        ssc_activate_plugin(); // ENABLED - This creates the tables
         error_log('Table creation completed');
         
         // Check again after creation
         $table_exists_after = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
-        error_log('Table exists after creation: ' . ($table_exists_after ? 'Yes' : 'No'));
+        $watermark_table_exists_after = $wpdb->get_var("SHOW TABLES LIKE '$watermark_table_name'") == $watermark_table_name;
+        error_log('Drawings table exists after creation: ' . ($table_exists_after ? 'Yes' : 'No'));
+        error_log('Watermarks table exists after creation: ' . ($watermark_table_exists_after ? 'Yes' : 'No'));
         
-        return $table_exists_after;
+        return $table_exists_after && $watermark_table_exists_after;
     } else {
-        error_log('Table already exists');
+        error_log('All tables already exist');
         
         // Check if table structure needs updating
         $existing_columns = $wpdb->get_results("SHOW COLUMNS FROM $table_name");
@@ -890,7 +924,7 @@ function ssc_ensure_table_exists() {
         }
     }
     
-    return $table_exists;
+    return $table_exists && $watermark_table_exists;
 }
 
 // AJAX function to ensure table exists

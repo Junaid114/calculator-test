@@ -1,4 +1,10 @@
 <?php
+// Load WordPress core if not already loaded
+if (!function_exists('get_option')) {
+    // Get the path to WordPress root directory
+    $wp_root = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
+    require_once($wp_root . '/wp-load.php');
+}
 
 $params = ['name', 'slab_width', 'slab_height', 'pad_width', 'pad_height', 'edges', 'site_url'];
 
@@ -13,6 +19,10 @@ foreach( $params as $param ) {
 	}
 
 }
+
+// Get custom watermark URL from admin settings
+$custom_watermark = function_exists('get_active_watermark') ? get_active_watermark() : get_option('ssc_watermark_image', '');
+$watermark_url = !empty($custom_watermark) ? $custom_watermark : $_GET['site_url'] . '/wp-content/plugins/stone-slab-calculator/assets/images/watermark.png';
 
 
 
@@ -42,7 +52,9 @@ foreach( $params as $param ) {
 
 				font-family: Arial, sans-serif;
 
-				overflow: hidden;
+				overflow-y: auto;
+
+				overflow-x: hidden;
 
 			}
 
@@ -646,6 +658,10 @@ foreach( $params as $param ) {
 
 				width: 100%;
 
+				/* Ensure scrollbars are visible */
+
+				padding-right: 20px; /* Make room for vertical scrollbar */
+
 			}
 
 			
@@ -720,7 +736,7 @@ foreach( $params as $param ) {
 
 				top: 30px; /* Account for ruler */
 
-				right: 0;
+				right: 5px; /* Move slightly inward to ensure visibility */
 
 				width: 15px;
 
@@ -728,7 +744,10 @@ foreach( $params as $param ) {
 
 				border-radius: 7px;
 
-				z-index: 100;
+				z-index: 1000;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+				/* Ensure scrollbar is always visible when needed */
+				min-height: 100px;
 
 			}
 
@@ -1265,6 +1284,7 @@ foreach( $params as $param ) {
 				/* padding: 20px; */
 				border-radius: 10px;
 				min-height: 100vh;
+				height: auto;
 				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 			}
 
@@ -3070,6 +3090,10 @@ foreach( $params as $param ) {
 		<script src="./../assets/js/jspdf.umd.min.js"></script>
 
 		<script>
+					// Watermark URL from PHP
+		const watermarkUrl = '<?php echo esc_js($watermark_url); ?>';
+		console.log('🌊 Watermark URL:', watermarkUrl);
+			
 			// Define AJAX URL for authentication
 			// Get the WordPress site URL from URL parameters to construct the correct AJAX URL
 			var urlParams = new URLSearchParams(window.location.search);
@@ -3413,7 +3437,9 @@ foreach( $params as $param ) {
 
 				function loadWatermarkForBox(greenBox) {
 
-					fabric.Image.fromURL('./../assets/images/watermark.png', function(img) {
+					console.log('🎨 Loading watermark for box at:', greenBox.left, greenBox.top);
+
+					fabric.Image.fromURL(watermarkUrl, function(img) {
 
 						// Center watermark in the specified green box
 
@@ -3501,6 +3527,8 @@ foreach( $params as $param ) {
 
 				function loadWatermark() {
 
+					console.log('🔍 Loading watermarks...');
+
 					// Clear existing watermarks first
 
 					clearWatermarks();
@@ -3511,13 +3539,23 @@ foreach( $params as $param ) {
 
 					const allGreenBoxes = canvas.getObjects().filter(obj => isGreenBox(obj));
 
+					console.log('📦 Found green boxes:', allGreenBoxes.length);
+
+					
+					// If no green boxes found, wait a bit and try again
+					if (allGreenBoxes.length === 0) {
+						console.log('⏳ No green boxes found, retrying in 200ms...');
+						setTimeout(() => loadWatermark(), 200);
+						return;
+					}
+					
 					allGreenBoxes.forEach(box => {
 
 						loadWatermarkForBox(box);
 
 					});
 
-					
+					console.log('✅ Watermarks loaded for', allGreenBoxes.length, 'boxes');
 
 					ensureWatermarksAtBack();
 
@@ -3595,15 +3633,11 @@ foreach( $params as $param ) {
 
 				function updateWatermarks() {
 
-					// Only reload watermark if initial box exists
+					// Load watermarks for all existing green boxes
 
-					if (initialBox) {
+					loadWatermark();
 
-						loadWatermark();
-
-						ensureWatermarksAtBack();
-
-					}
+					ensureWatermarksAtBack();
 
 				}
 
@@ -3670,8 +3704,14 @@ foreach( $params as $param ) {
 				let verticalScrollbar = document.getElementById('vertical-scrollbar');
 
 				let verticalThumb = document.getElementById('vertical-scrollbar-thumb');
-
 				
+				// Debug scrollbar elements
+				console.log('Scrollbar elements found:', {
+					verticalScrollbar: !!verticalScrollbar,
+					verticalThumb: !!verticalThumb,
+					horizontalScrollbar: !!horizontalScrollbar,
+					horizontalThumb: !!horizontalThumb
+				});
 
 				let scrollLeft = 0;
 
@@ -3691,6 +3731,8 @@ foreach( $params as $param ) {
 
 					
 
+					console.log('Container dimensions:', {containerWidth, containerHeight, rawHeight: canvasContainer.clientHeight});
+					
 					// Calculate actual content bounds including all objects
 
 					let contentBounds = { left: 0, top: 0, width: canvas.getWidth(), height: canvas.getHeight() };
@@ -3718,6 +3760,7 @@ foreach( $params as $param ) {
 					const canvasActualWidth = contentBounds.width;
 
 					const canvasActualHeight = contentBounds.height;
+					console.log('Content bounds:', {canvasActualWidth, canvasActualHeight, contentBounds});
 
 					
 
@@ -3782,11 +3825,13 @@ foreach( $params as $param ) {
 					
 
 					// Vertical scrollbar
+					console.log('Vertical scrollbar check:', {canvasActualHeight, containerHeight});
 
 					if (canvasActualHeight > containerHeight) {
 
 						verticalScrollbar.style.height = (containerHeight - 15) + 'px'; // Account for horizontal scrollbar
 
+						console.log('Showing vertical scrollbar');
 						verticalScrollbar.style.display = 'block';
 
 						
@@ -3804,6 +3849,8 @@ foreach( $params as $param ) {
 						verticalThumb.style.top = Math.max(2, Math.min(thumbTop, containerHeight - thumbHeight - 2)) + 'px';
 
 					} else {
+
+						console.log('Hiding vertical scrollbar');
 
 						verticalScrollbar.style.display = 'none';
 
@@ -5439,6 +5486,22 @@ foreach( $params as $param ) {
 
 				});
 
+				
+
+				// Set up event listener to detect when objects are added to canvas
+
+				canvas.on('object:added', function(e) {
+
+					// If a green box is added, ensure watermarks are loaded
+
+					if (isGreenBox(e.target)) {
+
+						setTimeout(() => updateWatermarks(), 100);
+
+					}
+
+				});
+
 
 
 
@@ -5453,6 +5516,26 @@ foreach( $params as $param ) {
 
 				canvas.renderAll();
 
+				
+
+				// Load watermarks for the initial box
+
+				setTimeout(() => {
+
+					updateWatermarks();
+
+				}, 100);
+
+				
+
+				// Also ensure watermarks are loaded after a longer delay to catch any late-loading boxes
+
+				setTimeout(() => {
+
+					updateWatermarks();
+
+				}, 500);
+
 				// Initialize slab usage calculation and visualization
 
 				setTimeout(() => {
@@ -5461,7 +5544,25 @@ foreach( $params as $param ) {
 
 					updateSlabVisualization();
 
+									// Final watermark check to ensure all watermarks are loaded
+
+				updateWatermarks();
+
 				}, 500);
+
+				
+
+				// Additional watermark check when window is fully loaded
+
+				window.addEventListener('load', function() {
+
+					setTimeout(() => {
+
+						updateWatermarks();
+
+					}, 1000);
+
+				});
 
 
 
