@@ -2388,6 +2388,51 @@ foreach( $params as $param ) {
 			.drawing-actions .button:not(.button-delete):hover {
 				background-color: #005a87;
 			}
+			/* Start New Drawing Button Styles */
+			.start-new-drawing-btn {
+				background: #28a745 !important;
+				color: white !important;
+				border: none !important;
+				padding: 8px 16px !important;
+				border-radius: 6px !important;
+				cursor: pointer !important;
+				font-size: 14px !important;
+				margin-left: 10px !important;
+				transition: all 0.3s ease !important;
+			}
+			
+			.start-new-drawing-btn:hover {
+				background: #218838 !important;
+				transform: translateY(-1px) !important;
+				box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+			}
+			
+			.start-new-drawing-btn:active {
+				transform: translateY(0) !important;
+			}
+			
+			/* Success Overlay Styles */
+			#success-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.8);
+				z-index: 9999;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			
+			#success-overlay .message-box {
+				background: white;
+				padding: 40px;
+				border-radius: 15px;
+				text-align: center;
+				max-width: 500px;
+				box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+			}
 		</style>
 
 	</head>
@@ -2623,6 +2668,11 @@ foreach( $params as $param ) {
 
 
 					<img src="./../assets/images/tutorial.png" alt="Tutorial" id="tutorial">
+					
+					<!-- Start New Drawing button - only visible when canvas is locked -->
+					<button id="start-new-drawing" class="start-new-drawing-btn" style="display: none; background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-left: 10px;">
+						🔄 Start New Drawing
+					</button>
 
 				</div>
 
@@ -2973,11 +3023,11 @@ foreach( $params as $param ) {
 		</div>
 		
 		<!-- TEST BUTTON - Remove this after debugging -->
-		<div style="position: fixed; top: 10px; right: 10px; z-index: 10000; background: red; color: white; padding: 10px; border-radius: 5px;">
+		<!-- <div style="position: fixed; top: 10px; right: 10px; z-index: 10000; background: red; color: white; padding: 10px; border-radius: 5px;">
 			<button onclick="testSaveDrawing()" style="background: white; color: red; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
 				🧪 TEST SAVE
 			</button>
-		</div>
+		</div> -->
 
 		<!-- View Saved Drawings Modal -->
 		<div id="viewDrawingsModal" class="modal">
@@ -3229,11 +3279,11 @@ foreach( $params as $param ) {
 
 				
 
-				let totalMM = 0;
+				window.totalMM = 0;
 
-				let onlyCutAreaMM = 0;
+				window.onlyCutAreaMM = 0;
 
-				let mitredEdgeAreaMM = 0;
+				window.mitredEdgeAreaMM = 0;
 
 
 
@@ -6247,8 +6297,6 @@ foreach( $params as $param ) {
 
 						groupArr.push(circleEdgeProfileText);
 
-					} else if ( shapeObject.type == 'polygon' ) {
-
 						let sideLengths = [];
 
 						let angles = [];
@@ -6923,7 +6971,7 @@ foreach( $params as $param ) {
 
 						groupArr.push(ellipseEdgeProfile);
 
-					}else if ( shapeObject.type == 'U' ) {
+					} else if ( shapeObject.type == 'U' ) {
 
 						// Top edge
 
@@ -10759,43 +10807,8 @@ foreach( $params as $param ) {
 						}, 100);
 						
 					} else if (downloadType === 'PDF') {
-
-						const { jsPDF } = window.jspdf;
-
-
-
-						const pdf = new jsPDF({
-
-							orientation: (data.height > data.width ? 'p' : 'l'),
-
-							unit: 'px',
-
-							format: [data.width, data.height],
-
-							putOnlyUsedFonts: true,
-
-							floatPrecision: 16
-
-						});
-
-
-
-						pdf.addImage(blobURL, 'JPEG', 0, 0, data.width, data.height);
-
-
-
-						pdf.save('canvas-drawing.pdf');
-
-						
-
-						// Clean up
-
-						setTimeout(() => {
-
-							URL.revokeObjectURL(blobURL);
-
-						}, 100);
-
+						// Use admin PDF templates for enhanced PDF generation
+						generateEnhancedPDFWithTemplates(blob, data);
 					}
 
 
@@ -11030,6 +11043,11 @@ foreach( $params as $param ) {
 
 					}
 
+				});
+				
+				// Start New Drawing button handler
+				jQuery('#start-new-drawing').click(function() {
+					resetCanvasForNewDrawing();
 				});
 
 				// Auth Modal Functionality
@@ -11747,8 +11765,8 @@ foreach( $params as $param ) {
 					}
 					
 					// Calculate total cutting area
-					const totalCutting = onlyCutAreaMM + mitredEdgeAreaMM;
-					jQuery('#totalCuttingDisplay').html(Math.round(totalCutting) + ' mm');
+					window.totalCutting = onlyCutAreaMM + mitredEdgeAreaMM;
+					jQuery('#totalCuttingDisplay').html(Math.round(window.totalCutting) + ' mm');
 					
 					// Calculate costs
 					calculateCosts();				
@@ -11758,21 +11776,21 @@ foreach( $params as $param ) {
 				// Function to calculate costs based on cutting areas
 				function calculateCosts() {
 					// Base slab cost (from URL parameter or default)
-					const slabCost = 1000; // Default $1000, can be made dynamic
+					window.slabCost = 1000; // Default $1000, can be made dynamic
 					
 					// Production cost based on cutting areas (50.00 p/mm for only cut, 50.16 p/mm for mitred)
-					const onlyCutCost = (onlyCutAreaMM * 50.00) / 1000; // Convert to dollars
-					const mitredCutCost = (mitredEdgeAreaMM * 50.16) / 1000; // Convert to dollars
+					const onlyCutCost = (window.onlyCutAreaMM * 50.00) / 1000; // Convert to dollars
+					const mitredCutCost = (window.mitredEdgeAreaMM * 50.16) / 1000; // Convert to dollars
 					const productionCost = onlyCutCost + mitredCutCost;
 					
 					// Installation cost (can be made configurable)
 					const installationCost = 0; // Default $0, can be made dynamic
 					
 					// Total project cost
-					const totalProjectCost = slabCost + productionCost + installationCost;
+					const totalProjectCost = window.slabCost + productionCost + installationCost;
 					
 					// Update cost displays
-					jQuery('#slabCostDisplay').html('$' + slabCost.toLocaleString());
+					jQuery('#slabCostDisplay').html('$' + window.slabCost.toLocaleString());
 					jQuery('#productionCostDisplay').html('$' + productionCost.toFixed(2));
 					jQuery('#installationCostDisplay').html('$' + installationCost.toFixed(2));
 					jQuery('#totalProjectCostDisplay').html('$' + totalProjectCost.toFixed(2));
@@ -11987,7 +12005,7 @@ foreach( $params as $param ) {
 					console.log('📋 Creating FormData for enhanced HTML...');
 					const formData = new FormData();
 					formData.append('action', 'ssc_generate_enhanced_pdf');
-					formData.append('nonce', drawingNonce);
+					formData.append('nonce', stone_slab_ajax.nonce || drawingNonce || 'test');
 					
 					// Add user ID if available
 					if (currentUserId) {
@@ -12292,7 +12310,7 @@ foreach( $params as $param ) {
 					console.log('📋 Creating FormData for saving drawing...');
 					const formData = new FormData();
 					formData.append('action', 'ssc_save_drawing');
-					formData.append('nonce', drawingNonce);
+					formData.append('nonce', stone_slab_ajax.nonce || drawingNonce || 'test');
 					
 					// Add user ID if available
 					if (currentUserId) {
@@ -12386,7 +12404,7 @@ foreach( $params as $param ) {
 					
 					console.log('📊 FormData created with:');
 					console.log('- action: ssc_save_drawing');
-					console.log('- nonce:', drawingNonce);
+					console.log('- nonce:', stone_slab_ajax.nonce || drawingNonce || 'test');
 					console.log('- drawing_name:', drawingName);
 					console.log('- drawing_notes:', drawingNotes);
 					console.log('- total_cutting_mm:', totalCuttingMM);
@@ -12465,8 +12483,8 @@ foreach( $params as $param ) {
 									// Provide view and download options
 									if (response.data && response.data.pdf_filename) {
 										console.log('📄 Creating view/download links for:', response.data.pdf_filename);
-										let viewLink = stone_slab_ajax.ajaxurl + '?action=ssc_view_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + drawingNonce;
-										let downloadLink = stone_slab_ajax.ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + drawingNonce;
+										let viewLink = stone_slab_ajax.ajaxurl + '?action=ssc_view_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + stone_slab_ajax.nonce || drawingNonce || 'test';
+										let downloadLink = stone_slab_ajax.ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.pdf_filename + '&nonce=' + stone_slab_ajax.nonce || drawingNonce || 'test';
 										
 										// Add user ID if available
 										if (currentUserId) {
@@ -12579,7 +12597,7 @@ foreach( $params as $param ) {
 					
 					const requestData = {
 						action: 'ssc_get_drawings',
-						nonce: drawingNonce
+						nonce: stone_slab_ajax.nonce || drawingNonce || 'test'
 					};
 					
 					// Add user ID if available
@@ -12685,8 +12703,8 @@ foreach( $params as $param ) {
 						html += '<p><strong>Slab Cost:</strong> ' + drawing.slab_cost + '</p>';
 						html += '<p><strong>Created:</strong> ' + new Date(drawing.created_at).toLocaleDateString() + '</p>';
 						html += '<div class="drawing-actions">';
-						let viewUrl = stone_slab_ajax.ajaxurl + '?action=ssc_view_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + drawingNonce;
-						let downloadUrl = stone_slab_ajax.ajaxurl + '?action=ssc_download_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + drawingNonce;
+						let viewUrl = stone_slab_ajax.ajaxurl + '?action=ssc_view_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + stone_slab_ajax.nonce || drawingNonce || 'test';
+						let downloadUrl = stone_slab_ajax.ajaxurl + '?action=ssc_download_pdf&pdf=' + drawing.pdf_file_path + '&nonce=' + stone_slab_ajax.nonce || drawingNonce || 'test';
 						
 						// Add user ID if available
 						if (currentUserId) {
@@ -12750,7 +12768,7 @@ foreach( $params as $param ) {
 					if (confirm('Are you sure you want to delete this drawing?')) {
 						const requestData = {
 							action: 'ssc_delete_drawing',
-							nonce: drawingNonce,
+							nonce: stone_slab_ajax.nonce || drawingNonce || 'test',
 							drawing_id: drawingId
 						};
 						
@@ -13302,6 +13320,200 @@ foreach( $params as $param ) {
 					console.error('❌ loadSavedDrawings function not available');
 				}
 			};
+
+			// Function to generate enhanced PDF using admin templates
+			function generateEnhancedPDFWithTemplates(blob, data) {
+				console.log('📄 Generating enhanced PDF with admin templates...');
+				console.log('🔐 drawingNonce:', drawingNonce);
+				console.log('🔐 stone_slab_ajax.nonce:', stone_slab_ajax.nonce);
+				console.log('🔐 Final nonce being sent:', stone_slab_ajax.nonce || drawingNonce || 'test');
+				console.log('🔐 Final nonce type:', typeof (stone_slab_ajax.nonce || drawingNonce || 'test'));
+				console.log('🔐 Final nonce length:', (stone_slab_ajax.nonce || drawingNonce || 'test') ? (stone_slab_ajax.nonce || drawingNonce || 'test').length : 'undefined');
+				
+				// Get current drawing data
+				const drawingData = {
+					drawing_name: jQuery('#drawing-name').val() || 'Untitled Project',
+					total_cutting_mm: window.totalCutting || 0,
+					only_cut_mm: window.onlyCutAreaMM || 0,
+					mitred_cut_mm: window.mitredEdgeAreaMM || 0,
+					slab_cost: window.slabCost || 'Not calculated',
+					drawing_notes: jQuery('#drawing-notes').val() || ''
+				};
+				
+				// Debug: Log the values being sent
+				console.log('🔍 Drawing data being sent to PDF generation:');
+				console.log('  - drawing_name:', drawingData.drawing_name);
+				console.log('  - total_cutting_mm:', drawingData.total_cutting_mm);
+				console.log('  - only_cut_mm:', drawingData.only_cut_mm);
+				console.log('  - mitred_cut_mm:', drawingData.mitred_cut_mm);
+				console.log('  - slab_cost:', drawingData.slab_cost);
+				console.log('  - drawing_notes:', drawingData.drawing_notes);
+				console.log('  - Global values:');
+				console.log('    - window.totalCutting:', window.totalCutting);
+				console.log('    - window.onlyCutAreaMM:', window.onlyCutAreaMM);
+				console.log('    - window.mitredEdgeAreaMM:', window.mitredEdgeAreaMM);
+				console.log('    - window.slabCost:', window.slabCost);
+
+				// Convert blob object to base64 for transmission
+				const reader = new FileReader();
+				reader.onload = function() {
+					const base64Data = reader.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+					
+					// Use FormData to avoid URL-encoding issues with '+' in base64
+					const formData = new FormData();
+					formData.append('action', 'ssc_generate_enhanced_pdf_frontend');
+					formData.append('nonce', stone_slab_ajax.nonce || drawingNonce || 'test');
+					// Append drawing data fields individually (FormData can't nest objects reliably in PHP)
+					formData.append('drawing_data[drawing_name]', drawingData.drawing_name);
+					formData.append('drawing_data[total_cutting_mm]', drawingData.total_cutting_mm);
+					formData.append('drawing_data[only_cut_mm]', drawingData.only_cut_mm);
+					formData.append('drawing_data[mitred_cut_mm]', drawingData.mitred_cut_mm);
+					formData.append('drawing_data[slab_cost]', drawingData.slab_cost);
+					formData.append('drawing_data[drawing_notes]', drawingData.drawing_notes);
+					formData.append('canvas_data', base64Data);
+					formData.append('canvas_width', data.width);
+					formData.append('canvas_height', data.height);
+					
+					// Call AJAX to generate enhanced PDF
+					jQuery.ajax({
+						url: stone_slab_ajax.ajaxurl,
+						type: 'POST',
+						data: formData,
+						processData: false,
+						contentType: false,
+						success: function(response) {
+							console.log('📄 Enhanced PDF generation response:', response);
+							
+							if (response.success) {
+								if (response.data.file_type === 'application/pdf') {
+									// PDF was generated successfully
+									const downloadLink = document.createElement('a');
+									downloadLink.href = stone_slab_ajax.ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.filename + '&nonce=' + drawingNonce;
+									downloadLink.download = response.data.filename;
+									downloadLink.style.display = 'none';
+									
+									document.body.appendChild(downloadLink);
+									downloadLink.click();
+									document.body.removeChild(downloadLink);
+									
+									alert('Enhanced PDF generated successfully with admin templates!');
+								} else if (response.data.file_type === 'text/html') {
+									// HTML was generated, provide instructions for PDF conversion
+									const message = 'HTML file generated successfully!\n\n' +
+										'To convert to PDF:\n' +
+										'1. The HTML file will open in a new tab\n' +
+										'2. Press Ctrl+P (or Cmd+P on Mac)\n' +
+										'3. Choose "Save as PDF" as destination\n' +
+										'4. Click Save\n\n' +
+										'This will create a high-quality PDF with admin templates.';
+									
+									alert(message);
+									
+									// Open HTML file in new tab for PDF conversion
+									const htmlUrl = stone_slab_ajax.ajaxurl + '?action=ssc_download_pdf&pdf=' + response.data.filename + '&nonce=' + drawingNonce;
+									window.open(htmlUrl, '_blank');
+								} else {
+									alert('File generated successfully: ' + response.data.message);
+								}
+							} else {
+								console.error('❌ PDF generation failed:', response.data);
+								alert('Error generating PDF: ' + (response.data || 'Unknown error'));
+							}
+						},
+						error: function(xhr, status, error) {
+							console.error('❌ AJAX error during PDF generation:', error);
+							alert('Error generating PDF. Please try again.');
+						}
+					});
+				};
+				
+				reader.readAsDataURL(blob);
+			}
+			
+			// Canvas Lock After Submission Functionality
+			function lockCanvasAfterSubmission() {
+				// Disable all canvas interactions
+				canvas.selection = false;
+				canvas.forEachObject(function(obj) {
+					obj.selectable = false;
+					obj.evented = false;
+				});
+				
+				// Disable all toolbar buttons except Start New Drawing
+				jQuery('#toolbar .btns button:not(#start-new-drawing)').prop('disabled', true);
+				jQuery('#toolbar .btns img').css('opacity', '0.5').css('pointer-events', 'none');
+				
+				// Show Start New Drawing button
+				jQuery('#start-new-drawing').show();
+				
+				// Show success message overlay
+				showSuccessMessage();
+			}
+			
+			function showSuccessMessage() {
+				// Create success message overlay
+				const overlay = jQuery('<div id="success-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;">');
+				
+				const messageBox = jQuery('<div style="background: white; padding: 40px; border-radius: 15px; text-align: center; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">');
+				
+				messageBox.html(`
+					<div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+					<h2 style="color: #28a745; margin-bottom: 20px;">Quote has been saved!</h2>
+					<p style="font-size: 18px; margin-bottom: 30px; color: #666;">Want to start a new drawing?</p>
+					<button id="start-new-drawing-btn" class="button button-primary" style="padding: 15px 30px; font-size: 16px; background: #007cba; color: white; border: none; border-radius: 8px; cursor: pointer; margin-right: 15px;">Start New Drawing</button>
+					<button id="close-success-msg" class="button" style="padding: 15px 30px; font-size: 16px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer;">Close</button>
+				`);
+				
+				overlay.append(messageBox);
+				jQuery('body').append(overlay);
+				
+				// Handle Start New Drawing button
+				jQuery('#start-new-drawing-btn').click(function() {
+					resetCanvasForNewDrawing();
+					overlay.remove();
+				});
+				
+				// Handle Close button
+				jQuery('#close-success-msg').click(function() {
+					overlay.remove();
+				});
+			}
+			
+			function resetCanvasForNewDrawing() {
+				// Clear the canvas
+				canvas.clear();
+				
+				// Reset all global variables
+				window.totalCutting = 0;
+				window.onlyCutAreaMM = 0;
+				window.mitredEdgeAreaMM = 0;
+				window.slabCost = 0;
+				
+				// Reset form fields
+				jQuery('#drawing-name').val('');
+				jQuery('#drawing-notes').val('');
+				
+				// Re-enable canvas interactions
+				canvas.selection = true;
+				canvas.forEachObject(function(obj) {
+					obj.selectable = true;
+					obj.evented = true;
+				});
+				
+				// Re-enable all toolbar buttons and images
+				jQuery('#toolbar .btns button').prop('disabled', false);
+				jQuery('#toolbar .btns img').css('opacity', '1').css('pointer-events', 'auto');
+				
+				// Hide Start New Drawing button
+				jQuery('#start-new-drawing').hide();
+				
+				// Update display
+				updateCuttingDisplay();
+				updateSlabCostDisplay();
+				
+				// Show success message
+				jQuery('<div class="notice notice-success" style="position: fixed; top: 20px; right: 20px; z-index: 10000; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">New drawing started successfully! 🎨</div>').appendTo('body').fadeOut(3000);
+			}
 		</script>
 
 	</body>

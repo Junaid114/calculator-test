@@ -12,14 +12,12 @@ if (!function_exists('slab_calculator_settings_page')) {
             25
         );
     }
-    add_action('admin_menu', 'slab_calculator_settings_page');
+}
 
 // Add submenu for saved drawings
-add_action('admin_menu', 'ssc_add_saved_drawings_menu');
-
 function ssc_add_saved_drawings_menu() {
 	add_submenu_page(
-		'slab_calculator_settings',
+		'slab-calculator-settings',
 		'Saved Drawings',
 		'Saved Drawings',
 		'manage_options',
@@ -27,7 +25,12 @@ function ssc_add_saved_drawings_menu() {
 		'ssc_saved_drawings_page'
 	);
 }
-}
+
+// Register the main menu
+add_action('admin_menu', 'slab_calculator_settings_page');
+
+// Register the submenu
+add_action('admin_menu', 'ssc_add_saved_drawings_menu');
 
 if (!function_exists('slab_calculator_settings_page_html')) {
     function slab_calculator_settings_page_html() {
@@ -79,6 +82,9 @@ if (!function_exists('slab_calculator_register_settings')) {
         register_setting('slab_calculator_settings_group', 'ssc_production_cost_standard');
         register_setting('slab_calculator_settings_group', 'ssc_production_cost_mitred');
         register_setting('slab_calculator_settings_group', 'ssc_installation_cost');
+        
+        // Canvas Lock Settings
+        register_setting('slab_calculator_settings_group', 'ssc_disable_drawing_after_submission');
 
         add_settings_section(
             'slab_calculator_settings_section',
@@ -231,6 +237,15 @@ if (!function_exists('slab_calculator_register_settings')) {
             'ssc_public_quote_access',
             'Public Quote Access',
             'ssc_public_quote_access_callback',
+            'slab_calculator_settings',
+            'slab_calculator_settings_section'
+        );
+        
+        // Canvas Lock After Submission Setting
+        add_settings_field(
+            'ssc_disable_drawing_after_submission',
+            'Disable Drawing After Submission',
+            'ssc_disable_drawing_after_submission_callback',
             'slab_calculator_settings',
             'slab_calculator_settings_section'
         );
@@ -753,6 +768,24 @@ if (!function_exists('ssc_public_quote_access_callback')) {
 		<p class="description">
 			When enabled, anyone with a direct quote link can view the PDF without logging in. 
 			This is useful for sharing quotes with clients, but may expose quote information publicly.
+		</p>
+		<?php
+	}
+}
+
+// Canvas Lock After Submission Callback
+if (!function_exists('ssc_disable_drawing_after_submission_callback')) {
+	function ssc_disable_drawing_after_submission_callback() {
+		$disable_drawing = get_option('ssc_disable_drawing_after_submission', 'no');
+		?>
+		<select name="ssc_disable_drawing_after_submission">
+			<option value="no" <?php selected($disable_drawing, 'no'); ?>>No - Allow continued drawing after submission</option>
+			<option value="yes" <?php selected($disable_drawing, 'yes'); ?>>Yes - Lock canvas after submission</option>
+		</select>
+		<p class="description">
+			When enabled, the drawing canvas will be locked after a quote is submitted, 
+			showing a success message with option to start a new drawing. This prevents 
+			accidental modifications to submitted quotes.
 		</p>
 		<?php
 	}

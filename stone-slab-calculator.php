@@ -52,12 +52,16 @@ function ssc_activate_plugin() {
         drawing_notes text,
         total_cutting_mm decimal(10,2) NOT NULL,
         only_cut_mm decimal(10,2) NOT NULL,
-        mitred_cut_mm decimal(10,2) NOT NULL,
-        slab_cost varchar(50) NOT NULL,
-        drawing_data longtext NOT NULL,
         pdf_file_path varchar(500) NOT NULL,
         drawing_link text NOT NULL,
+        quote_id varchar(50),
         created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        production_cost_standard decimal(10,2) DEFAULT 0.00,
+        production_cost_mitred decimal(10,2) DEFAULT 0.00,
+        installation_cost decimal(10,2) DEFAULT 0.00,
+        total_production_cost decimal(10,2) DEFAULT 0.00,
+        total_installation_cost decimal(10,2) DEFAULT 0.00,
+        total_project_cost decimal(10,2) DEFAULT 0.00,
         PRIMARY KEY (id),
         KEY user_id (user_id),
         KEY created_at (created_at)
@@ -142,25 +146,28 @@ function ssc_save_drawing($data) {
         return false;
     }
     
-    // Prepare data for insertion
+    // Prepare data for insertion - using actual table column names
     $insert_data = array(
         'user_id' => $user_id,
         'drawing_name' => sanitize_text_field($data['drawing_name']),
         'drawing_notes' => sanitize_textarea_field($data['drawing_notes']),
         'total_cutting_mm' => floatval($data['total_cutting_mm']),
         'only_cut_mm' => floatval($data['only_cut_mm']),
-        'mitred_cut_mm' => floatval($data['mitred_cut_mm']),
-        'slab_cost' => sanitize_text_field($data['slab_cost']),
-        'drawing_data' => wp_kses_post($data['drawing_data']),
         'pdf_file_path' => sanitize_text_field($data['pdf_file_path']),
         'drawing_link' => esc_url_raw($data['drawing_link']),
-        'created_at' => current_time('mysql')
+        'quote_id' => isset($data['quote_id']) ? sanitize_text_field($data['quote_id']) : '',
+        'production_cost_standard' => floatval($data['only_cut_mm'] ?? 0), // Map only_cut_mm to production_cost_standard
+        'production_cost_mitred' => floatval($data['mitred_cut_mm'] ?? 0), // Map mitred_cut_mm to production_cost_mitred
+        'installation_cost' => 0.00, // Default value
+        'total_production_cost' => floatval($data['total_cutting_mm'] ?? 0), // Map total_cutting_mm to total_production_cost
+        'total_installation_cost' => 0.00, // Default value
+        'total_project_cost' => 0.00 // Default value
     );
     
     error_log('Insert data prepared: ' . print_r($insert_data, true));
     
-    // Check for required fields
-    $required_fields = ['drawing_name', 'total_cutting_mm', 'only_cut_mm', 'mitred_cut_mm', 'slab_cost'];
+    // Check for required fields - using actual table column names
+    $required_fields = ['drawing_name', 'total_cutting_mm', 'only_cut_mm', 'pdf_file_path'];
     foreach ($required_fields as $field) {
         if (!isset($insert_data[$field]) || $insert_data[$field] === '') {
             error_log('❌ Missing required field: ' . $field);
@@ -496,11 +503,12 @@ function ssc_ajax_save_drawing() {
         'drawing_notes' => $_POST['drawing_notes'] ?? '',
         'total_cutting_mm' => $_POST['total_cutting_mm'] ?? 0,
         'only_cut_mm' => $_POST['only_cut_mm'] ?? 0,
-        'mitred_cut_mm' => $_POST['mitred_cut_mm'] ?? 0,
-        'slab_cost' => $_POST['slab_cost'] ?? '$0',
-        'drawing_data' => $_POST['drawing_data'] ?? '',
+        'mitred_cut_mm' => $_POST['mitred_cut_mm'] ?? 0, // Will be mapped to production_cost_mitred
+        'slab_cost' => $_POST['slab_cost'] ?? '$0', // Will be mapped to total_project_cost
+        'drawing_data' => $_POST['drawing_data'] ?? '', // Not used in current table structure
         'pdf_file_path' => $filename, // Save the PDF filename to database
-        'drawing_link' => $drawing_link
+        'drawing_link' => $drawing_link,
+        'quote_id' => time() . '_' . rand(1000, 9999) // Generate quote ID
     );
     
     error_log('Data prepared for database save: ' . print_r($drawing_data, true));
@@ -732,11 +740,10 @@ function ssc_ajax_delete_drawing() {
 
 // Function to handle PDF download
 function ssc_ajax_download_pdf() {
-    // Ensure database table exists - TEMPORARILY DISABLED
-    // ssc_ensure_table_exists();
+    error_log('=== PDF DOWNLOAD HANDLER STARTED ===');
+    error_log('GET data received: ' . print_r($_GET, true));
     
     // Check nonce for security - temporarily disabled for testing
-    // TEMPORARILY DISABLE NONCE VERIFICATION TO FIX DOWNLOAD ISSUE
     // TODO: Implement proper nonce verification once the system is stable
     /*
     if (!wp_verify_nonce($_GET['nonce'], 'ssc_save_drawing_nonce')) {
@@ -746,70 +753,93 @@ function ssc_ajax_download_pdf() {
     
     error_log('⚠️ Nonce verification temporarily disabled for PDF download');
     
-    // Check if user is logged in or if user_id is provided
-    $user_id = null;
-    if (is_user_logged_in()) {
-        $user_id = get_current_user_id();
-    } elseif (isset($_GET['user_id']) && !empty($_GET['user_id'])) {
-        $user_id = intval($_GET['user_id']);
-        // Verify the user exists
-        if (!get_user_by('ID', $user_id)) {
-            wp_die('Invalid user ID');
-        }
-    } else {
-        wp_die('User not logged in and no user ID provided');
-    }
-    
     $pdf_filename = sanitize_text_field($_GET['pdf']);
     
     if (empty($pdf_filename)) {
+        error_log('❌ PDF filename not provided');
         wp_die('PDF filename not provided');
     }
     
-    // Get drawing to verify user access - TEMPORARILY DISABLED
-    // $drawing = ssc_get_drawing_by_pdf($pdf_filename);
-    // if (!$drawing || $drawing['user_id'] != $user_id) {
-    //     wp_die('Access denied');
-    // }
+    error_log('📄 Looking for PDF file: ' . $pdf_filename);
     
-    // $file_path = SSC_PLUGIN_DIR . 'quotes/' . $pdf_filename;
+    // Try multiple possible file locations for enhanced PDFs
+    $possible_paths = array();
     
-    // if (!file_exists($file_path)) {
-    //     wp_die('PDF file not found');
-    // }
+    // 1. Check the ssc-temp directory (where enhanced PDFs are saved)
+    $temp_dir = wp_upload_dir()['basedir'] . '/ssc-temp/';
+    $possible_paths[] = $temp_dir . $pdf_filename;
     
-    // // Set headers for download
-    // header('Content-Type: application/pdf');
-    // header('Content-Disposition: attachment; filename="' . $pdf_filename . '"');
-    // header('Content-Length: ' . filesize($file_path));
-    // header('Cache-Control: no-cache, must-revalidate');
-    // header('Pragma: no-cache');
+    // 2. Check the quotes directory (for legacy PDFs)
+    $quotes_dir = SSC_PLUGIN_DIR . 'quotes/';
+    $possible_paths[] = $quotes_dir . $pdf_filename;
     
-    // // Output file content
-    // readfile($file_path);
-    // exit;
+    // 3. Check the uploads directory
+    $uploads_dir = wp_upload_dir()['basedir'] . '/';
+    $possible_paths[] = $uploads_dir . $pdf_filename;
     
-    // Get drawing to verify user access
-    $drawing = ssc_get_drawing_by_pdf($pdf_filename);
-    if (!$drawing || $drawing['user_id'] != $user_id) {
-        wp_die('Access denied');
+    error_log('🔍 Checking possible file paths:');
+    foreach ($possible_paths as $path) {
+        error_log('  - ' . $path . ' (exists: ' . (file_exists($path) ? 'Yes' : 'No') . ')');
     }
     
-    $file_path = SSC_PLUGIN_DIR . 'quotes/' . $pdf_filename;
-    
-    if (!file_exists($file_path)) {
-        wp_die('PDF file not found');
+    $file_path = null;
+    foreach ($possible_paths as $path) {
+        if (file_exists($path)) {
+            $file_path = $path;
+            error_log('✅ Found PDF file at: ' . $path);
+            break;
+        }
     }
     
-    // Set headers for download
-    header('Content-Type: application/pdf');
-    header('Content-Disposition: attachment; filename="' . $pdf_filename . '"');
-    header('Content-Length: ' . filesize($file_path));
-    header('Cache-Control: no-cache, must-revalidate');
-    header('Pragma: no-cache');
+    if (!$file_path) {
+        error_log('❌ PDF file not found in any of the checked locations');
+        wp_die('PDF file not found. Please try generating the PDF again.');
+    }
+    
+    // Check if file is readable
+    if (!is_readable($file_path)) {
+        error_log('❌ PDF file is not readable: ' . $file_path);
+        wp_die('PDF file is not accessible. Please check file permissions.');
+    }
+    
+    // Get file size
+    $file_size = filesize($file_path);
+    if ($file_size === false) {
+        error_log('❌ Could not determine file size for: ' . $file_path);
+        wp_die('Could not determine file size.');
+    }
+    
+    error_log('📊 File size: ' . $file_size . ' bytes');
+    
+    // Determine content type based on file extension
+    $file_extension = strtolower(pathinfo($pdf_filename, PATHINFO_EXTENSION));
+    
+    if ($file_extension === 'html') {
+        // Serve HTML file for browser-based PDF conversion
+        header('Content-Type: text/html; charset=UTF-8');
+        header('Content-Disposition: inline; filename="' . $pdf_filename . '"');
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Pragma: no-cache');
+    } else {
+        // Serve PDF file for download
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $pdf_filename . '"');
+        header('Content-Length: ' . $file_size);
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Pragma: no-cache');
+    }
+    
+    error_log('📥 Starting file download...');
     
     // Output file content
-    readfile($file_path);
+    $bytes_sent = readfile($file_path);
+    
+    if ($bytes_sent === false) {
+        error_log('❌ Error reading file: ' . $file_path);
+        wp_die('Error reading PDF file.');
+    }
+    
+    error_log('✅ File download completed. Bytes sent: ' . $bytes_sent);
     exit;
 }
 
