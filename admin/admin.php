@@ -1675,7 +1675,8 @@ function handle_watermark_upload() {
             return array('success' => false, 'message' => 'Failed to save watermark to database: ' . $wpdb->last_error);
         }
     } else {
-            return array('success' => false, 'message' => 'Failed to upload watermark image. Please try again.');
+        return array('success' => false, 'message' => 'Failed to upload watermark image. Please try again.');
+    }
 }
 
 // Function to display watermark history
@@ -1722,5 +1723,4 @@ function display_watermark_history() {
         echo '<p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Showing last 10 watermarks. Only one watermark can be active at a time.</p>';
         echo '</div>';
     }
-}
 }
